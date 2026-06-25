@@ -46,8 +46,8 @@ async function handleWebhookEvent(event: Stripe.Event) {
       break
     }
     case 'invoice.payment_failed': {
-      // @ts-expect-error - subscription might not be strongly typed on Invoice in this Stripe version
-      const subscription = event.data.object.subscription as string | { id: string } | null
+      const invoice = event.data.object as unknown as Record<string, unknown>
+      const subscription = invoice.subscription as string | { id: string } | null
       const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id
 
       if (subscriptionId) {

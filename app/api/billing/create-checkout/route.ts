@@ -8,7 +8,7 @@ const checkoutSchema = z.object({}).passthrough()
 
 export async function POST(req: Request) {
   const start = Date.now()
-  const session = { user: null } as any
+  const session = { user: null } as { user: { id: string; email: string } | null }
   
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -18,7 +18,7 @@ try {
 }
 
 export { ratelimit }
-export async function limitRequest(key: string, limitConfig?: { limit: number; window: string }) {
+export async function limitRequest(key: string) {
   if (!ratelimit) return { success: true }
   try {
     return await ratelimit.limit(key)
