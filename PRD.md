@@ -14,7 +14,7 @@ Built by forking the Dealinno codebase and gutting the sales/email modules.
 
 ## 3. Data model
 - **listings** — id, source, source_id, address, lat, lng, price, beds, baths, sqft, url, posted_at, first_seen_at, is_canonical, canonical_id, raw(jsonb). Unique(source, source_id); geo index on (lat,lng).
-- **users** — id, phone(unique), status(pending_payment|active|expired), plan(monthly|quarterly|null), access_expires_at, created_at.
+- **users** — id, phone(unique), status(pending_payment|active|expired|done), plan(pass_30|pass_90|null), access_expires_at, created_at.
 - **criteria** — user_id, price_min, price_max, beds_min, beds_max, zips[], neighborhoods[].
 - **sent** — user_id, listing_id, sent_at. Unique(user_id, listing_id).
 
@@ -30,12 +30,14 @@ Built by forking the Dealinno codebase and gutting the sales/email modules.
 **Legal posture:** scraping sources prohibit it in ToS (Craigslist & CoStar have litigated). RentCast is licensed — keep it as the backbone; treat scrapers as the freshness/coverage layer.
 
 ## 6. Onboarding & auth
-One public page: phone + criteria → Twilio OTP verify → create user(pending_payment)+criteria → payment. No portal, no other auth. The onboarding page is also the landing page.
+One public page: phone + criteria → Twilio OTP verify → create user(pending_payment)+criteria → live match preview (AH-011) → payment. No portal, no other auth. The onboarding page is also the landing page.
 
-## 7. Pricing & billing (mirrors AH3000)
-- **Monthly:** $40/mo, recurring.
-- **Quarterly:** $30 one-time = 90 days of access (app sets access_expires_at = now + 90d).
-- Charge from day one. Stripe Payment Links / Checkout + webhook activation. Expired users stop receiving texts.
+## 7. Pricing & billing — one-time access passes
+The product **churns by design** (people find a place and leave), so there is **no recurring subscription** — auto-renew would generate post-move chargebacks/refunds that poison word-of-mouth. Two one-time passes:
+- **30-day pass — $39** (anchor)
+- **90-day pass — $69** (hero; labeled **"Most popular"**, pre-selected — hunts run long, most self-select here)
+
+Charge from day one (Stripe one-time Checkout / Payment Links + webhook activation). Access enforced via `access_expires_at`; expired/`done` users stop receiving texts. **"Found a place" button** stops texts early; **expiry → "extend?"** prompt drives re-purchase (no silent auto-renew). Convert via a live 1–3 real-match preview at onboarding (AH-011), **not** a free tier. Prices are a launch point — A/B the price **up**; one-time pricing is easy to raise.
 
 ## 8. Monitoring
 Failures reach customers instantly with no support buffer, so monitoring is mandatory. Inngest failure → alert; minimal `/admin` with run statuses, listing counts by source, sends/24h, recent failures.
@@ -46,12 +48,14 @@ Failures reach customers instantly with no support buffer, so monitoring is mand
 - Review gates: security, tests, and a **legal audit** (data collection, OAuth/scope, SMS/A2P compliance, billing changes, AI disclosure) — plus Propinno additions: **data-source ToS/scraping risk** and **scam-listing handling**.
 
 ## 10. 24h sprint scope vs Backlog
-**In sprint (AH-001 → AH-010):** seed/gut repo, schema, onboarding+OTP, Stripe, RentCast poller, Craigslist RSS poller, geocode+dedupe, matching engine, Twilio sender, monitoring. Sequenced revenue-first: after AH-004 (Stripe), concierge revenue is possible Day 1 while the pipeline finishes.
+**In sprint (AH-001 → AH-010):** seed/gut repo, schema, onboarding+OTP, Stripe (two one-time passes), RentCast poller, Craigslist RSS poller, geocode+dedupe, matching engine, Twilio sender, monitoring. Sequenced revenue-first: after AH-004 (Stripe), concierge revenue is possible Day 1 while the pipeline finishes.
+**Fast-follow:** AH-011 (live-match preview paywall) — top conversion lever once listings flow.
 **Out of sprint → Backlog:** additional sources, safety/scam-scoring layer, consumer web portal.
 
 ## 11. External provisioning (owner-only — Claude is barred from signups/credentials)
 - **Twilio + A2P 10DLC registration — START DAY 0.** Texting US numbers needs carrier brand+campaign approval (1 day–~2 weeks); this is the long pole, like Gmail OAuth was for Dealinno. Low-volume starter tier or a verified toll-free number is faster.
-- RentCast API key · Stripe account + two price IDs · fresh Supabase project · Mapbox geocoding token · domain (propinno.com).
+- RentCast API key · Stripe account + two one-time price IDs · fresh Supabase project · Mapbox geocoding token · domain (propinno.com).
 
 ## 12. Changelog / session log
 - **Session 0 (setup):** Repo `ALLENDE123X/propinno` created (private). AH-001 → AH-010 filed as issues, sequenced revenue-first. PRD committed as `PRD.md`. Pending: owner provisioning (Twilio A2P first), Supabase project, Projects board wiring. Next ticket: **AH-001**.
+- **Session 1 (pricing locked):** Pricing model set to **two one-time access passes — $39/30-day, $69/90-day (90 = "Most popular")**; recurring subscription dropped. AH-004 rewritten accordingly; added "found a place" + expiry "extend" lifecycle. Filed **AH-011** (onboarding live-match preview → paywall) as the fast-follow conversion lever. Schema `users.plan` → pass_30|pass_90; status adds `done`.
