@@ -5,9 +5,4 @@ const nextConfig: NextConfig = {
   /* config options here */
 };
 
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  org: "dealinno",
-  project: "nextjs",
-  widenClientFileUpload: true,
-});
+export default nextConfig;

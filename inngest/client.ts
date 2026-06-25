@@ -1,2 +1,3 @@
-import { Inngest } from "inngest"
-export const inngest = new Inngest({ id: "dealinno" })
+import { Inngest } from 'inngest'
+
+export const inngest = new Inngest({ id: 'propinno' })

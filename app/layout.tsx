@@ -6,9 +6,9 @@ import { Toaster } from "sonner";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Dealinno — Close deals while you sleep",
-  description: "AI that drafts your scheduling emails, records meetings, and delivers proposals in 60 seconds — automatically.",
-  metadataBase: new URL("https://dealinno.vercel.app"),
+  title: "Propinno — Fresh SF apartment listings",
+  description: "Fresh SF apartment listings, texted to you the second they drop.",
+  metadataBase: new URL("https://propinno.com"),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
