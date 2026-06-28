@@ -1,7 +1,7 @@
 import { inngest } from '../client'
 import { db } from '@/lib/db'
-import { users, criteria, sent, listings } from '@/lib/db/schema'
-import { eq, and, gt, inArray, isNull, sql } from 'drizzle-orm'
+import { listings } from '@/lib/db/schema'
+import { inArray, sql } from 'drizzle-orm'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 
