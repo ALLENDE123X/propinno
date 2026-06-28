@@ -5,6 +5,24 @@ import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { sql } from 'drizzle-orm'
 
+interface RentCastListing {
+  id: string | number
+  formattedAddress?: string
+  addressLine1?: string
+  addressLine2?: string
+  city: string
+  state: string
+  zipCode: string
+  latitude: number
+  longitude: number
+  price: number
+  bedrooms: number
+  bathrooms: number
+  squareFootage: number
+  listedDate?: string
+  [key: string]: unknown
+}
+
 export const fetchRentcastListings = async () => {
   const apiKey = process.env.RENTCAST_API_KEY
   if (!apiKey) {
@@ -25,15 +43,15 @@ export const fetchRentcastListings = async () => {
     throw new Error(`RentCast API returned ${res.status}: ${await res.text()}`)
   }
 
-  return (await res.json()) as any[]
+  return (await res.json()) as RentCastListing[]
 }
 
-export const upsertListings = async (data: any[]) => {
+export const upsertListings = async (data: RentCastListing[]) => {
   if (!Array.isArray(data) || data.length === 0) {
     return 0
   }
 
-  const values = data.map((l: any) => ({
+  const values = data.map((l) => ({
     source: 'rentcast',
     sourceId: String(l.id),
     address: l.formattedAddress || `${l.addressLine1}${l.addressLine2 ? ' ' + l.addressLine2 : ''}, ${l.city}, ${l.state} ${l.zipCode}`,

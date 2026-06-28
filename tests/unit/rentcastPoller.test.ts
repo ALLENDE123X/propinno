@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchRentcastListings, upsertListings } from '@/inngest/functions/rentcastPoller'
-import { db } from '@/lib/db'
 
 const mockOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined)
 const mockValues = vi.fn().mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
@@ -8,7 +7,8 @@ const mockInsert = vi.fn().mockReturnValue({ values: mockValues })
 
 vi.mock('@/lib/db', () => ({
   db: {
-    insert: (...args: any[]) => mockInsert(...args)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    insert: (...args: unknown[]) => mockInsert(...args)
   }
 }))
 
