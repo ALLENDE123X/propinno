@@ -27,6 +27,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <button
+        // eslint-disable-next-line security/detect-object-injection
         className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className || ''}`}
         ref={ref}
         {...props}

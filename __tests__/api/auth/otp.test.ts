@@ -43,7 +43,7 @@ vi.mock('@/lib/ratelimit', () => ({
 
 vi.mock('@/lib/db', () => ({
   db: {
-    transaction: vi.fn().mockImplementation(async (cb) => {
+    transaction: vi.fn().mockImplementation(async () => {
       // Mock transaction inserting user
       return { id: 'mock-user-id' }
     })

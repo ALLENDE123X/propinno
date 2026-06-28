@@ -1,4 +1,4 @@
-import { expect, test, describe, beforeAll, afterAll, vi, beforeEach } from 'vitest'
+import { expect, test, describe, vi, beforeEach } from 'vitest'
 import { getUserStatus, markFoundPlace, createCheckoutSession } from '@/app/checkout/actions'
 import { POST } from '@/app/api/webhooks/stripe/route'
 import { stripe } from '@/lib/stripe'

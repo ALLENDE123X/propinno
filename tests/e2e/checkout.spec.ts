@@ -14,7 +14,7 @@ test.describe('Checkout Page', () => {
         status: 'pending_payment',
       }).returning();
       testUserId = user.id;
-    } catch (e) {
+    } catch {
       console.warn("DB not accessible, skipping insert");
     }
   });
@@ -26,7 +26,7 @@ test.describe('Checkout Page', () => {
   });
 
   // Helper to set cookie for authentication
-  async function authPage(context: any, userId: string) {
+  async function authPage(context: import('@playwright/test').BrowserContext, userId: string) {
     await context.addCookies([
       {
         name: 'session',

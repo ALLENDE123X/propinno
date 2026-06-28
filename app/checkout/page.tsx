@@ -24,7 +24,7 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
       await markFoundPlace()
       onFoundPlace()
       toast.success("Congratulations! We've stopped your texts.")
-    } catch (err) {
+    } catch {
       toast.error("Failed to update status")
     }
     setLoading(false)
