@@ -39,8 +39,8 @@ test.describe('Checkout Page', () => {
     if (!testUserId) test.skip();
     await page.goto(`/checkout?userId=${testUserId}`);
     await expect(page.locator('text=Choose your access pass')).toBeVisible();
-    await expect(page.locator('text=30-Day Pass')).toBeVisible();
-    await expect(page.locator('text=90-Day Pass')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '30-Day Pass' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '90-Day Pass' })).toBeVisible();
   });
 
   test('with valid active user shows active pass state', async ({ page }) => {
