@@ -47,7 +47,7 @@ export const fetchRentcastListings = async () => {
 
 export const upsertListings = async (data: RentCastListing[]) => {
   if (!Array.isArray(data) || data.length === 0) {
-    return 0
+    return { count: 0, canonicalIds: [] }
   }
 
   const values = data.map((l) => ({
@@ -76,11 +76,18 @@ export const rentcastPoller = inngest.createFunction(
   async ({ step }) => {
     try {
       const data = await step.run('fetch-rentcast', fetchRentcastListings)
-      const upsertedCount = await step.run('upsert-listings', async () => upsertListings(data))
+      const result = await step.run('upsert-listings', async () => upsertListings(data))
 
-      logger.info({ fetched: data.length, upserted: upsertedCount }, 'RentCast poller completed successfully')
+      if (result.canonicalIds && result.canonicalIds.length > 0) {
+        await step.sendEvent('trigger-matching', {
+          name: 'app/listings.upserted',
+          data: { listingIds: result.canonicalIds }
+        })
+      }
 
-      return { fetched: data.length, upserted: upsertedCount }
+      logger.info({ fetched: data.length, upserted: result.count }, 'RentCast poller completed successfully')
+
+      return { fetched: data.length, upserted: result.count }
     } catch (error) {
       Sentry.captureException(error)
       logger.error({ err: error }, 'RentCast poller failed')

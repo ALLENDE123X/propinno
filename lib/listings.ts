@@ -47,6 +47,8 @@ export async function dedupeAndUpsertListings(
   }[]
 ) {
   let count = 0
+  const upsertedCanonicalIds: string[] = []
+  
   for (const item of items) {
     let { lat, lng } = item
     
@@ -81,7 +83,7 @@ export async function dedupeAndUpsertListings(
       }
     }
 
-    await db.insert(listings).values({
+    const res = await db.insert(listings).values({
       source: item.source,
       sourceId: item.sourceId,
       address: item.address,
@@ -106,8 +108,12 @@ export async function dedupeAndUpsertListings(
         lat: sql`EXCLUDED.lat`,
         lng: sql`EXCLUDED.lng`
       }
-    })
+    }).returning({ id: listings.id, isCanonical: listings.isCanonical })
+    
+    if (res[0]?.isCanonical) {
+      upsertedCanonicalIds.push(res[0].id)
+    }
     count++
   }
-  return count
+  return { count, canonicalIds: upsertedCanonicalIds }
 }

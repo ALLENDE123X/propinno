@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchCraigslistFeed, upsertCraigslistListings } from '@/inngest/functions/craigslistPoller'
+import { fetchCraigslistFeed, upsertCraigslistListings, craigslistPoller } from '@/inngest/functions/craigslistPoller'
+import * as Sentry from '@sentry/nextjs'
+import { logger } from '@/lib/logger'
 
-const mockOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined)
+const mockReturning = vi.fn().mockResolvedValue([{ id: '1', isCanonical: true }])
+const mockOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockReturning })
 const mockValues = vi.fn().mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
 const mockInsert = vi.fn().mockReturnValue({ values: mockValues })
 
@@ -79,8 +82,8 @@ describe('upsertCraigslistListings', () => {
     vi.clearAllMocks()
   })
 
-  it('returns 0 for empty array', async () => {
-    expect(await upsertCraigslistListings([])).toBe(0)
+  it('returns { count: 0, canonicalIds: [] } for empty array', async () => {
+    expect(await upsertCraigslistListings([])).toEqual({ count: 0, canonicalIds: [] })
     expect(mockInsert).not.toHaveBeenCalled()
   })
 
@@ -98,8 +101,9 @@ describe('upsertCraigslistListings', () => {
       }
     ]
 
-    const count = await upsertCraigslistListings(items)
-    expect(count).toBe(1)
+    const result = await upsertCraigslistListings(items)
+    expect(result.count).toBe(1)
+    expect(result.canonicalIds).toEqual(['1'])
     expect(mockInsert).toHaveBeenCalledTimes(1)
     expect(mockValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -111,5 +115,55 @@ describe('upsertCraigslistListings', () => {
       })
     )
     expect(mockOnConflictDoUpdate).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('craigslistPoller handler', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('dispatches trigger-matching event when canonicalIds are returned', async () => {
+    const mockStep = {
+      run: vi.fn().mockImplementation((name, fn) => {
+        if (name.startsWith('fetch-cl')) return Promise.resolve([{}])
+        if (name.startsWith('upsert-cl')) return Promise.resolve({ count: 1, canonicalIds: ['1'] })
+        return fn()
+      }),
+      sendEvent: vi.fn().mockResolvedValue(undefined)
+    }
+
+    const result = await craigslistPoller['fn']({ step: mockStep })
+    expect(result).toEqual({ fetched: 5, upserted: 5 })
+    expect(mockStep.sendEvent).toHaveBeenCalledWith('trigger-matching', {
+      name: 'app/listings.upserted',
+      data: { listingIds: ['1', '1', '1', '1', '1'] }
+    })
+  })
+
+  it('skips sendEvent when no canonicalIds are returned', async () => {
+    const mockStep = {
+      run: vi.fn().mockImplementation((name, fn) => {
+        if (name.startsWith('fetch-cl')) return Promise.resolve([{}])
+        if (name.startsWith('upsert-cl')) return Promise.resolve({ count: 1, canonicalIds: [] })
+        return fn()
+      }),
+      sendEvent: vi.fn()
+    }
+
+    const result = await craigslistPoller['fn']({ step: mockStep })
+    expect(result).toEqual({ fetched: 5, upserted: 5 })
+    expect(mockStep.sendEvent).not.toHaveBeenCalled()
+  })
+
+  it('catches and logs errors properly', async () => {
+    const error = new Error('Test error')
+    const mockStep = {
+      run: vi.fn().mockRejectedValue(error)
+    }
+
+    await expect(craigslistPoller['fn']({ step: mockStep })).rejects.toThrow('Test error')
+    expect(Sentry.captureException).toHaveBeenCalledWith(error)
+    expect(logger.error).toHaveBeenCalledWith({ err: error }, 'Craigslist poller failed')
   })
 })
