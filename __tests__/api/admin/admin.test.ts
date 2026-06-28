@@ -11,6 +11,10 @@ vi.mock('@/inngest/functions/matchingEngine', () => ({
   findMatchingUsers: vi.fn().mockResolvedValue([{ user_id: 'test-user-id' }])
 }))
 
+vi.mock('@/lib/ratelimit', () => ({
+  limitRequest: vi.fn().mockResolvedValue({ success: true, limit: 10, remaining: 9, reset: 0 }),
+}))
+
 vi.mock('@/lib/db', () => ({
   db: {
     delete: vi.fn().mockReturnThis(),
@@ -40,6 +44,14 @@ describe('Admin APIs', () => {
       expect(res.status).toBe(401)
     })
 
+    it('returns 429 when rate limited', async () => {
+      const { limitRequest } = await import('@/lib/ratelimit')
+      vi.mocked(limitRequest).mockResolvedValueOnce({ success: false, limit: 10, remaining: 0, reset: 0 })
+      const req = new Request('http://localhost/api/admin/test-pipeline?secret=test-secret')
+      const res = await testPipeline(req)
+      expect(res.status).toBe(429)
+    })
+
     it('returns 401 with wrong secret', async () => {
       const req = new Request('http://localhost/api/admin/test-pipeline?secret=wrong')
       const res = await testPipeline(req)
@@ -62,6 +74,20 @@ describe('Admin APIs', () => {
       const req = new Request('http://localhost/api/admin/status')
       const res = await statusPipeline(req)
       expect(res.status).toBe(401)
+    })
+
+    it('returns 401 with wrong secret', async () => {
+      const req = new Request('http://localhost/api/admin/status?secret=wrong')
+      const res = await statusPipeline(req)
+      expect(res.status).toBe(401)
+    })
+
+    it('returns 429 when rate limited', async () => {
+      const { limitRequest } = await import('@/lib/ratelimit')
+      vi.mocked(limitRequest).mockResolvedValueOnce({ success: false, limit: 10, remaining: 0, reset: 0 })
+      const req = new Request('http://localhost/api/admin/status?secret=test-secret')
+      const res = await statusPipeline(req)
+      expect(res.status).toBe(429)
     })
 
     it('succeeds with correct secret', async () => {

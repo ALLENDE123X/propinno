@@ -10,7 +10,7 @@ export const twilioClient = accountSid && authToken ? twilio(accountSid, authTok
 export async function sendSMS(to: string, body: string) {
   if (!twilioClient) {
     logger.warn('TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing, skipping actual SMS send (development mode)')
-    logger.info(`[SMS to ${to}]: ${body}`)
+    logger.info(`[SMS to ${to}]`)
     return 'mock-sid'
   }
 
