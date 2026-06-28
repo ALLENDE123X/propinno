@@ -87,8 +87,8 @@ export const fetchCraigslistFeed = async (url: string): Promise<CraigslistItem[]
   return items
 }
 
-export const upsertCraigslistListings = async (items: CraigslistItem[]): Promise<number> => {
-  if (items.length === 0) return 0
+export const upsertCraigslistListings = async (items: CraigslistItem[]): Promise<{ count: number, canonicalIds: string[] }> => {
+  if (items.length === 0) return { count: 0, canonicalIds: [] }
 
   const values = items.map((l) => ({
     source: 'craigslist' as const,
@@ -117,16 +117,27 @@ export const craigslistPoller = inngest.createFunction(
     try {
       let totalFetched = 0
       let totalUpserted = 0
+      const allCanonicalIds: string[] = []
 
       for (const feedUrl of CL_RSS_FEEDS) {
         const items = await step.run(`fetch-cl-${feedUrl.split('/search/')[1]?.split('/')[0] ?? 'feed'}`, () =>
           fetchCraigslistFeed(feedUrl)
         )
-        const upserted = await step.run(`upsert-cl-${feedUrl.split('/search/')[1]?.split('/')[0] ?? 'feed'}`, () =>
+        const result = await step.run(`upsert-cl-${feedUrl.split('/search/')[1]?.split('/')[0] ?? 'feed'}`, () =>
           upsertCraigslistListings(items)
         )
         totalFetched += items.length
-        totalUpserted += upserted
+        totalUpserted += result.count
+        if (result.canonicalIds) {
+          allCanonicalIds.push(...result.canonicalIds)
+        }
+      }
+
+      if (allCanonicalIds.length > 0) {
+        await step.sendEvent('trigger-matching', {
+          name: 'app/listings.upserted',
+          data: { listingIds: allCanonicalIds }
+        })
       }
 
       logger.info(

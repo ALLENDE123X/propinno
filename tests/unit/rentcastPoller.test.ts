@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchRentcastListings, upsertListings } from '@/inngest/functions/rentcastPoller'
 
-const mockOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined)
+const mockReturning = vi.fn().mockResolvedValue([{ id: '1', isCanonical: true }])
+const mockOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockReturning })
 const mockValues = vi.fn().mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
 const mockInsert = vi.fn().mockReturnValue({ values: mockValues })
 
@@ -63,8 +64,8 @@ describe('RentCast Poller', () => {
   })
 
   describe('upsertListings', () => {
-    it('returns 0 if data is empty', async () => {
-      expect(await upsertListings([])).toBe(0)
+    it('returns { count: 0, canonicalIds: [] } if data is empty', async () => {
+      expect(await upsertListings([])).toEqual({ count: 0, canonicalIds: [] })
     })
 
     it('upserts mapped data correctly', async () => {

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchCraigslistFeed, upsertCraigslistListings } from '@/inngest/functions/craigslistPoller'
 
-const mockOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined)
+const mockReturning = vi.fn().mockResolvedValue([{ id: '1', isCanonical: true }])
+const mockOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockReturning })
 const mockValues = vi.fn().mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
 const mockInsert = vi.fn().mockReturnValue({ values: mockValues })
 
@@ -79,8 +80,8 @@ describe('upsertCraigslistListings', () => {
     vi.clearAllMocks()
   })
 
-  it('returns 0 for empty array', async () => {
-    expect(await upsertCraigslistListings([])).toBe(0)
+  it('returns { count: 0, canonicalIds: [] } for empty array', async () => {
+    expect(await upsertCraigslistListings([])).toEqual({ count: 0, canonicalIds: [] })
     expect(mockInsert).not.toHaveBeenCalled()
   })
 
@@ -98,8 +99,9 @@ describe('upsertCraigslistListings', () => {
       }
     ]
 
-    const count = await upsertCraigslistListings(items)
-    expect(count).toBe(1)
+    const result = await upsertCraigslistListings(items)
+    expect(result.count).toBe(1)
+    expect(result.canonicalIds).toEqual(['1'])
     expect(mockInsert).toHaveBeenCalledTimes(1)
     expect(mockValues).toHaveBeenCalledWith(
       expect.objectContaining({
