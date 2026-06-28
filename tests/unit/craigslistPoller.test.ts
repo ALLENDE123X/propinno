@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchCraigslistFeed, upsertCraigslistListings } from '@/inngest/functions/craigslistPoller'
+import { fetchCraigslistFeed, upsertCraigslistListings, craigslistPoller } from '@/inngest/functions/craigslistPoller'
+import * as Sentry from '@sentry/nextjs'
+import { logger } from '@/lib/logger'
 
 const mockReturning = vi.fn().mockResolvedValue([{ id: '1', isCanonical: true }])
 const mockOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockReturning })
@@ -113,5 +115,55 @@ describe('upsertCraigslistListings', () => {
       })
     )
     expect(mockOnConflictDoUpdate).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('craigslistPoller handler', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('dispatches trigger-matching event when canonicalIds are returned', async () => {
+    const mockStep = {
+      run: vi.fn().mockImplementation((name, fn) => {
+        if (name.startsWith('fetch-cl')) return Promise.resolve([{}])
+        if (name.startsWith('upsert-cl')) return Promise.resolve({ count: 1, canonicalIds: ['1'] })
+        return fn()
+      }),
+      sendEvent: vi.fn().mockResolvedValue(undefined)
+    }
+
+    const result = await craigslistPoller['fn']({ step: mockStep })
+    expect(result).toEqual({ fetched: 5, upserted: 5 })
+    expect(mockStep.sendEvent).toHaveBeenCalledWith('trigger-matching', {
+      name: 'app/listings.upserted',
+      data: { listingIds: ['1', '1', '1', '1', '1'] }
+    })
+  })
+
+  it('skips sendEvent when no canonicalIds are returned', async () => {
+    const mockStep = {
+      run: vi.fn().mockImplementation((name, fn) => {
+        if (name.startsWith('fetch-cl')) return Promise.resolve([{}])
+        if (name.startsWith('upsert-cl')) return Promise.resolve({ count: 1, canonicalIds: [] })
+        return fn()
+      }),
+      sendEvent: vi.fn()
+    }
+
+    const result = await craigslistPoller['fn']({ step: mockStep })
+    expect(result).toEqual({ fetched: 5, upserted: 5 })
+    expect(mockStep.sendEvent).not.toHaveBeenCalled()
+  })
+
+  it('catches and logs errors properly', async () => {
+    const error = new Error('Test error')
+    const mockStep = {
+      run: vi.fn().mockRejectedValue(error)
+    }
+
+    await expect(craigslistPoller['fn']({ step: mockStep })).rejects.toThrow('Test error')
+    expect(Sentry.captureException).toHaveBeenCalledWith(error)
+    expect(logger.error).toHaveBeenCalledWith({ err: error }, 'Craigslist poller failed')
   })
 })

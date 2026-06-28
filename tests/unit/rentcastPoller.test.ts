@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchRentcastListings, upsertListings } from '@/inngest/functions/rentcastPoller'
+import { fetchRentcastListings, upsertListings, rentcastPoller } from '@/inngest/functions/rentcastPoller'
+import * as Sentry from '@sentry/nextjs'
+import { logger } from '@/lib/logger'
 
 const mockReturning = vi.fn().mockResolvedValue([{ id: '1', isCanonical: true }])
 const mockOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockReturning })
@@ -106,6 +108,50 @@ describe('RentCast Poller', () => {
         })
       )
       expect(mockOnConflictDoUpdate).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('rentcastPoller handler', () => {
+    it('dispatches trigger-matching event when canonicalIds are returned', async () => {
+      const mockStep = {
+        run: vi.fn().mockImplementation((name, fn) => {
+          if (name === 'fetch-rentcast') return Promise.resolve([{}])
+          if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: ['1'] })
+        }),
+        sendEvent: vi.fn().mockResolvedValue(undefined)
+      }
+
+      const result = await rentcastPoller['fn']({ step: mockStep })
+      expect(result).toEqual({ fetched: 1, upserted: 1 })
+      expect(mockStep.sendEvent).toHaveBeenCalledWith('trigger-matching', {
+        name: 'app/listings.upserted',
+        data: { listingIds: ['1'] }
+      })
+    })
+
+    it('skips sendEvent when no canonicalIds are returned', async () => {
+      const mockStep = {
+        run: vi.fn().mockImplementation((name, fn) => {
+          if (name === 'fetch-rentcast') return Promise.resolve([{}])
+          if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: [] })
+        }),
+        sendEvent: vi.fn()
+      }
+
+      const result = await rentcastPoller['fn']({ step: mockStep })
+      expect(result).toEqual({ fetched: 1, upserted: 1 })
+      expect(mockStep.sendEvent).not.toHaveBeenCalled()
+    })
+
+    it('catches and logs errors properly', async () => {
+      const error = new Error('Test run error')
+      const mockStep = {
+        run: vi.fn().mockRejectedValue(error)
+      }
+
+      await expect(rentcastPoller['fn']({ step: mockStep })).rejects.toThrow('Test run error')
+      expect(Sentry.captureException).toHaveBeenCalledWith(error)
+      expect(logger.error).toHaveBeenCalledWith({ err: error }, 'RentCast poller failed')
     })
   })
 })
