@@ -30,7 +30,7 @@ export async function findMatchingUsers(listing: typeof listings.$inferSelect): 
       )
   `)
 
-  return matchingUsers as { user_id: string }[]
+  return matchingUsers as unknown as { user_id: string }[]
 }
 
 export const matchingEngine = inngest.createFunction(
