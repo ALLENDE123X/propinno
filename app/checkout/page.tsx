@@ -7,12 +7,15 @@ import { toast } from "sonner"
 import { Check, Loader2 } from "lucide-react"
 import { getUserStatus, markFoundPlace, createCheckoutSession } from "./actions"
 
+import { type InferSelectModel } from "drizzle-orm"
+import type { users } from "@/lib/db/schema"
+
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const userId = searchParams.get("userId")
   
   const [loading, setLoading] = useState<string | null>("init")
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<InferSelectModel<typeof users> | null>(null)
 
   useEffect(() => {
     if (userId) {
