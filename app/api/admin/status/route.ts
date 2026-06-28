@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       .from(listings)
       .groupBy(listings.source)
 
-    let recentFailures = []
+    let recentFailures: unknown[] = []
     if (redis) {
       try {
         recentFailures = await redis.lrange('recent_failures', 0, 9)
