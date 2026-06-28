@@ -11,11 +11,18 @@ async function handleWebhookEvent(event: Stripe.Event) {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.client_reference_id
     if (userId) {
+      const plan = session.metadata?.plan as 'pass_30' | 'pass_90' | undefined
+      const days = plan === 'pass_90' ? 90 : 30
+      
+      const accessExpiresAt = new Date()
+      accessExpiresAt.setDate(accessExpiresAt.getDate() + days)
+
       await db.update(users).set({
         status: 'active',
-        // Note: accessExpiresAt and plan will be set based on line items or metadata in a future PR
+        plan: plan || 'pass_30',
+        accessExpiresAt,
       }).where(eq(users.id, userId))
-      logger.info({ userId, action: 'stripe_checkout_completed' })
+      logger.info({ userId, plan, action: 'stripe_checkout_completed' })
     }
   }
 }
