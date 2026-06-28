@@ -64,7 +64,7 @@ export async function markFoundPlace() {
     return { success: true }
   } catch (err) {
     Sentry.captureException(err, { extra: { action: 'markFoundPlace' } })
-    throw new Error(`Failed to update status`)
+    throw new Error("Failed to update status. Please try again later.")
   }
 }
 
@@ -99,6 +99,6 @@ export async function createCheckoutSession(plan: 'pass_30' | 'pass_90') {
     return { url: session.url }
   } catch (err) {
     Sentry.captureException(err, { extra: { action: 'createCheckoutSession', plan } })
-    throw new Error("Failed to create checkout session")
+    throw new Error("Failed to start checkout process. Please check your internet connection or try again.")
   }
 }

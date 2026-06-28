@@ -75,6 +75,56 @@ function FoundPlaceView({ onNeedToHunt }: { onNeedToHunt: () => void }) {
   )
 }
 
+function PassCard({
+  title,
+  price,
+  features,
+  buttonText,
+  popular,
+  loading,
+  onCheckout,
+}: {
+  title: string
+  price: string
+  features: string[]
+  buttonText: string
+  popular?: boolean
+  loading: boolean
+  onCheckout: () => void
+}) {
+  return (
+    <div className={`bg-zinc-900 rounded-2xl p-8 flex flex-col relative ${popular ? 'border-2 border-white transform md:-translate-y-4 shadow-2xl shadow-white/5' : 'border border-zinc-800'}`}>
+      {popular && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-black px-4 py-1 rounded-full text-sm font-bold tracking-wide">
+          MOST POPULAR
+        </div>
+      )}
+      <div className="mb-6">
+        <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-bold text-white">${price}</span>
+          <span className="text-zinc-400">one-time</span>
+        </div>
+      </div>
+      <ul className="space-y-4 mb-8 flex-1">
+        {features.map((f, i) => (
+          <li key={i} className="flex items-start gap-3 text-zinc-300">
+            <Check className="w-5 h-5 text-white shrink-0" />
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+      <Button 
+        onClick={onCheckout}
+        disabled={loading}
+        className={`w-full h-12 text-lg font-semibold ${popular ? 'bg-white text-black hover:bg-zinc-200' : 'bg-zinc-800 text-white hover:bg-zinc-700'}`}
+      >
+        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : buttonText}
+      </Button>
+    </div>
+  )
+}
+
 function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
   const [loading, setLoading] = useState<string | null>(null)
 
@@ -100,77 +150,31 @@ function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-          {/* 30 Day Pass */}
-          <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 flex flex-col">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-white mb-2">30-Day Pass</h3>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">$39</span>
-                <span className="text-zinc-400">one-time</span>
-              </div>
-            </div>
-            
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex items-start gap-3 text-zinc-300">
-                <Check className="w-5 h-5 text-white shrink-0" />
-                <span>Real-time SMS alerts for new listings</span>
-              </li>
-              <li className="flex items-start gap-3 text-zinc-300">
-                <Check className="w-5 h-5 text-white shrink-0" />
-                <span>Exact match to your criteria</span>
-              </li>
-              <li className="flex items-start gap-3 text-zinc-300">
-                <Check className="w-5 h-5 text-white shrink-0" />
-                <span>Deduplicated across sources</span>
-              </li>
-            </ul>
-
-            <Button 
-              onClick={() => handleCheckout("pass_30")} 
-              disabled={loading !== null}
-              className="w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12 text-lg"
-            >
-              {loading === "pass_30" ? <Loader2 className="w-5 h-5 animate-spin" /> : "Get 30-Day Pass"}
-            </Button>
-          </div>
-
-          {/* 90 Day Pass */}
-          <div className="bg-zinc-900 rounded-2xl p-8 border-2 border-white flex flex-col relative transform md:-translate-y-4 shadow-2xl shadow-white/5">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-black px-4 py-1 rounded-full text-sm font-bold tracking-wide">
-              MOST POPULAR
-            </div>
-            
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-white mb-2">90-Day Pass</h3>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">$69</span>
-                <span className="text-zinc-400">one-time</span>
-              </div>
-            </div>
-            
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex items-start gap-3 text-zinc-300">
-                <Check className="w-5 h-5 text-white shrink-0" />
-                <span>Everything in 30-Day Pass</span>
-              </li>
-              <li className="flex items-start gap-3 text-zinc-300">
-                <Check className="w-5 h-5 text-white shrink-0" />
-                <span>Extra 60 days of coverage</span>
-              </li>
-              <li className="flex items-start gap-3 text-zinc-300">
-                <Check className="w-5 h-5 text-white shrink-0" />
-                <span>Recommended: most apartment hunts take 4-8 weeks</span>
-              </li>
-            </ul>
-
-            <Button 
-              onClick={() => handleCheckout("pass_90")}
-              disabled={loading !== null}
-              className="w-full bg-white text-black hover:bg-zinc-200 h-12 text-lg font-semibold"
-            >
-              {loading === "pass_90" ? <Loader2 className="w-5 h-5 animate-spin" /> : "Get 90-Day Pass"}
-            </Button>
-          </div>
+          <PassCard
+            title="30-Day Pass"
+            price="39"
+            features={[
+              "Real-time SMS alerts for new listings",
+              "Exact match to your criteria",
+              "Deduplicated across sources"
+            ]}
+            buttonText="Get 30-Day Pass"
+            loading={loading === "pass_30"}
+            onCheckout={() => handleCheckout("pass_30")}
+          />
+          <PassCard
+            title="90-Day Pass"
+            price="69"
+            features={[
+              "Everything in 30-Day Pass",
+              "Extra 60 days of coverage",
+              "Recommended: most apartment hunts take 4-8 weeks"
+            ]}
+            buttonText="Get 90-Day Pass"
+            popular={true}
+            loading={loading === "pass_90"}
+            onCheckout={() => handleCheckout("pass_90")}
+          />
         </div>
       </div>
     </div>
