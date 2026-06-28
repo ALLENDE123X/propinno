@@ -70,7 +70,7 @@ describe('GET /api/listings/preview', () => {
     const { cookies } = await import('next/headers')
     vi.mocked(cookies).mockResolvedValueOnce({
       get: vi.fn().mockReturnValue(undefined),
-    } as Awaited<ReturnType<typeof cookies>>)
+    } as unknown as Awaited<ReturnType<typeof cookies>>)
 
     const req = new Request('http://localhost/api/listings/preview')
     const res = await previewRoute(req)
@@ -81,7 +81,7 @@ describe('GET /api/listings/preview', () => {
     const { cookies } = await import('next/headers')
     vi.mocked(cookies).mockResolvedValueOnce({
       get: vi.fn().mockReturnValue({ value: 'not-a-uuid' }),
-    } as Awaited<ReturnType<typeof cookies>>)
+    } as unknown as Awaited<ReturnType<typeof cookies>>)
 
     const req = new Request('http://localhost/api/listings/preview')
     const res = await previewRoute(req)
