@@ -72,6 +72,9 @@ describe('RentCast Poller', () => {
         {
           id: '1',
           formattedAddress: '123 Main St',
+          city: 'San Francisco',
+          state: 'CA',
+          zipCode: '94105',
           latitude: 37,
           longitude: -122,
           price: 3000,
