@@ -140,4 +140,13 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | AH-009 | #23 | Twilio SMS sender | 2026-06-28 |
 | AH-010 | #22 | Failure alerts + admin endpoints + test pipeline | 2026-06-28 |
 | AH-012 | #21 | Integration tests for core pipeline | 2026-06-28 |
-| AH-011 | — | Onboarding live-match preview (next) | — |
+| AH-011 | #11 | Live-match preview paywall step (onboarding) | 2026-06-28 |
+
+---
+
+## 2026-06-28 — AH-011: Live-match preview → paywall (onboarding conversion)
+Context: Convert with proof, not a free tier. Showing real matching listings before asking for payment converts better.
+Decision: Third onboarding step ("preview") shown after OTP. Fetches `GET /api/listings/preview` → up to 3 canonical listings matching user's saved criteria, addresses masked to neighborhood level (street number stripped). Full address + URL never returned pre-payment.
+Route: `GET /api/listings/preview` — session cookie auth → UUID parse, rate limit, Drizzle query `listings` table (`is_canonical=true` + criteria price/beds filters) with `.limit(3)`. Drizzle `and()` with optional `gte/lte` clauses (Drizzle accepts `undefined` in `and()` and silently drops those conditions).
+UI: Inline `ListingTeaser` in `app/page.tsx`. Blurred placeholder rows hint at hidden address. Lock icon + "Link" badge makes gating explicit. Empty state handles case where scraper hasn't run yet. Failure is non-fatal (shows empty state, CTA still goes to /checkout).
+Consequences: Preview is useful only after AH-005/AH-008 populate `listings`. Until then, empty state shows. Session cookie from verify-otp reused — no new auth mechanism. maskAddress regex strips leading `\d+[A-Za-z]?\s+` then returns everything after the first comma.
