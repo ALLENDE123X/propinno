@@ -24,6 +24,7 @@ function CheckoutContent() {
         setLoading(null)
       })
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(null)
     }
   }, [userId])
@@ -113,7 +114,7 @@ function CheckoutContent() {
         <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
           <h1 className="text-2xl font-bold text-white mb-2">Congratulations! 🎉</h1>
           <p className="text-zinc-400 mb-8">
-            We're glad you found a place. Your texts have been paused.
+            We&apos;re glad you found a place. Your texts have been paused.
           </p>
           <Button 
             onClick={() => setUser({ ...user, status: "expired" })}

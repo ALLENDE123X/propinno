@@ -75,6 +75,7 @@ describe('Billing Checkout & Webhook', () => {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(stripe.webhooks.constructEvent).mockReturnValue(mockEvent as any)
 
     const req = new Request('http://localhost:3000/api/webhooks/stripe', {
@@ -88,6 +89,7 @@ describe('Billing Checkout & Webhook', () => {
     const res = await POST(req)
     expect(res.status).toBe(200)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((db.update as any)().set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'active',
@@ -101,6 +103,7 @@ describe('Billing Checkout & Webhook', () => {
     const res = await markFoundPlace(testUserId)
     expect(res.success).toBe(true)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((db.update as any)().set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'done'
