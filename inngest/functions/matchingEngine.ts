@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 
 export const matchingEngine = inngest.createFunction(
-  { id: 'matching-engine', event: 'app/listings.upserted' },
+  { id: 'matching-engine', triggers: [{ event: 'app/listings.upserted' }] },
   async ({ event, step }) => {
     try {
       const listingIds = event.data.listingIds as string[]
