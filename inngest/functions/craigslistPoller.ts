@@ -1,9 +1,7 @@
 import { inngest } from '../client'
-import { db } from '@/lib/db'
-import { listings } from '@/lib/db/schema'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
-import { sql } from 'drizzle-orm'
+import { dedupeAndUpsertListings } from '@/lib/listings'
 
 // Craigslist sfbay apartment RSS feeds — split by sub-region to work around
 // the 120-item per-feed cap. RSS is the lower-risk path (vs HTML scraping);
@@ -107,22 +105,7 @@ export const upsertCraigslistListings = async (items: CraigslistItem[]): Promise
     raw: l.raw
   }))
 
-  const batchSize = 100
-  let count = 0
-  for (let i = 0; i < values.length; i += batchSize) {
-    const batch = values.slice(i, i + batchSize)
-    await db.insert(listings).values(batch).onConflictDoUpdate({
-      target: [listings.source, listings.sourceId],
-      set: {
-        price: sql`EXCLUDED.price`,
-        url: sql`EXCLUDED.url`,
-        raw: sql`EXCLUDED.raw`,
-        postedAt: sql`EXCLUDED.posted_at`
-      }
-    })
-    count += batch.length
-  }
-  return count
+  return await dedupeAndUpsertListings(values)
 }
 
 export const craigslistPoller = inngest.createFunction(

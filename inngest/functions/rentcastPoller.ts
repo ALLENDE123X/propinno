@@ -1,9 +1,8 @@
 import { inngest } from '../client'
-import { db } from '@/lib/db'
-import { listings } from '@/lib/db/schema'
+
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
-import { sql } from 'drizzle-orm'
+import { dedupeAndUpsertListings } from '@/lib/listings'
 
 interface RentCastListing {
   id: string | number
@@ -52,7 +51,7 @@ export const upsertListings = async (data: RentCastListing[]) => {
   }
 
   const values = data.map((l) => ({
-    source: 'rentcast',
+    source: 'rentcast' as const,
     sourceId: String(l.id),
     address: l.formattedAddress || `${l.addressLine1}${l.addressLine2 ? ' ' + l.addressLine2 : ''}, ${l.city}, ${l.state} ${l.zipCode}`,
     lat: l.latitude,
@@ -66,21 +65,7 @@ export const upsertListings = async (data: RentCastListing[]) => {
     raw: l
   }))
 
-  let count = 0
-  const batchSize = 100
-  for (let i = 0; i < values.length; i += batchSize) {
-    const batch = values.slice(i, i + batchSize)
-    await db.insert(listings).values(batch).onConflictDoUpdate({
-      target: [listings.source, listings.sourceId],
-      set: {
-        price: sql`EXCLUDED.price`,
-        raw: sql`EXCLUDED.raw`,
-        postedAt: sql`EXCLUDED.posted_at`
-      }
-    })
-    count += batch.length
-  }
-  return count
+  return await dedupeAndUpsertListings(values)
 }
 
 export const rentcastPoller = inngest.createFunction(
