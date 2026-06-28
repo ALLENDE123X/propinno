@@ -38,8 +38,8 @@ export default function Home() {
       
       toast.success("Verification code sent");
       setStep("otp");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -82,8 +82,8 @@ export default function Home() {
       toast.success("Verified successfully!");
       // Redirect to payment preview or checkout (AH-004 / AH-011)
       router.push(`/checkout`); 
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
