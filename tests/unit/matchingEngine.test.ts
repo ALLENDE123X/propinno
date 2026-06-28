@@ -26,7 +26,6 @@ describe('Matching Engine', () => {
   })
 
   it('returns 0 if no listingIds provided', async () => {
-    // @ts-expect-error - overriding inngest step type
     const result = await matchingEngine['fn']({ event: { data: { listingIds: [] } }, step: {} })
     expect(result).toEqual({ matched: 0 })
   })
@@ -50,7 +49,6 @@ describe('Matching Engine', () => {
       sendEvent: vi.fn().mockResolvedValue(undefined)
     }
 
-    // @ts-expect-error - overriding inngest step type
     const result = await matchingEngine['fn']({ 
       event: { data: { listingIds: [listingId] } }, 
       step: mockStep 
