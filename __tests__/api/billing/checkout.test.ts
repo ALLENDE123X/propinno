@@ -1,8 +1,10 @@
 import { expect, test, describe, vi, beforeEach } from 'vitest'
 import { getUserStatus, markFoundPlace, createCheckoutSession } from '@/app/checkout/actions'
+import { users } from '@/lib/db/schema'
 import { POST } from '@/app/api/webhooks/stripe/route'
 import { stripe } from '@/lib/stripe'
 import { db } from '@/lib/db'
+import type Stripe from 'stripe'
 
 // Mock dependencies
 vi.mock('next/headers', () => {
@@ -97,7 +99,7 @@ describe('Billing Checkout & Webhook', () => {
       }
     }
 
-    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue(mockEvent as import('stripe').Stripe.Event)
+    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue((mockEvent as unknown) as Stripe.Event)
 
     const req = new Request('http://localhost:3000/api/webhooks/stripe', {
       method: 'POST',
@@ -110,8 +112,7 @@ describe('Billing Checkout & Webhook', () => {
     const res = await POST(req)
     expect(res.status).toBe(200)
 
-    const mockDbUpdate = vi.mocked(db.update)
-    expect(mockDbUpdate().set).toHaveBeenCalledWith(
+    expect(vi.mocked(db.update)(users).set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'active',
         plan: 'pass_90',
@@ -131,7 +132,7 @@ describe('Billing Checkout & Webhook', () => {
       }
     }
 
-    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue(mockEvent as import('stripe').Stripe.Event)
+    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue((mockEvent as unknown) as Stripe.Event)
 
     const req = new Request('http://localhost:3000/api/webhooks/stripe', {
       method: 'POST',
@@ -144,8 +145,7 @@ describe('Billing Checkout & Webhook', () => {
     const res = await POST(req)
     expect(res.status).toBe(200)
 
-    const mockDbUpdate = vi.mocked(db.update)
-    expect(mockDbUpdate().set).toHaveBeenCalledWith(
+    expect(vi.mocked(db.update)(users).set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'active',
         plan: 'pass_30',
@@ -158,8 +158,7 @@ describe('Billing Checkout & Webhook', () => {
     const res = await markFoundPlace()
     expect(res.success).toBe(true)
 
-    const mockDbUpdate = vi.mocked(db.update)
-    expect(mockDbUpdate().set).toHaveBeenCalledWith(
+    expect(vi.mocked(db.update)(users).set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'done'
       })
