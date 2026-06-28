@@ -7,56 +7,15 @@ import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 
 async function handleWebhookEvent(event: Stripe.Event) {
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session
-      const userId = session.client_reference_id
-      if (userId) {
-        await db.update(users).set({
-          stripeSubscriptionStatus: 'active',
-          stripeCustomerId: session.customer as string,
-          stripeSubscriptionId: session.subscription as string,
-        }).where(eq(users.id, userId))
-        logger.info({ userId, action: 'stripe_subscription_active' })
-      }
-      break
-    }
-    case 'customer.subscription.created': {
-      const subscription = event.data.object as Stripe.Subscription
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session
+    const userId = session.client_reference_id
+    if (userId) {
       await db.update(users).set({
-        stripeSubscriptionStatus: subscription.status,
-      }).where(eq(users.stripeSubscriptionId, subscription.id))
-      logger.info({ action: 'stripe_subscription_created', subscriptionId: subscription.id, status: subscription.status })
-      break
-    }
-    case 'customer.subscription.updated': {
-      const subscription = event.data.object as Stripe.Subscription
-      await db.update(users).set({
-        stripeSubscriptionStatus: subscription.status,
-      }).where(eq(users.stripeSubscriptionId, subscription.id))
-      logger.info({ action: 'stripe_subscription_updated', subscriptionId: subscription.id, status: subscription.status })
-      break
-    }
-    case 'customer.subscription.deleted': {
-      const subscription = event.data.object as Stripe.Subscription
-      await db.update(users).set({
-        stripeSubscriptionStatus: 'canceled',
-      }).where(eq(users.stripeSubscriptionId, subscription.id))
-      logger.info({ action: 'stripe_subscription_canceled', subscriptionId: subscription.id })
-      break
-    }
-    case 'invoice.payment_failed': {
-      const invoice = event.data.object as unknown as Record<string, unknown>
-      const subscription = invoice.subscription as string | { id: string } | null
-      const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id
-
-      if (subscriptionId) {
-        await db.update(users).set({
-          stripeSubscriptionStatus: 'past_due',
-        }).where(eq(users.stripeSubscriptionId, subscriptionId))
-        logger.info({ action: 'stripe_payment_failed', subscriptionId })
-      }
-      break
+        status: 'active',
+        // Note: accessExpiresAt and plan will be set based on line items or metadata in a future PR
+      }).where(eq(users.id, userId))
+      logger.info({ userId, action: 'stripe_checkout_completed' })
     }
   }
 }
