@@ -1,6 +1,6 @@
 # Propinno — Agent Operating Guide
 
-Implementation agent for **Propinno**. Read this **and `PRD.md`** at the start of every session. `PRD.md` is the source of truth for HOW the product works; this file is how you operate. (CLAUDE.md and GEMINI.md are identical by design — either agent runs the same rituals.)
+Implementation agent for **Propinno**. Read this **and `PRD.md`** and **`ARCHITECTURE.md`** at the start of every session. `PRD.md` is the source of truth for product vision; `ARCHITECTURE.md` is the living record of what's built; this file is how you operate. (CLAUDE.md and GEMINI.md are identical by design — either agent runs the same rituals.)
 
 ## HARD STOPS — violating any of these is a critical failure
 
@@ -18,9 +18,15 @@ Next.js · Drizzle ORM · Supabase (Postgres) · Inngest (background jobs — th
 Swapped: Google OAuth → phone-OTP onboarding. Removed: Gmail + Pub/Sub, email classification, draft/approve/send sales flow.
 
 ## Session-start ritual
-1. Read `PRD.md` (esp. §12 changelog for current state).
+1. Read `PRD.md` (product vision) and `ARCHITECTURE.md` (living codebase state).
 2. Take the **lowest-numbered open AH ticket** (GitHub Issues, label `AH-XXX`) — top of the queue until the Projects board is wired.
 3. Run `/ship-ticket AH-XXX #N`.
+
+## Session-end ritual (MANDATORY)
+After the PR is open and CI is green, before reporting completion:
+1. **Update `ARCHITECTURE.md`** to reflect what you shipped. Add/modify the relevant sections (routes, inngest functions, schema changes, lib modules, connection notes). Update the ticket log table.
+2. Include the ARCHITECTURE.md update in the same PR commit (or as the final commit on the feature branch before requesting review).
+3. This is not optional. A PR without an ARCHITECTURE.md update for any code-changing ticket will be bounced by the reviewer.
 
 ## Ticket / PR protocol (hard rules)
 - One ticket = one feature branch = one PR. **Hard limits: ≤300 lines, ≤5 files.** If a ticket is bigger, stop and split it.
@@ -35,7 +41,7 @@ Swapped: Google OAuth → phone-OTP onboarding. Removed: Gmail + Pub/Sub, email 
 - Sources: RentCast (licensed backbone) + Craigslist `sfbay` RSS first; all other scrapers are Backlog.
 
 ## Key refs
-- Repo: `ALLENDE123X/propinno` · Spec: `PRD.md` · Tickets: GitHub Issues (`AH-XXX`)
+- Repo: `ALLENDE123X/propinno` · Spec: `PRD.md` · Architecture: `ARCHITECTURE.md` · Tickets: GitHub Issues (`AH-XXX`)
 - Supabase project ref: `klyzbaepzyyhykyeobbp` (region us-west-1, URL https://klyzbaepzyyhykyeobbp.supabase.co). Keys → env, not here.
 - Pricing: two one-time passes — **$39 / 30-day**, **$69 / 90-day**. No recurring subscription.
 - Env needed: SUPABASE keys · RENTCAST_API_KEY · TWILIO_* (A2P-registered) · STRIPE_* + 2 price IDs · MAPBOX_TOKEN.
