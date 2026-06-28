@@ -4,6 +4,9 @@ import { users, listings, sent } from '@/lib/db/schema'
 import { eq, sql, gte } from 'drizzle-orm'
 import * as Sentry from '@sentry/nextjs'
 import { limitRequest } from '@/lib/ratelimit'
+import { Redis } from '@upstash/redis'
+
+const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN ? Redis.fromEnv() : null
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -44,12 +47,21 @@ export async function GET(request: Request) {
       .from(listings)
       .groupBy(listings.source)
 
+    let recentFailures = []
+    if (redis) {
+      try {
+        recentFailures = await redis.lrange('recent_failures', 0, 9)
+      } catch (e) {
+        // Ignore redis errors on read
+      }
+    }
+
     return NextResponse.json({
       success: true,
       activeUsers: activeUsers.count,
       totalSent: totalSent.count,
       sends24h: sends24h.count,
-      recentFailures: [], // Handled by Sentry/Axiom alerts, mocked here for schema compliance
+      recentFailures,
       listings: listingCountsBySource,
     })
   } catch (error: unknown) {
