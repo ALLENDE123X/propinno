@@ -68,7 +68,7 @@ describe('Admin APIs', () => {
       const req = new Request('http://localhost/api/admin/status?secret=test-secret')
       // For status, we mock where to return the single row with count
       const dbModule = await import('@/lib/db')
-      const db = dbModule.db as any
+      const db = dbModule.db as unknown as { where: any, from: any }
       db.where = vi.fn().mockResolvedValue([{ count: 10 }])
       db.from = vi.fn().mockImplementation(() => {
         const chain = {

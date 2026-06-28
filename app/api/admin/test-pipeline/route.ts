@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { users, listings, criteria, sent } from '@/lib/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { sendSMS } from '@/lib/twilio'
 import { findMatchingUsers } from '@/inngest/functions/matchingEngine'
 
@@ -70,7 +70,8 @@ export async function GET(request: Request) {
       matchedUserId: isMatched ? user.id : null,
       smsSid
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
