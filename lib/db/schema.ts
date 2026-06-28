@@ -1,11 +1,65 @@
-import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  pgEnum,
+  unique,
+  real,
+  integer,
+  boolean,
+  jsonb,
+  index
+} from 'drizzle-orm/pg-core'
+
+export const userStatusEnum = pgEnum('user_status', ['pending_payment', 'active', 'expired', 'done'])
+export const userPlanEnum = pgEnum('user_plan', ['pass_30', 'pass_90'])
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
-  email: text('email').notNull().unique(), // Will be changed to phone later
-  stripeCustomerId: text('stripe_customer_id').unique(),
-  stripeSubscriptionId: text('stripe_subscription_id'),
-  stripeSubscriptionStatus: text('stripe_subscription_status'),
+  phone: text('phone').notNull().unique(),
+  status: userStatusEnum('status').notNull().default('pending_payment'),
+  plan: userPlanEnum('plan'),
+  accessExpiresAt: timestamp('access_expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
+
+export const listings = pgTable('listings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  source: text('source').notNull(),
+  sourceId: text('source_id').notNull(),
+  address: text('address').notNull(),
+  lat: real('lat'),
+  lng: real('lng'),
+  price: integer('price'),
+  beds: real('beds'),
+  baths: real('baths'),
+  sqft: integer('sqft'),
+  url: text('url'),
+  postedAt: timestamp('posted_at', { withTimezone: true }),
+  firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).defaultNow().notNull(),
+  isCanonical: boolean('is_canonical').default(false).notNull(),
+  canonicalId: uuid('canonical_id'),
+  raw: jsonb('raw')
+}, (table) => [
+  unique('listings_source_source_id_unique').on(table.source, table.sourceId),
+  index('listings_geo_idx').on(table.lat, table.lng),
+])
+
+export const criteria = pgTable('criteria', {
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).primaryKey(),
+  priceMin: integer('price_min'),
+  priceMax: integer('price_max'),
+  bedsMin: real('beds_min'),
+  bedsMax: real('beds_max'),
+  zips: text('zips').array(),
+  neighborhoods: text('neighborhoods').array(),
+})
+
+export const sent = pgTable('sent', {
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  listingId: uuid('listing_id').notNull().references(() => listings.id, { onDelete: 'cascade' }),
+  sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  unique('sent_user_id_listing_id_unique').on(table.userId, table.listingId)
+])
