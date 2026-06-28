@@ -1,0 +1,1424 @@
+test	Set up job	﻿2026-06-28T08:32:57.1861919Z Current runner version: '2.335.1'
+test	Set up job	2026-06-28T08:32:57.1898252Z ##[group]Runner Image Provisioner
+test	Set up job	2026-06-28T08:32:57.1899615Z Hosted Compute Agent
+test	Set up job	2026-06-28T08:32:57.1900527Z Version: 20260611.554
+test	Set up job	2026-06-28T08:32:57.1901475Z Commit: 5e0782fdc9014723d3be820dd114dd31555c2bd1
+test	Set up job	2026-06-28T08:32:57.1902645Z Build Date: 2026-06-11T21:40:46Z
+test	Set up job	2026-06-28T08:32:57.1903885Z Worker ID: {1270b0e1-4c7f-4e54-ba4c-1caa4dfc32da}
+test	Set up job	2026-06-28T08:32:57.1905114Z Azure Region: westus3
+test	Set up job	2026-06-28T08:32:57.1905949Z ##[endgroup]
+test	Set up job	2026-06-28T08:32:57.1907967Z ##[group]Operating System
+test	Set up job	2026-06-28T08:32:57.1909059Z Ubuntu
+test	Set up job	2026-06-28T08:32:57.1909866Z 24.04.4
+test	Set up job	2026-06-28T08:32:57.1910618Z LTS
+test	Set up job	2026-06-28T08:32:57.1911461Z ##[endgroup]
+test	Set up job	2026-06-28T08:32:57.1912289Z ##[group]Runner Image
+test	Set up job	2026-06-28T08:32:57.1913209Z Image: ubuntu-24.04
+test	Set up job	2026-06-28T08:32:57.1914428Z Version: 20260622.220.1
+test	Set up job	2026-06-28T08:32:57.1916147Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260622.220/images/ubuntu/Ubuntu2404-Readme.md
+test	Set up job	2026-06-28T08:32:57.1918948Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260622.220
+test	Set up job	2026-06-28T08:32:57.1920581Z ##[endgroup]
+test	Set up job	2026-06-28T08:32:57.1922444Z ##[group]GITHUB_TOKEN Permissions
+test	Set up job	2026-06-28T08:32:57.1925476Z Contents: read
+test	Set up job	2026-06-28T08:32:57.1926403Z Metadata: read
+test	Set up job	2026-06-28T08:32:57.1927217Z Packages: read
+test	Set up job	2026-06-28T08:32:57.1928143Z ##[endgroup]
+test	Set up job	2026-06-28T08:32:57.1931529Z Secret source: Actions
+test	Set up job	2026-06-28T08:32:57.1932669Z Prepare workflow directory
+test	Set up job	2026-06-28T08:32:57.2995983Z Prepare all required actions
+test	Set up job	2026-06-28T08:32:57.3105190Z Getting action download info
+test	Set up job	2026-06-28T08:32:57.7047268Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+test	Set up job	2026-06-28T08:32:57.7671309Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+test	Set up job	2026-06-28T08:32:57.9803696Z Complete job name: test
+test	Initialize containers	﻿2026-06-28T08:32:58.0198408Z ##[group]Checking docker version
+test	Initialize containers	2026-06-28T08:32:58.0211141Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+test	Initialize containers	2026-06-28T08:32:58.0953098Z '1.48'
+test	Initialize containers	2026-06-28T08:32:58.0963313Z Docker daemon API version: '1.48'
+test	Initialize containers	2026-06-28T08:32:58.0965265Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+test	Initialize containers	2026-06-28T08:32:58.1134666Z '1.48'
+test	Initialize containers	2026-06-28T08:32:58.1142339Z Docker client API version: '1.48'
+test	Initialize containers	2026-06-28T08:32:58.1148164Z ##[endgroup]
+test	Initialize containers	2026-06-28T08:32:58.1151496Z ##[group]Clean up resources from previous jobs
+test	Initialize containers	2026-06-28T08:32:58.1157332Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=f422ef"
+test	Initialize containers	2026-06-28T08:32:58.1302561Z ##[command]/usr/bin/docker network prune --force --filter "label=f422ef"
+test	Initialize containers	2026-06-28T08:32:58.1605058Z ##[endgroup]
+test	Initialize containers	2026-06-28T08:32:58.1605914Z ##[group]Create local container network
+test	Initialize containers	2026-06-28T08:32:58.1618361Z ##[command]/usr/bin/docker network create --label f422ef github_network_fa96c0a29cbb49f3b9acee75f0d79dd0
+test	Initialize containers	2026-06-28T08:32:58.2137518Z 0658395b4947342459d6464e63e6a00a9b1179f1e21852c0528bbcced7ad1f80
+test	Initialize containers	2026-06-28T08:32:58.2148656Z ##[endgroup]
+test	Initialize containers	2026-06-28T08:32:58.2175097Z ##[group]Starting postgres service container
+test	Initialize containers	2026-06-28T08:32:58.2195889Z ##[command]/usr/bin/docker pull postgres:15
+test	Initialize containers	2026-06-28T08:32:58.9993022Z 15: Pulling from library/postgres
+test	Initialize containers	2026-06-28T08:32:59.2224945Z e95a6c7ea7d4: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2235762Z a9c76fda38ad: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2237295Z 50e26febf095: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2238285Z 5bb73b0851f1: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2239370Z cf2f93082245: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2240283Z ffb6155ae5ef: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2241117Z e089b4b16146: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2241919Z 3bd2ba93954a: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2242726Z 812a8e197711: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2243752Z d86237adaf9e: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2244651Z 7055beb516cf: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2245503Z c6ed54b206b0: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2246361Z 193c96c0be41: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2247567Z 94aa476d8eee: Pulling fs layer
+test	Initialize containers	2026-06-28T08:32:59.2248393Z 3bd2ba93954a: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2249179Z 812a8e197711: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2249917Z d86237adaf9e: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2250709Z 7055beb516cf: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2251460Z c6ed54b206b0: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2252230Z 193c96c0be41: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2252949Z 94aa476d8eee: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2253787Z 5bb73b0851f1: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2254613Z cf2f93082245: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2255505Z ffb6155ae5ef: Waiting
+test	Initialize containers	2026-06-28T08:32:59.2256020Z e089b4b16146: Waiting
+test	Initialize containers	2026-06-28T08:32:59.4146924Z a9c76fda38ad: Verifying Checksum
+test	Initialize containers	2026-06-28T08:32:59.4148196Z a9c76fda38ad: Download complete
+test	Initialize containers	2026-06-28T08:32:59.5375133Z 50e26febf095: Verifying Checksum
+test	Initialize containers	2026-06-28T08:32:59.5402743Z 50e26febf095: Download complete
+test	Initialize containers	2026-06-28T08:32:59.5724913Z e95a6c7ea7d4: Verifying Checksum
+test	Initialize containers	2026-06-28T08:32:59.5728200Z e95a6c7ea7d4: Download complete
+test	Initialize containers	2026-06-28T08:32:59.6740821Z 5bb73b0851f1: Download complete
+test	Initialize containers	2026-06-28T08:32:59.8447560Z ffb6155ae5ef: Verifying Checksum
+test	Initialize containers	2026-06-28T08:32:59.8451059Z ffb6155ae5ef: Download complete
+test	Initialize containers	2026-06-28T08:32:59.8504614Z cf2f93082245: Verifying Checksum
+test	Initialize containers	2026-06-28T08:32:59.8506936Z cf2f93082245: Download complete
+test	Initialize containers	2026-06-28T08:32:59.8920647Z e089b4b16146: Verifying Checksum
+test	Initialize containers	2026-06-28T08:32:59.8923778Z e089b4b16146: Download complete
+test	Initialize containers	2026-06-28T08:33:00.0437106Z 3bd2ba93954a: Verifying Checksum
+test	Initialize containers	2026-06-28T08:33:00.0454839Z 3bd2ba93954a: Download complete
+test	Initialize containers	2026-06-28T08:33:00.0967692Z d86237adaf9e: Verifying Checksum
+test	Initialize containers	2026-06-28T08:33:00.0971928Z d86237adaf9e: Download complete
+test	Initialize containers	2026-06-28T08:33:00.3098080Z 7055beb516cf: Verifying Checksum
+test	Initialize containers	2026-06-28T08:33:00.3105343Z 7055beb516cf: Download complete
+test	Initialize containers	2026-06-28T08:33:00.3880893Z c6ed54b206b0: Verifying Checksum
+test	Initialize containers	2026-06-28T08:33:00.3894322Z c6ed54b206b0: Download complete
+test	Initialize containers	2026-06-28T08:33:00.5270248Z 812a8e197711: Verifying Checksum
+test	Initialize containers	2026-06-28T08:33:00.5275154Z 812a8e197711: Download complete
+test	Initialize containers	2026-06-28T08:33:00.5539641Z 193c96c0be41: Verifying Checksum
+test	Initialize containers	2026-06-28T08:33:00.5542925Z 193c96c0be41: Download complete
+test	Initialize containers	2026-06-28T08:33:00.6191436Z 94aa476d8eee: Verifying Checksum
+test	Initialize containers	2026-06-28T08:33:00.6195288Z 94aa476d8eee: Download complete
+test	Initialize containers	2026-06-28T08:33:00.7103817Z e95a6c7ea7d4: Pull complete
+test	Initialize containers	2026-06-28T08:33:00.8262133Z a9c76fda38ad: Pull complete
+test	Initialize containers	2026-06-28T08:33:01.6916246Z 50e26febf095: Pull complete
+test	Initialize containers	2026-06-28T08:33:01.7328858Z 5bb73b0851f1: Pull complete
+test	Initialize containers	2026-06-28T08:33:02.0096242Z cf2f93082245: Pull complete
+test	Initialize containers	2026-06-28T08:33:02.0918951Z ffb6155ae5ef: Pull complete
+test	Initialize containers	2026-06-28T08:33:02.0986468Z e089b4b16146: Pull complete
+test	Initialize containers	2026-06-28T08:33:02.1102576Z 3bd2ba93954a: Pull complete
+test	Initialize containers	2026-06-28T08:33:05.7207940Z 812a8e197711: Pull complete
+test	Initialize containers	2026-06-28T08:33:05.7380347Z d86237adaf9e: Pull complete
+test	Initialize containers	2026-06-28T08:33:05.7505655Z 7055beb516cf: Pull complete
+test	Initialize containers	2026-06-28T08:33:05.7661334Z c6ed54b206b0: Pull complete
+test	Initialize containers	2026-06-28T08:33:05.7755226Z 193c96c0be41: Pull complete
+test	Initialize containers	2026-06-28T08:33:05.7854983Z 94aa476d8eee: Pull complete
+test	Initialize containers	2026-06-28T08:33:05.7914978Z Digest: sha256:3b0d656f5fff31c7d8a64f500a703dcf3f35e98ce78f602831a73059a5e6a012
+test	Initialize containers	2026-06-28T08:33:05.7926990Z Status: Downloaded newer image for postgres:15
+test	Initialize containers	2026-06-28T08:33:05.7948371Z docker.io/library/postgres:15
+test	Initialize containers	2026-06-28T08:33:05.8006055Z ##[command]/usr/bin/docker create --name d2ab7362ee014372ae15fbdbc3199dbf_postgres15_2438a0 --label f422ef --network github_network_fa96c0a29cbb49f3b9acee75f0d79dd0 --network-alias postgres -p 5432:5432 --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5 -e "POSTGRES_USER=test" -e "POSTGRES_PASSWORD=test" -e "POSTGRES_DB=dealinno_test" -e GITHUB_ACTIONS=true -e CI=true postgres:15
+test	Initialize containers	2026-06-28T08:33:05.8260080Z 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:05.8279379Z ##[command]/usr/bin/docker start 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:06.1376434Z 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:06.1400824Z ##[command]/usr/bin/docker ps --all --filter id=9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+test	Initialize containers	2026-06-28T08:33:06.1562153Z 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637 Up Less than a second (health: starting)
+test	Initialize containers	2026-06-28T08:33:06.1597962Z ##[command]/usr/bin/docker port 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:06.1771366Z 5432/tcp -> 0.0.0.0:5432
+test	Initialize containers	2026-06-28T08:33:06.1782544Z 5432/tcp -> [::]:5432
+test	Initialize containers	2026-06-28T08:33:06.1834837Z ##[endgroup]
+test	Initialize containers	2026-06-28T08:33:06.1847109Z ##[group]Waiting for all services to be ready
+test	Initialize containers	2026-06-28T08:33:06.1869069Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:06.2067339Z starting
+test	Initialize containers	2026-06-28T08:33:06.2094337Z postgres service is starting, waiting 2 seconds before checking again.
+test	Initialize containers	2026-06-28T08:33:08.2092258Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:08.2232372Z starting
+test	Initialize containers	2026-06-28T08:33:08.2244161Z postgres service is starting, waiting 4 seconds before checking again.
+test	Initialize containers	2026-06-28T08:33:12.5396535Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:12.5531959Z starting
+test	Initialize containers	2026-06-28T08:33:12.5541117Z postgres service is starting, waiting 8 seconds before checking again.
+test	Initialize containers	2026-06-28T08:33:21.2053036Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Initialize containers	2026-06-28T08:33:21.2206044Z healthy
+test	Initialize containers	2026-06-28T08:33:21.2213032Z postgres service is healthy.
+test	Initialize containers	2026-06-28T08:33:21.2214046Z ##[endgroup]
+test	Run actions/checkout@v4	﻿2026-06-28T08:33:21.2468929Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2476758Z ##[group]Run actions/checkout@v4
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2477149Z with:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2477357Z   repository: ALLENDE123X/propinno
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2480464Z   token: ***
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2480655Z   ssh-strict: true
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2480850Z   ssh-user: git
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2481055Z   persist-credentials: true
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2481279Z   clean: true
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2481486Z   sparse-checkout-cone-mode: true
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2481732Z   fetch-depth: 1
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2481923Z   fetch-tags: false
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2482119Z   show-progress: true
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2482314Z   lfs: false
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2482509Z   submodules: false
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2482758Z   set-safe-directory: true
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2483100Z env:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2483626Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2483932Z   NEXTAUTH_URL: http://localhost:3000
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2484202Z   NEXTAUTH_SECRET: test-secret
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2484437Z   GOOGLE_CLIENT_ID: test
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2484652Z   GOOGLE_CLIENT_SECRET: test
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2484875Z   OPENAI_API_KEY: 
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2485068Z   UPSTASH_REDIS_REST_URL: 
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2485285Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2485496Z   SENTRY_DSN: 
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2485685Z   STRIPE_SECRET_KEY: test_sk
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2485909Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Run actions/checkout@v4	2026-06-28T08:33:21.2486143Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3557664Z Syncing repository: ALLENDE123X/propinno
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3559443Z ##[group]Getting Git version info
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3559842Z Working directory is '/home/runner/work/propinno/propinno'
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3562107Z [command]/usr/bin/git version
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3589413Z git version 2.54.0
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3609869Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3625081Z Temporarily overriding HOME='/home/runner/work/_temp/255dc571-2361-4d69-b836-5cb83aa36568' before making global git config changes
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3627811Z Adding repository directory to the temporary git global config as a safe directory
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3633607Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/propinno/propinno
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3679096Z Deleting the contents of '/home/runner/work/propinno/propinno'
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3683715Z ##[group]Initializing the repository
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3688409Z [command]/usr/bin/git init /home/runner/work/propinno/propinno
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3779014Z hint: Using 'master' as the name for the initial branch. This default branch name
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3779820Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3780797Z hint: to use in all of your new repositories, which will suppress this warning,
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3781681Z hint: call:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3782304Z hint:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3782993Z hint: 	git config --global init.defaultBranch <name>
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3784109Z hint:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3784793Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3785888Z hint: 'development'. The just-created branch can be renamed via this command:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3787650Z hint:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3789258Z hint: 	git branch -m <name>
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3789837Z hint:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3790685Z hint: Disable this message with "git config set advice.defaultBranchName false"
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3791815Z Initialized empty Git repository in /home/runner/work/propinno/propinno/.git/
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3798609Z [command]/usr/bin/git remote add origin https://github.com/ALLENDE123X/propinno
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3838342Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3839243Z ##[group]Disabling automatic garbage collection
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3843137Z [command]/usr/bin/git config --local gc.auto 0
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3871195Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3872075Z ##[group]Setting up auth
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3878893Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	Run actions/checkout@v4	2026-06-28T08:33:21.3910333Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4259171Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4263840Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4444547Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4470543Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4652067Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4682492Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4683842Z ##[group]Fetching the repository
+test	Run actions/checkout@v4	2026-06-28T08:33:21.4692565Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +84a8bd8400944d61e9b39bac4e5c761bc26e5da3:refs/remotes/pull/16/merge
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0457143Z From https://github.com/ALLENDE123X/propinno
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0457908Z  * [new ref]         84a8bd8400944d61e9b39bac4e5c761bc26e5da3 -> pull/16/merge
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0495231Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0495971Z ##[group]Determining the checkout info
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0496704Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0497337Z [command]/usr/bin/git sparse-checkout disable
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0536706Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0568023Z ##[group]Checking out the ref
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0574021Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/16/merge
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0664332Z Note: switching to 'refs/remotes/pull/16/merge'.
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0664966Z 
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0665480Z You are in 'detached HEAD' state. You can look around, make experimental
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0680848Z changes and commit them, and you can discard any commits you make in this
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0681853Z state without impacting any branches by switching back to a branch.
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0682353Z 
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0682941Z If you want to create a new branch to retain commits you create, you may
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0684085Z do so (now or later) by using -c with the switch command. Example:
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0684479Z 
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0684668Z   git switch -c <new-branch-name>
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0684926Z 
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0685132Z Or undo this operation with:
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0685396Z 
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0685545Z   git switch -
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0685741Z 
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0686113Z Turn off this advice by setting config variable advice.detachedHead to false
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0686640Z 
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0687251Z HEAD is now at 84a8bd8 Merge cb7502cfb40c610d48c7851ffea1ac3ef612411d into ff72df3054ae7eeac5c712c63561ccb39600b410
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0688982Z ##[endgroup]
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0717225Z [command]/usr/bin/git log -1 --format=%H
+test	Run actions/checkout@v4	2026-06-28T08:33:22.0740472Z 84a8bd8400944d61e9b39bac4e5c761bc26e5da3
+test	Run actions/setup-node@v4	﻿2026-06-28T08:33:22.0974903Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0976482Z ##[group]Run actions/setup-node@v4
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0976748Z with:
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0976932Z   node-version: 20
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0977123Z   cache: npm
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0977305Z   always-auth: false
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0977512Z   check-latest: false
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0980521Z   token: ***
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0980696Z env:
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0981024Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0981332Z   NEXTAUTH_URL: http://localhost:3000
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0981597Z   NEXTAUTH_SECRET: test-secret
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0981837Z   GOOGLE_CLIENT_ID: test
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0982056Z   GOOGLE_CLIENT_SECRET: test
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0982320Z   OPENAI_API_KEY: 
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0982522Z   UPSTASH_REDIS_REST_URL: 
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0982743Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0982959Z   SENTRY_DSN: 
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0983147Z   STRIPE_SECRET_KEY: test_sk
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0983377Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.0983751Z ##[endgroup]
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.2514505Z Attempting to download 20...
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.2674829Z (node:2435) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+test	Run actions/setup-node@v4	2026-06-28T08:33:22.2692525Z (Use `node --trace-deprecation ...` to show where the warning was created)
+test	Run actions/setup-node@v4	2026-06-28T08:33:23.2364903Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+test	Run actions/setup-node@v4	2026-06-28T08:33:23.8347209Z Extracting ...
+test	Run actions/setup-node@v4	2026-06-28T08:33:23.8459879Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/a99d122a-8d79-4a0b-aabc-a585265a5e8a -f /home/runner/work/_temp/d6f7bb0b-727a-47dd-8af5-0290657adb06
+test	Run actions/setup-node@v4	2026-06-28T08:33:24.8541687Z Adding to the cache ...
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.3550285Z ##[group]Environment details
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.6202526Z node: v20.20.2
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.6203368Z npm: 10.8.2
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.6204008Z yarn: 1.22.22
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.6204813Z ##[endgroup]
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.6224538Z [command]/opt/hostedtoolcache/node/20.20.2/x64/bin/npm config get cache
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.7248434Z /home/runner/.npm
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.9580397Z (node:2435) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+test	Run actions/setup-node@v4	2026-06-28T08:33:26.9582152Z Cache hit for: node-cache-Linux-x64-npm-6bc29be0660f8d68012cc57443ebfdc4bb34fa32c5c6891600b41160141b2c98
+test	Run actions/setup-node@v4	2026-06-28T08:33:28.1746679Z Received 20971520 of 263989073 (7.9%), 20.0 MBs/sec
+test	Run actions/setup-node@v4	2026-06-28T08:33:29.1772551Z Received 167772160 of 263989073 (63.6%), 79.9 MBs/sec
+test	Run actions/setup-node@v4	2026-06-28T08:33:29.6752261Z Received 263989073 of 263989073 (100.0%), 100.7 MBs/sec
+test	Run actions/setup-node@v4	2026-06-28T08:33:29.6753443Z Cache Size: ~252 MB (263989073 B)
+test	Run actions/setup-node@v4	2026-06-28T08:33:29.6882597Z [command]/usr/bin/tar -xf /home/runner/work/_temp/351e1eec-45e8-440e-a80d-5e996dd5489c/cache.tzst -P -C /home/runner/work/propinno/propinno --use-compress-program unzstd
+test	Run actions/setup-node@v4	2026-06-28T08:33:30.1094728Z Cache restored successfully
+test	Run actions/setup-node@v4	2026-06-28T08:33:30.1215107Z Cache restored from key: node-cache-Linux-x64-npm-6bc29be0660f8d68012cc57443ebfdc4bb34fa32c5c6891600b41160141b2c98
+test	Install dependencies	﻿2026-06-28T08:33:30.1415163Z ##[group]Run npm ci
+test	Install dependencies	2026-06-28T08:33:30.1415480Z ^[[36;1mnpm ci^[[0m
+test	Install dependencies	2026-06-28T08:33:30.1440479Z shell: /usr/bin/bash -e {0}
+test	Install dependencies	2026-06-28T08:33:30.1440753Z env:
+test	Install dependencies	2026-06-28T08:33:30.1441208Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Install dependencies	2026-06-28T08:33:30.1441528Z   NEXTAUTH_URL: http://localhost:3000
+test	Install dependencies	2026-06-28T08:33:30.1441800Z   NEXTAUTH_SECRET: test-secret
+test	Install dependencies	2026-06-28T08:33:30.1442039Z   GOOGLE_CLIENT_ID: test
+test	Install dependencies	2026-06-28T08:33:30.1442262Z   GOOGLE_CLIENT_SECRET: test
+test	Install dependencies	2026-06-28T08:33:30.1442497Z   OPENAI_API_KEY: 
+test	Install dependencies	2026-06-28T08:33:30.1442700Z   UPSTASH_REDIS_REST_URL: 
+test	Install dependencies	2026-06-28T08:33:30.1442927Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Install dependencies	2026-06-28T08:33:30.1443142Z   SENTRY_DSN: 
+test	Install dependencies	2026-06-28T08:33:30.1443334Z   STRIPE_SECRET_KEY: test_sk
+test	Install dependencies	2026-06-28T08:33:30.1443877Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Install dependencies	2026-06-28T08:33:30.1444152Z ##[endgroup]
+test	Install dependencies	2026-06-28T08:33:39.4368718Z npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+test	Install dependencies	2026-06-28T08:33:39.6335451Z npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+test	Install dependencies	2026-06-28T08:33:39.6744143Z npm warn deprecated serialize-error-cjs@0.1.4: Rolling release, please update to 0.2.0
+test	Install dependencies	2026-06-28T08:33:39.7159914Z npm warn deprecated scmp@2.1.0: Just use Node.js's crypto.timingSafeEqual()
+test	Install dependencies	2026-06-28T08:33:40.1385747Z npm warn deprecated @axiomhq/axiom-node@0.12.0: Please use @axiomhq/js instead
+test	Install dependencies	2026-06-28T08:33:40.4535301Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+test	Install dependencies	2026-06-28T08:33:52.6034513Z 
+test	Install dependencies	2026-06-28T08:33:52.6047025Z added 927 packages, and audited 928 packages in 22s
+test	Install dependencies	2026-06-28T08:33:52.6048139Z 
+test	Install dependencies	2026-06-28T08:33:52.6051737Z 197 packages are looking for funding
+test	Install dependencies	2026-06-28T08:33:52.6052651Z   run `npm fund` for details
+test	Install dependencies	2026-06-28T08:33:52.7084002Z 
+test	Install dependencies	2026-06-28T08:33:52.7085699Z 41 vulnerabilities (38 moderate, 3 high)
+test	Install dependencies	2026-06-28T08:33:52.7086379Z 
+test	Install dependencies	2026-06-28T08:33:52.7087013Z To address issues that do not require attention, run:
+test	Install dependencies	2026-06-28T08:33:52.7087831Z   npm audit fix
+test	Install dependencies	2026-06-28T08:33:52.7088203Z 
+test	Install dependencies	2026-06-28T08:33:52.7088695Z To address all issues (including breaking changes), run:
+test	Install dependencies	2026-06-28T08:33:52.7089441Z   npm audit fix --force
+test	Install dependencies	2026-06-28T08:33:52.7089812Z 
+test	Install dependencies	2026-06-28T08:33:52.7090162Z Run `npm audit` for details.
+test	Build to generate types	﻿2026-06-28T08:33:52.7778042Z ##[group]Run npm run build
+test	Build to generate types	2026-06-28T08:33:52.7778324Z ^[[36;1mnpm run build^[[0m
+test	Build to generate types	2026-06-28T08:33:52.7798525Z shell: /usr/bin/bash -e {0}
+test	Build to generate types	2026-06-28T08:33:52.7798783Z env:
+test	Build to generate types	2026-06-28T08:33:52.7799217Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Build to generate types	2026-06-28T08:33:52.7799539Z   NEXTAUTH_URL: http://localhost:3000
+test	Build to generate types	2026-06-28T08:33:52.7799811Z   NEXTAUTH_SECRET: test-secret
+test	Build to generate types	2026-06-28T08:33:52.7800051Z   GOOGLE_CLIENT_ID: test
+test	Build to generate types	2026-06-28T08:33:52.7800272Z   GOOGLE_CLIENT_SECRET: test
+test	Build to generate types	2026-06-28T08:33:52.7800655Z   OPENAI_API_KEY: 
+test	Build to generate types	2026-06-28T08:33:52.7800870Z   UPSTASH_REDIS_REST_URL: 
+test	Build to generate types	2026-06-28T08:33:52.7801096Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Build to generate types	2026-06-28T08:33:52.7801314Z   SENTRY_DSN: 
+test	Build to generate types	2026-06-28T08:33:52.7801510Z   STRIPE_SECRET_KEY: test_sk
+test	Build to generate types	2026-06-28T08:33:52.7801748Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Build to generate types	2026-06-28T08:33:52.7801997Z ##[endgroup]
+test	Build to generate types	2026-06-28T08:33:52.8875329Z 
+test	Build to generate types	2026-06-28T08:33:52.8876160Z > propinno@0.1.0 build
+test	Build to generate types	2026-06-28T08:33:52.8877188Z > NODE_OPTIONS='--max-old-space-size=4096' next build
+test	Build to generate types	2026-06-28T08:33:52.8877827Z 
+test	Build to generate types	2026-06-28T08:33:53.3782557Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+test	Build to generate types	2026-06-28T08:33:53.3891288Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+test	Build to generate types	2026-06-28T08:33:53.3892345Z This information is used to shape Next.js' roadmap and prioritize features.
+test	Build to generate types	2026-06-28T08:33:53.3894571Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+test	Build to generate types	2026-06-28T08:33:53.3895582Z https://nextjs.org/telemetry
+test	Build to generate types	2026-06-28T08:33:53.3895981Z 
+test	Build to generate types	2026-06-28T08:33:53.4064651Z ▲ Next.js 16.2.6 (Turbopack)
+test	Build to generate types	2026-06-28T08:33:53.4069405Z 
+test	Build to generate types	2026-06-28T08:33:53.4802420Z   Creating an optimized production build ...
+test	Build to generate types	2026-06-28T08:34:10.8255102Z ✓ Compiled successfully in 17.1s
+test	Build to generate types	2026-06-28T08:34:10.8314602Z   Running TypeScript ...
+test	Build to generate types	2026-06-28T08:34:19.7539539Z   Finished TypeScript in 8.9s ...
+test	Build to generate types	2026-06-28T08:34:19.7614740Z   Collecting page data using 1 worker ...
+test	Build to generate types	2026-06-28T08:34:20.2382474Z {"level":40,"time":1782635660236,"pid":2781,"hostname":"runnervmmklqx","msg":"Upstash Redis environment variables are missing. Rate limiting is disabled."}
+test	Build to generate types	2026-06-28T08:34:20.4359716Z   Generating static pages using 1 worker (0/13) ...
+test	Build to generate types	2026-06-28T08:34:20.4696428Z   Generating static pages using 1 worker (3/13) 
+test	Build to generate types	2026-06-28T08:34:20.4715614Z   Generating static pages using 1 worker (6/13) 
+test	Build to generate types	2026-06-28T08:34:20.6307568Z   Generating static pages using 1 worker (9/13) 
+test	Build to generate types	2026-06-28T08:34:20.6337244Z ✓ Generating static pages using 1 worker (13/13) in 198ms
+test	Build to generate types	2026-06-28T08:34:20.6384983Z   Finalizing page optimization ...
+test	Build to generate types	2026-06-28T08:34:20.6454010Z 
+test	Build to generate types	2026-06-28T08:34:20.6460036Z Route (app)
+test	Build to generate types	2026-06-28T08:34:20.6460876Z ┌ ○ /
+test	Build to generate types	2026-06-28T08:34:20.6461603Z ├ ○ /_not-found
+test	Build to generate types	2026-06-28T08:34:20.6462281Z ├ ƒ /api/auth/send-otp
+test	Build to generate types	2026-06-28T08:34:20.6462923Z ├ ƒ /api/auth/verify-otp
+test	Build to generate types	2026-06-28T08:34:20.6463905Z ├ ƒ /api/billing/create-checkout
+test	Build to generate types	2026-06-28T08:34:20.6464594Z ├ ƒ /api/health
+test	Build to generate types	2026-06-28T08:34:20.6465295Z ├ ƒ /api/inngest
+test	Build to generate types	2026-06-28T08:34:20.6465844Z ├ ƒ /api/webhooks/stripe
+test	Build to generate types	2026-06-28T08:34:20.6466544Z ├ ○ /checkout
+test	Build to generate types	2026-06-28T08:34:20.6467066Z ├ ○ /privacy
+test	Build to generate types	2026-06-28T08:34:20.6484731Z └ ○ /terms
+test	Build to generate types	2026-06-28T08:34:20.6487133Z 
+test	Build to generate types	2026-06-28T08:34:20.6487347Z 
+test	Build to generate types	2026-06-28T08:34:20.6488068Z ○  (Static)   prerendered as static content
+test	Build to generate types	2026-06-28T08:34:20.6490438Z ƒ  (Dynamic)  server-rendered on demand
+test	Build to generate types	2026-06-28T08:34:20.6490952Z 
+test	Push Database Schema	﻿2026-06-28T08:34:20.7322097Z ##[group]Run npx drizzle-kit push
+test	Push Database Schema	2026-06-28T08:34:20.7322424Z ^[[36;1mnpx drizzle-kit push^[[0m
+test	Push Database Schema	2026-06-28T08:34:20.7344404Z shell: /usr/bin/bash -e {0}
+test	Push Database Schema	2026-06-28T08:34:20.7344688Z env:
+test	Push Database Schema	2026-06-28T08:34:20.7345144Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Push Database Schema	2026-06-28T08:34:20.7345460Z   NEXTAUTH_URL: http://localhost:3000
+test	Push Database Schema	2026-06-28T08:34:20.7345748Z   NEXTAUTH_SECRET: test-secret
+test	Push Database Schema	2026-06-28T08:34:20.7345993Z   GOOGLE_CLIENT_ID: test
+test	Push Database Schema	2026-06-28T08:34:20.7346224Z   GOOGLE_CLIENT_SECRET: test
+test	Push Database Schema	2026-06-28T08:34:20.7346459Z   OPENAI_API_KEY: 
+test	Push Database Schema	2026-06-28T08:34:20.7346670Z   UPSTASH_REDIS_REST_URL: 
+test	Push Database Schema	2026-06-28T08:34:20.7346906Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Push Database Schema	2026-06-28T08:34:20.7347125Z   SENTRY_DSN: 
+test	Push Database Schema	2026-06-28T08:34:20.7347324Z   STRIPE_SECRET_KEY: test_sk
+test	Push Database Schema	2026-06-28T08:34:20.7347558Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Push Database Schema	2026-06-28T08:34:20.7347801Z ##[endgroup]
+test	Push Database Schema	2026-06-28T08:34:21.2101235Z No config path provided, using default 'drizzle.config.ts'
+test	Push Database Schema	2026-06-28T08:34:21.2106183Z Reading config file '/home/runner/work/propinno/propinno/drizzle.config.ts'
+test	Push Database Schema	2026-06-28T08:34:21.3101183Z ◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+test	Push Database Schema	2026-06-28T08:34:21.5561538Z Using 'postgres' driver for database querying
+test	Push Database Schema	2026-06-28T08:34:21.6015672Z [⣷] Pulling schema from database...
+test	Push Database Schema	2026-06-28T08:34:21.6277606Z ^[[2K^[[1G[✓] Pulling schema from database...
+test	Push Database Schema	2026-06-28T08:34:21.6544452Z [✓] Changes applied
+test	Type check	﻿2026-06-28T08:34:21.6701518Z ##[group]Run npx tsc --noEmit
+test	Type check	2026-06-28T08:34:21.6702094Z ^[[36;1mnpx tsc --noEmit^[[0m
+test	Type check	2026-06-28T08:34:21.6733106Z shell: /usr/bin/bash -e {0}
+test	Type check	2026-06-28T08:34:21.6733807Z env:
+test	Type check	2026-06-28T08:34:21.6734517Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Type check	2026-06-28T08:34:21.6735068Z   NEXTAUTH_URL: http://localhost:3000
+test	Type check	2026-06-28T08:34:21.6735569Z   NEXTAUTH_SECRET: test-secret
+test	Type check	2026-06-28T08:34:21.6735995Z   GOOGLE_CLIENT_ID: test
+test	Type check	2026-06-28T08:34:21.6736388Z   GOOGLE_CLIENT_SECRET: test
+test	Type check	2026-06-28T08:34:21.6736768Z   OPENAI_API_KEY: 
+test	Type check	2026-06-28T08:34:21.6737156Z   UPSTASH_REDIS_REST_URL: 
+test	Type check	2026-06-28T08:34:21.6737562Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Type check	2026-06-28T08:34:21.6737947Z   SENTRY_DSN: 
+test	Type check	2026-06-28T08:34:21.6738297Z   STRIPE_SECRET_KEY: test_sk
+test	Type check	2026-06-28T08:34:21.6738714Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Type check	2026-06-28T08:34:21.6739178Z ##[endgroup]
+test	Lint	﻿2026-06-28T08:34:29.3404539Z ##[group]Run npm run lint
+test	Lint	2026-06-28T08:34:29.3405025Z ^[[36;1mnpm run lint^[[0m
+test	Lint	2026-06-28T08:34:29.3435138Z shell: /usr/bin/bash -e {0}
+test	Lint	2026-06-28T08:34:29.3435577Z env:
+test	Lint	2026-06-28T08:34:29.3436237Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Lint	2026-06-28T08:34:29.3436767Z   NEXTAUTH_URL: http://localhost:3000
+test	Lint	2026-06-28T08:34:29.3437242Z   NEXTAUTH_SECRET: test-secret
+test	Lint	2026-06-28T08:34:29.3437651Z   GOOGLE_CLIENT_ID: test
+test	Lint	2026-06-28T08:34:29.3438045Z   GOOGLE_CLIENT_SECRET: test
+test	Lint	2026-06-28T08:34:29.3438420Z   OPENAI_API_KEY: 
+test	Lint	2026-06-28T08:34:29.3438764Z   UPSTASH_REDIS_REST_URL: 
+test	Lint	2026-06-28T08:34:29.3439161Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Lint	2026-06-28T08:34:29.3439486Z   SENTRY_DSN: 
+test	Lint	2026-06-28T08:34:29.3439803Z   STRIPE_SECRET_KEY: test_sk
+test	Lint	2026-06-28T08:34:29.3440183Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Lint	2026-06-28T08:34:29.3440578Z ##[endgroup]
+test	Lint	2026-06-28T08:34:29.4596494Z 
+test	Lint	2026-06-28T08:34:29.4597091Z > propinno@0.1.0 lint
+test	Lint	2026-06-28T08:34:29.4597532Z > eslint
+test	Lint	2026-06-28T08:34:29.4597733Z 
+test	Unit + integration tests	﻿2026-06-28T08:34:32.9065247Z ##[group]Run npm test -- --run
+test	Unit + integration tests	2026-06-28T08:34:32.9065570Z ^[[36;1mnpm test -- --run^[[0m
+test	Unit + integration tests	2026-06-28T08:34:32.9084682Z shell: /usr/bin/bash -e {0}
+test	Unit + integration tests	2026-06-28T08:34:32.9084940Z env:
+test	Unit + integration tests	2026-06-28T08:34:32.9085597Z   DATABASE_URL: ***localhost:5432/dealinno_test
+test	Unit + integration tests	2026-06-28T08:34:32.9085916Z   NEXTAUTH_URL: http://localhost:3000
+test	Unit + integration tests	2026-06-28T08:34:32.9086188Z   NEXTAUTH_SECRET: test-secret
+test	Unit + integration tests	2026-06-28T08:34:32.9086430Z   GOOGLE_CLIENT_ID: test
+test	Unit + integration tests	2026-06-28T08:34:32.9086662Z   GOOGLE_CLIENT_SECRET: test
+test	Unit + integration tests	2026-06-28T08:34:32.9086893Z   OPENAI_API_KEY: 
+test	Unit + integration tests	2026-06-28T08:34:32.9087099Z   UPSTASH_REDIS_REST_URL: 
+test	Unit + integration tests	2026-06-28T08:34:32.9087327Z   UPSTASH_REDIS_REST_TOKEN: 
+test	Unit + integration tests	2026-06-28T08:34:32.9087574Z   SENTRY_DSN: 
+test	Unit + integration tests	2026-06-28T08:34:32.9087773Z   STRIPE_SECRET_KEY: test_sk
+test	Unit + integration tests	2026-06-28T08:34:32.9088012Z   STRIPE_WEBHOOK_SECRET: whsec_test
+test	Unit + integration tests	2026-06-28T08:34:32.9088254Z ##[endgroup]
+test	Unit + integration tests	2026-06-28T08:34:33.0309017Z 
+test	Unit + integration tests	2026-06-28T08:34:33.0324684Z > propinno@0.1.0 test
+test	Unit + integration tests	2026-06-28T08:34:33.0344715Z > vitest run --run
+test	Unit + integration tests	2026-06-28T08:34:33.0354142Z 
+test	Unit + integration tests	2026-06-28T08:34:33.3367790Z 
+test	Unit + integration tests	2026-06-28T08:34:33.3371663Z ^[[1m^[[30m^[[46m RUN ^[[49m^[[39m^[[22m ^[[36mv4.1.7 ^[[39m^[[90m/home/runner/work/propinno/propinno^[[39m
+test	Unit + integration tests	2026-06-28T08:34:33.3372519Z 
+test	Unit + integration tests	2026-06-28T08:34:34.7832572Z  ^[[32m✓^[[39m __tests__/api/billing/checkout.test.ts ^[[2m(^[[22m^[[2m5 tests^[[22m^[[2m)^[[22m^[[32m 14^[[2mms^[[22m^[[39m
+test	Unit + integration tests	2026-06-28T08:34:36.0170997Z  ^[[32m✓^[[39m __tests__/api/auth/otp.test.ts ^[[2m(^[[22m^[[2m4 tests^[[22m^[[2m)^[[22m^[[32m 14^[[2mms^[[22m^[[39m
+test	Unit + integration tests	2026-06-28T08:34:36.0212549Z 
+test	Unit + integration tests	2026-06-28T08:34:36.0221806Z ^[[2m Test Files ^[[22m ^[[1m^[[32m2 passed^[[39m^[[22m^[[90m (2)^[[39m
+test	Unit + integration tests	2026-06-28T08:34:36.0222907Z ^[[2m      Tests ^[[22m ^[[1m^[[32m9 passed^[[39m^[[22m^[[90m (9)^[[39m
+test	Unit + integration tests	2026-06-28T08:34:36.0224345Z ^[[2m   Start at ^[[22m 08:34:33
+test	Unit + integration tests	2026-06-28T08:34:36.0225532Z ^[[2m   Duration ^[[22m 2.67s^[[2m (transform 146ms, setup 112ms, import 734ms, tests 28ms, environment 1.37s)^[[22m
+test	Unit + integration tests	2026-06-28T08:34:36.0226283Z 
+test	Post Run actions/setup-node@v4	﻿2026-06-28T08:34:36.0546365Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+test	Post Run actions/setup-node@v4	2026-06-28T08:34:36.0547509Z Post job cleanup.
+test	Post Run actions/setup-node@v4	2026-06-28T08:34:36.1825034Z (node:2945) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+test	Post Run actions/setup-node@v4	2026-06-28T08:34:36.1826420Z (Use `node --trace-deprecation ...` to show where the warning was created)
+test	Post Run actions/setup-node@v4	2026-06-28T08:34:36.1831007Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-6bc29be0660f8d68012cc57443ebfdc4bb34fa32c5c6891600b41160141b2c98, not saving cache.
+test	Post Run actions/checkout@v4	﻿2026-06-28T08:34:36.1931132Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.1932312Z Post job cleanup.
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.2823147Z [command]/usr/bin/git version
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.2862486Z git version 2.54.0
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.2901050Z Temporarily overriding HOME='/home/runner/work/_temp/35464deb-38a3-4eba-82e2-f98d72ed0e83' before making global git config changes
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.2905032Z Adding repository directory to the temporary git global config as a safe directory
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.2908397Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/propinno/propinno
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.2946951Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.2981160Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.3177469Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.3200389Z http.https://github.com/.extraheader
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.3218846Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.3246865Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.3435680Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+test	Post Run actions/checkout@v4	2026-06-28T08:34:36.3467482Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+test	Stop containers	﻿2026-06-28T08:34:36.3895457Z Print service container logs: d2ab7362ee014372ae15fbdbc3199dbf_postgres15_2438a0
+test	Stop containers	2026-06-28T08:34:36.3899660Z ##[command]/usr/bin/docker logs --details 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Stop containers	2026-06-28T08:34:36.4031198Z  The files belonging to this database system will be owned by user "postgres".
+test	Stop containers	2026-06-28T08:34:36.4037016Z  initdb: warning: enabling "trust" authentication for local connections
+test	Stop containers	2026-06-28T08:34:36.4038239Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+test	Stop containers	2026-06-28T08:34:36.4039697Z  2026-06-28 08:33:07.033 UTC [1] LOG:  starting PostgreSQL 15.18 (Debian 15.18-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+test	Stop containers	2026-06-28T08:34:36.4040833Z  2026-06-28 08:33:07.033 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+test	Stop containers	2026-06-28T08:34:36.4041621Z  2026-06-28 08:33:07.033 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+test	Stop containers	2026-06-28T08:34:36.4042883Z  2026-06-28 08:33:07.034 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+test	Stop containers	2026-06-28T08:34:36.4043998Z  2026-06-28 08:33:07.036 UTC [62] LOG:  database system was shut down at 2026-06-28 08:33:06 UTC
+test	Stop containers	2026-06-28T08:34:36.4044870Z  2026-06-28 08:33:07.039 UTC [1] LOG:  database system is ready to accept connections
+test	Stop containers	2026-06-28T08:34:36.4045615Z  2026-06-28 08:33:16.195 UTC [73] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4046228Z  2026-06-28 08:33:26.290 UTC [81] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4046591Z  2026-06-28 08:33:36.374 UTC [89] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4046915Z  This user must also own the server process.
+test	Stop containers	2026-06-28T08:34:36.4047172Z  
+test	Stop containers	2026-06-28T08:34:36.4047433Z  The database cluster will be initialized with locale "en_US.utf8".
+test	Stop containers	2026-06-28T08:34:36.4047845Z  The default database encoding has accordingly been set to "UTF8".
+test	Stop containers	2026-06-28T08:34:36.4048243Z  The default text search configuration will be set to "english".
+test	Stop containers	2026-06-28T08:34:36.4048556Z  
+test	Stop containers	2026-06-28T08:34:36.4048740Z  Data page checksums are disabled.
+test	Stop containers	2026-06-28T08:34:36.4048983Z  
+test	Stop containers	2026-06-28T08:34:36.4049259Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+test	Stop containers	2026-06-28T08:34:36.4049624Z  creating subdirectories ... ok
+test	Stop containers	2026-06-28T08:34:36.4049929Z  selecting dynamic shared memory implementation ... posix
+test	Stop containers	2026-06-28T08:34:36.4050251Z  selecting default max_connections ... 100
+test	Stop containers	2026-06-28T08:34:36.4050531Z  selecting default shared_buffers ... 128MB
+test	Stop containers	2026-06-28T08:34:36.4050804Z  selecting default time zone ... Etc/UTC
+test	Stop containers	2026-06-28T08:34:36.4051074Z  creating configuration files ... ok
+test	Stop containers	2026-06-28T08:34:36.4051334Z  running bootstrap script ... ok
+test	Stop containers	2026-06-28T08:34:36.4051615Z  performing post-bootstrap initialization ... ok
+test	Stop containers	2026-06-28T08:34:36.4051901Z  syncing data to disk ... ok
+test	Stop containers	2026-06-28T08:34:36.4052130Z  
+test	Stop containers	2026-06-28T08:34:36.4052293Z  
+test	Stop containers	2026-06-28T08:34:36.4052516Z  Success. You can now start the database server using:
+test	Stop containers	2026-06-28T08:34:36.4052797Z  
+test	Stop containers	2026-06-28T08:34:36.4053038Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+test	Stop containers	2026-06-28T08:34:36.4053321Z  
+test	Stop containers	2026-06-28T08:34:36.4054797Z  waiting for server to start....2026-06-28 08:33:06.749 UTC [46] LOG:  starting PostgreSQL 15.18 (Debian 15.18-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+test	Stop containers	2026-06-28T08:34:36.4056428Z  2026-06-28 08:33:06.749 UTC [46] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+test	Stop containers	2026-06-28T08:34:36.4057495Z  2026-06-28 08:33:06.752 UTC [49] LOG:  database system was shut down at 2026-06-28 08:33:06 UTC
+test	Stop containers	2026-06-28T08:34:36.4058292Z  2026-06-28 08:33:06.755 UTC [46] LOG:  database system is ready to accept connections
+test	Stop containers	2026-06-28T08:34:36.4058913Z   done
+test	Stop containers	2026-06-28T08:34:36.4059202Z  server started
+test	Stop containers	2026-06-28T08:34:36.4059509Z  CREATE DATABASE
+test	Stop containers	2026-06-28T08:34:36.4059849Z  
+test	Stop containers	2026-06-28T08:34:36.4060098Z  
+test	Stop containers	2026-06-28T08:34:36.4060662Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+test	Stop containers	2026-06-28T08:34:36.4061651Z  
+test	Stop containers	2026-06-28T08:34:36.4062085Z  2026-06-28 08:33:06.917 UTC [46] LOG:  received fast shutdown request
+test	Stop containers	2026-06-28T08:34:36.4062970Z  waiting for server to shut down....2026-06-28 08:33:06.917 UTC [46] LOG:  aborting any active transactions
+test	Stop containers	2026-06-28T08:34:36.4064067Z  2026-06-28 08:33:06.919 UTC [46] LOG:  background worker "logical replication launcher" (PID 52) exited with exit code 1
+test	Stop containers	2026-06-28T08:34:36.4064798Z  2026-06-28 08:33:06.922 UTC [47] LOG:  shutting down
+test	Stop containers	2026-06-28T08:34:36.4065319Z  2026-06-28 08:33:06.923 UTC [47] LOG:  checkpoint starting: shutdown immediate
+test	Stop containers	2026-06-28T08:34:36.4067346Z  2026-06-28 08:33:06.937 UTC [47] LOG:  checkpoint complete: wrote 922 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.009 s, sync=0.005 s, total=0.016 s; sync files=301, longest=0.004 s, average=0.001 s; distance=4239 kB, estimate=4239 kB
+test	Stop containers	2026-06-28T08:34:36.4068460Z  2026-06-28 08:33:06.941 UTC [46] LOG:  database system is shut down
+test	Stop containers	2026-06-28T08:34:36.4068891Z   done
+test	Stop containers	2026-06-28T08:34:36.4069070Z  server stopped
+test	Stop containers	2026-06-28T08:34:36.4069256Z  
+test	Stop containers	2026-06-28T08:34:36.4069495Z  PostgreSQL init process complete; ready for start up.
+test	Stop containers	2026-06-28T08:34:36.4069779Z  
+test	Stop containers	2026-06-28T08:34:36.4070049Z  2026-06-28 08:33:46.812 UTC [98] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4070418Z  2026-06-28 08:33:56.912 UTC [106] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4070797Z  2026-06-28 08:34:06.992 UTC [113] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4071153Z  2026-06-28 08:34:17.076 UTC [122] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4071517Z  2026-06-28 08:34:27.167 UTC [131] FATAL:  role "root" does not exist
+test	Stop containers	2026-06-28T08:34:36.4078623Z Stop and remove container: d2ab7362ee014372ae15fbdbc3199dbf_postgres15_2438a0
+test	Stop containers	2026-06-28T08:34:36.4084176Z ##[command]/usr/bin/docker rm --force 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Stop containers	2026-06-28T08:34:36.6702493Z 9d92b824eab9f8c557bbbab28d3d578074bb3a23f2ab6d42f6f1de368e380637
+test	Stop containers	2026-06-28T08:34:36.6718087Z Remove container network: github_network_fa96c0a29cbb49f3b9acee75f0d79dd0
+test	Stop containers	2026-06-28T08:34:36.6722181Z ##[command]/usr/bin/docker network rm github_network_fa96c0a29cbb49f3b9acee75f0d79dd0
+test	Stop containers	2026-06-28T08:34:36.7402888Z github_network_fa96c0a29cbb49f3b9acee75f0d79dd0
+test	Complete job	﻿2026-06-28T08:34:36.7470239Z Cleaning up orphan processes
+test	Complete job	2026-06-28T08:34:36.7688740Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+e2e	Set up job	﻿2026-06-28T08:34:43.0350720Z Current runner version: '2.335.1'
+e2e	Set up job	2026-06-28T08:34:43.0393966Z ##[group]Runner Image Provisioner
+e2e	Set up job	2026-06-28T08:34:43.0395469Z Hosted Compute Agent
+e2e	Set up job	2026-06-28T08:34:43.0396441Z Version: 20260611.554
+e2e	Set up job	2026-06-28T08:34:43.0397746Z Commit: 5e0782fdc9014723d3be820dd114dd31555c2bd1
+e2e	Set up job	2026-06-28T08:34:43.0399197Z Build Date: 2026-06-11T21:40:46Z
+e2e	Set up job	2026-06-28T08:34:43.0400387Z Worker ID: {f18416a0-53bc-4d6b-bfec-aef47161c5ab}
+e2e	Set up job	2026-06-28T08:34:43.0401658Z Azure Region: eastus2
+e2e	Set up job	2026-06-28T08:34:43.0402756Z ##[endgroup]
+e2e	Set up job	2026-06-28T08:34:43.0404775Z ##[group]Operating System
+e2e	Set up job	2026-06-28T08:34:43.0405861Z Ubuntu
+e2e	Set up job	2026-06-28T08:34:43.0406680Z 24.04.4
+e2e	Set up job	2026-06-28T08:34:43.0407839Z LTS
+e2e	Set up job	2026-06-28T08:34:43.0408701Z ##[endgroup]
+e2e	Set up job	2026-06-28T08:34:43.0409621Z ##[group]Runner Image
+e2e	Set up job	2026-06-28T08:34:43.0410716Z Image: ubuntu-24.04
+e2e	Set up job	2026-06-28T08:34:43.0411645Z Version: 20260622.220.1
+e2e	Set up job	2026-06-28T08:34:43.0413392Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260622.220/images/ubuntu/Ubuntu2404-Readme.md
+e2e	Set up job	2026-06-28T08:34:43.0416548Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260622.220
+e2e	Set up job	2026-06-28T08:34:43.0418667Z ##[endgroup]
+e2e	Set up job	2026-06-28T08:34:43.0420659Z ##[group]GITHUB_TOKEN Permissions
+e2e	Set up job	2026-06-28T08:34:43.0423842Z Contents: read
+e2e	Set up job	2026-06-28T08:34:43.0424823Z Metadata: read
+e2e	Set up job	2026-06-28T08:34:43.0425731Z Packages: read
+e2e	Set up job	2026-06-28T08:34:43.0426850Z ##[endgroup]
+e2e	Set up job	2026-06-28T08:34:43.0430235Z Secret source: Actions
+e2e	Set up job	2026-06-28T08:34:43.0432082Z Prepare workflow directory
+e2e	Set up job	2026-06-28T08:34:43.1051968Z Prepare all required actions
+e2e	Set up job	2026-06-28T08:34:43.1107623Z Getting action download info
+e2e	Set up job	2026-06-28T08:34:43.2958793Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+e2e	Set up job	2026-06-28T08:34:44.0632809Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+e2e	Set up job	2026-06-28T08:34:44.4104924Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+e2e	Set up job	2026-06-28T08:34:45.2434443Z Complete job name: e2e
+e2e	Initialize containers	﻿2026-06-28T08:34:45.2989964Z ##[group]Checking docker version
+e2e	Initialize containers	2026-06-28T08:34:45.3003291Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+e2e	Initialize containers	2026-06-28T08:34:45.3830154Z '1.48'
+e2e	Initialize containers	2026-06-28T08:34:45.3839002Z Docker daemon API version: '1.48'
+e2e	Initialize containers	2026-06-28T08:34:45.3840268Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+e2e	Initialize containers	2026-06-28T08:34:45.4039989Z '1.48'
+e2e	Initialize containers	2026-06-28T08:34:45.4049959Z Docker client API version: '1.48'
+e2e	Initialize containers	2026-06-28T08:34:45.4056622Z ##[endgroup]
+e2e	Initialize containers	2026-06-28T08:34:45.4059955Z ##[group]Clean up resources from previous jobs
+e2e	Initialize containers	2026-06-28T08:34:45.4065778Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=c28eae"
+e2e	Initialize containers	2026-06-28T08:34:45.4226765Z ##[command]/usr/bin/docker network prune --force --filter "label=c28eae"
+e2e	Initialize containers	2026-06-28T08:34:45.4379887Z ##[endgroup]
+e2e	Initialize containers	2026-06-28T08:34:45.4380642Z ##[group]Create local container network
+e2e	Initialize containers	2026-06-28T08:34:45.4392757Z ##[command]/usr/bin/docker network create --label c28eae github_network_51bec3742a8c444aba5074f03896f890
+e2e	Initialize containers	2026-06-28T08:34:45.5099403Z c90e2f91555bf75c7865d8803edb074610f01332a9911dc6e7babc85d4adde96
+e2e	Initialize containers	2026-06-28T08:34:45.5119564Z ##[endgroup]
+e2e	Initialize containers	2026-06-28T08:34:45.5145055Z ##[group]Starting postgres service container
+e2e	Initialize containers	2026-06-28T08:34:45.5167928Z ##[command]/usr/bin/docker pull postgres:15
+e2e	Initialize containers	2026-06-28T08:34:45.8216315Z 15: Pulling from library/postgres
+e2e	Initialize containers	2026-06-28T08:34:45.9047780Z e95a6c7ea7d4: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9049720Z a9c76fda38ad: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9050544Z 50e26febf095: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9051150Z 5bb73b0851f1: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9051797Z cf2f93082245: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9052354Z ffb6155ae5ef: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9052894Z e089b4b16146: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9053456Z 3bd2ba93954a: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9054073Z 812a8e197711: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9054663Z d86237adaf9e: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9055257Z 7055beb516cf: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9056368Z c6ed54b206b0: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9056834Z 193c96c0be41: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9057522Z 94aa476d8eee: Pulling fs layer
+e2e	Initialize containers	2026-06-28T08:34:45.9057918Z 5bb73b0851f1: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9058182Z cf2f93082245: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9058428Z ffb6155ae5ef: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9058679Z e089b4b16146: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9058920Z 3bd2ba93954a: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9059159Z 812a8e197711: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9059398Z d86237adaf9e: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9059751Z 7055beb516cf: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9059993Z c6ed54b206b0: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9060550Z 193c96c0be41: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9060985Z 94aa476d8eee: Waiting
+e2e	Initialize containers	2026-06-28T08:34:45.9740672Z a9c76fda38ad: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:45.9742262Z a9c76fda38ad: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.1203172Z 50e26febf095: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.1212508Z 50e26febf095: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.1213228Z 5bb73b0851f1: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.1213799Z 5bb73b0851f1: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.1806699Z e95a6c7ea7d4: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.1807898Z e95a6c7ea7d4: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.1995142Z cf2f93082245: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.1995755Z cf2f93082245: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.2237516Z e089b4b16146: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.2238140Z e089b4b16146: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.2480107Z 3bd2ba93954a: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.2481137Z 3bd2ba93954a: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.2883916Z ffb6155ae5ef: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.2886506Z ffb6155ae5ef: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.3073907Z d86237adaf9e: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.3074966Z d86237adaf9e: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.3548677Z 7055beb516cf: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.3854877Z 7055beb516cf: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.3856017Z c6ed54b206b0: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.3857318Z c6ed54b206b0: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.4085575Z 193c96c0be41: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.4086241Z 193c96c0be41: Download complete
+e2e	Initialize containers	2026-06-28T08:34:46.4425086Z 94aa476d8eee: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:46.4426293Z 94aa476d8eee: Download complete
+e2e	Initialize containers	2026-06-28T08:34:47.1728570Z 812a8e197711: Verifying Checksum
+e2e	Initialize containers	2026-06-28T08:34:47.1729059Z 812a8e197711: Download complete
+e2e	Initialize containers	2026-06-28T08:34:47.8439720Z e95a6c7ea7d4: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:50.2020055Z a9c76fda38ad: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:50.4166276Z 50e26febf095: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:50.4672154Z 5bb73b0851f1: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:50.8267728Z cf2f93082245: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:50.9199096Z ffb6155ae5ef: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:50.9268825Z e089b4b16146: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:50.9539031Z 3bd2ba93954a: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:55.3068495Z 812a8e197711: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:55.3257287Z d86237adaf9e: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:55.3384042Z 7055beb516cf: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:55.3539269Z c6ed54b206b0: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:55.3633731Z 193c96c0be41: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:55.3728335Z 94aa476d8eee: Pull complete
+e2e	Initialize containers	2026-06-28T08:34:55.3765867Z Digest: sha256:3b0d656f5fff31c7d8a64f500a703dcf3f35e98ce78f602831a73059a5e6a012
+e2e	Initialize containers	2026-06-28T08:34:55.3775952Z Status: Downloaded newer image for postgres:15
+e2e	Initialize containers	2026-06-28T08:34:55.3788738Z docker.io/library/postgres:15
+e2e	Initialize containers	2026-06-28T08:34:55.3854821Z ##[command]/usr/bin/docker create --name 19a1b73492cc402a9eec2de6e7b95a94_postgres15_7bcfeb --label c28eae --network github_network_51bec3742a8c444aba5074f03896f890 --network-alias postgres -p 5432:5432 --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5 -e "POSTGRES_USER=test" -e "POSTGRES_PASSWORD=test" -e "POSTGRES_DB=dealinno_test" -e GITHUB_ACTIONS=true -e CI=true postgres:15
+e2e	Initialize containers	2026-06-28T08:34:55.4127439Z deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:34:55.4152653Z ##[command]/usr/bin/docker start deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:34:55.6561836Z deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:34:55.6625442Z ##[command]/usr/bin/docker ps --all --filter id=deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+e2e	Initialize containers	2026-06-28T08:34:55.6836660Z deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1 Up Less than a second (health: starting)
+e2e	Initialize containers	2026-06-28T08:34:55.6872548Z ##[command]/usr/bin/docker port deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:34:55.7067442Z 5432/tcp -> 0.0.0.0:5432
+e2e	Initialize containers	2026-06-28T08:34:55.7083664Z 5432/tcp -> [::]:5432
+e2e	Initialize containers	2026-06-28T08:34:55.7136072Z ##[endgroup]
+e2e	Initialize containers	2026-06-28T08:34:55.7148598Z ##[group]Waiting for all services to be ready
+e2e	Initialize containers	2026-06-28T08:34:55.7167836Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:34:55.7361519Z starting
+e2e	Initialize containers	2026-06-28T08:34:55.7401290Z postgres service is starting, waiting 2 seconds before checking again.
+e2e	Initialize containers	2026-06-28T08:34:57.7400567Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:34:57.7540234Z starting
+e2e	Initialize containers	2026-06-28T08:34:57.7553110Z postgres service is starting, waiting 4 seconds before checking again.
+e2e	Initialize containers	2026-06-28T08:35:02.1314586Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:35:02.1460102Z starting
+e2e	Initialize containers	2026-06-28T08:35:02.1538963Z postgres service is starting, waiting 7 seconds before checking again.
+e2e	Initialize containers	2026-06-28T08:35:09.9381243Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Initialize containers	2026-06-28T08:35:09.9534225Z healthy
+e2e	Initialize containers	2026-06-28T08:35:09.9552760Z postgres service is healthy.
+e2e	Initialize containers	2026-06-28T08:35:09.9553478Z ##[endgroup]
+e2e	Run actions/checkout@v4	﻿2026-06-28T08:35:09.9824838Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9832884Z ##[group]Run actions/checkout@v4
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9833316Z with:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9833561Z   repository: ALLENDE123X/propinno
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9836287Z   token: ***
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9836526Z   ssh-strict: true
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9836760Z   ssh-user: git
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9837284Z   persist-credentials: true
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9837703Z   clean: true
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9837941Z   sparse-checkout-cone-mode: true
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9838240Z   fetch-depth: 1
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9838485Z   fetch-tags: false
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9838727Z   show-progress: true
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9838958Z   lfs: false
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9839170Z   submodules: false
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9839442Z   set-safe-directory: true
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9839956Z env:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9840370Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9840702Z   STRIPE_SECRET_KEY: test_sk
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9840970Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Run actions/checkout@v4	2026-06-28T08:35:09.9841239Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.0937314Z Syncing repository: ALLENDE123X/propinno
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.0939718Z ##[group]Getting Git version info
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.0940584Z Working directory is '/home/runner/work/propinno/propinno'
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.0942670Z [command]/usr/bin/git version
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1022464Z git version 2.54.0
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1048857Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1063992Z Temporarily overriding HOME='/home/runner/work/_temp/9f384906-b84a-4cb5-bfc2-90ecc786be9c' before making global git config changes
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1067552Z Adding repository directory to the temporary git global config as a safe directory
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1071783Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/propinno/propinno
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1126613Z Deleting the contents of '/home/runner/work/propinno/propinno'
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1131684Z ##[group]Initializing the repository
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1137762Z [command]/usr/bin/git init /home/runner/work/propinno/propinno
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1248425Z hint: Using 'master' as the name for the initial branch. This default branch name
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1254609Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1256206Z hint: to use in all of your new repositories, which will suppress this warning,
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1258324Z hint: call:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1259344Z hint:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1260132Z hint: 	git config --global init.defaultBranch <name>
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1261318Z hint:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1262145Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1263569Z hint: 'development'. The just-created branch can be renamed via this command:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1264850Z hint:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1265861Z hint: 	git branch -m <name>
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1266679Z hint:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1268516Z hint: Disable this message with "git config set advice.defaultBranchName false"
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1269676Z Initialized empty Git repository in /home/runner/work/propinno/propinno/.git/
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1272560Z [command]/usr/bin/git remote add origin https://github.com/ALLENDE123X/propinno
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1361659Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1362602Z ##[group]Disabling automatic garbage collection
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1363713Z [command]/usr/bin/git config --local gc.auto 0
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1391313Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1392056Z ##[group]Setting up auth
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1401004Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1437842Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1816062Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.1850419Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.2104152Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.2141243Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.2389223Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.2426302Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.2427466Z ##[group]Fetching the repository
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.2437595Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +84a8bd8400944d61e9b39bac4e5c761bc26e5da3:refs/remotes/pull/16/merge
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.4925945Z From https://github.com/ALLENDE123X/propinno
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.4937971Z  * [new ref]         84a8bd8400944d61e9b39bac4e5c761bc26e5da3 -> pull/16/merge
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5017898Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5021873Z ##[group]Determining the checkout info
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5036914Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5038212Z [command]/usr/bin/git sparse-checkout disable
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5107619Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5148317Z ##[group]Checking out the ref
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5163342Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/16/merge
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5302393Z Note: switching to 'refs/remotes/pull/16/merge'.
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5317509Z 
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5328160Z You are in 'detached HEAD' state. You can look around, make experimental
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5329389Z changes and commit them, and you can discard any commits you make in this
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5330359Z state without impacting any branches by switching back to a branch.
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5330982Z 
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5331439Z If you want to create a new branch to retain commits you create, you may
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5332348Z do so (now or later) by using -c with the switch command. Example:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5332936Z 
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5333261Z   git switch -c <new-branch-name>
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5333707Z 
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5334022Z Or undo this operation with:
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5334445Z 
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5334779Z   git switch -
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5335144Z 
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5335658Z Turn off this advice by setting config variable advice.detachedHead to false
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5336352Z 
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5337384Z HEAD is now at 84a8bd8 Merge cb7502cfb40c610d48c7851ffea1ac3ef612411d into ff72df3054ae7eeac5c712c63561ccb39600b410
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5376560Z ##[endgroup]
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5435144Z [command]/usr/bin/git log -1 --format=%H
+e2e	Run actions/checkout@v4	2026-06-28T08:35:10.5457806Z 84a8bd8400944d61e9b39bac4e5c761bc26e5da3
+e2e	Run actions/setup-node@v4	﻿2026-06-28T08:35:10.5704703Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5706250Z ##[group]Run actions/setup-node@v4
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5706527Z with:
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5706742Z   node-version: 20
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5706972Z   cache: npm
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5707563Z   always-auth: false
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5707808Z   check-latest: false
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5710432Z   token: ***
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5710655Z env:
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5711032Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5711380Z   STRIPE_SECRET_KEY: test_sk
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5711653Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.5711927Z ##[endgroup]
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.7235183Z Attempting to download 20...
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.7343268Z (node:2453) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:10.7344734Z (Use `node --trace-deprecation ...` to show where the warning was created)
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:11.1579068Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:11.5259727Z Extracting ...
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:11.5391818Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/a97ccb39-2250-4142-816a-023dbec98507 -f /home/runner/work/_temp/73813370-9772-46a2-97c0-6d607249f174
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:12.7349537Z Adding to the cache ...
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:14.6659497Z ##[group]Environment details
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:14.9328495Z node: v20.20.2
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:14.9329247Z npm: 10.8.2
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:14.9329954Z yarn: 1.22.22
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:14.9331120Z ##[endgroup]
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:14.9351931Z [command]/opt/hostedtoolcache/node/20.20.2/x64/bin/npm config get cache
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:15.0468079Z /home/runner/.npm
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:15.1778156Z Cache hit for: node-cache-Linux-x64-npm-6bc29be0660f8d68012cc57443ebfdc4bb34fa32c5c6891600b41160141b2c98
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:15.1871526Z (node:2453) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:16.2402042Z Received 171966464 of 263989073 (65.1%), 160.2 MBs/sec
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:16.5783227Z Received 263989073 of 263989073 (100.0%), 184.7 MBs/sec
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:16.5784746Z Cache Size: ~252 MB (263989073 B)
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:16.5817718Z [command]/usr/bin/tar -xf /home/runner/work/_temp/22f86535-4fa4-4bbd-ac8d-167b49584d28/cache.tzst -P -C /home/runner/work/propinno/propinno --use-compress-program unzstd
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:17.2401057Z Cache restored successfully
+e2e	Run actions/setup-node@v4	2026-06-28T08:35:17.2588590Z Cache restored from key: node-cache-Linux-x64-npm-6bc29be0660f8d68012cc57443ebfdc4bb34fa32c5c6891600b41160141b2c98
+e2e	Install dependencies	﻿2026-06-28T08:35:17.2861795Z ##[group]Run npm ci
+e2e	Install dependencies	2026-06-28T08:35:17.2862157Z ^[[36;1mnpm ci^[[0m
+e2e	Install dependencies	2026-06-28T08:35:17.2901444Z shell: /usr/bin/bash -e {0}
+e2e	Install dependencies	2026-06-28T08:35:17.2901740Z env:
+e2e	Install dependencies	2026-06-28T08:35:17.2902232Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Install dependencies	2026-06-28T08:35:17.2902595Z   STRIPE_SECRET_KEY: test_sk
+e2e	Install dependencies	2026-06-28T08:35:17.2902881Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Install dependencies	2026-06-28T08:35:17.2903167Z ##[endgroup]
+e2e	Install dependencies	2026-06-28T08:35:26.8297252Z npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+e2e	Install dependencies	2026-06-28T08:35:27.0486085Z npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+e2e	Install dependencies	2026-06-28T08:35:27.0930529Z npm warn deprecated serialize-error-cjs@0.1.4: Rolling release, please update to 0.2.0
+e2e	Install dependencies	2026-06-28T08:35:27.1210210Z npm warn deprecated scmp@2.1.0: Just use Node.js's crypto.timingSafeEqual()
+e2e	Install dependencies	2026-06-28T08:35:27.5687656Z npm warn deprecated @axiomhq/axiom-node@0.12.0: Please use @axiomhq/js instead
+e2e	Install dependencies	2026-06-28T08:35:27.8375002Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+e2e	Install dependencies	2026-06-28T08:35:40.4482622Z 
+e2e	Install dependencies	2026-06-28T08:35:40.4508795Z added 927 packages, and audited 928 packages in 23s
+e2e	Install dependencies	2026-06-28T08:35:40.4532215Z 
+e2e	Install dependencies	2026-06-28T08:35:40.4538339Z 197 packages are looking for funding
+e2e	Install dependencies	2026-06-28T08:35:40.4540593Z   run `npm fund` for details
+e2e	Install dependencies	2026-06-28T08:35:40.5580741Z 
+e2e	Install dependencies	2026-06-28T08:35:40.5581753Z 41 vulnerabilities (38 moderate, 3 high)
+e2e	Install dependencies	2026-06-28T08:35:40.5597334Z 
+e2e	Install dependencies	2026-06-28T08:35:40.5604290Z To address issues that do not require attention, run:
+e2e	Install dependencies	2026-06-28T08:35:40.5604907Z   npm audit fix
+e2e	Install dependencies	2026-06-28T08:35:40.5608688Z 
+e2e	Install dependencies	2026-06-28T08:35:40.5609524Z To address all issues (including breaking changes), run:
+e2e	Install dependencies	2026-06-28T08:35:40.5610102Z   npm audit fix --force
+e2e	Install dependencies	2026-06-28T08:35:40.5613477Z 
+e2e	Install dependencies	2026-06-28T08:35:40.5613944Z Run `npm audit` for details.
+e2e	Install Playwright browsers	﻿2026-06-28T08:35:40.6757954Z ##[group]Run npx playwright install --with-deps chromium
+e2e	Install Playwright browsers	2026-06-28T08:35:40.6758473Z ^[[36;1mnpx playwright install --with-deps chromium^[[0m
+e2e	Install Playwright browsers	2026-06-28T08:35:40.6795230Z shell: /usr/bin/bash -e {0}
+e2e	Install Playwright browsers	2026-06-28T08:35:40.6795528Z env:
+e2e	Install Playwright browsers	2026-06-28T08:35:40.6796015Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Install Playwright browsers	2026-06-28T08:35:40.6796364Z   STRIPE_SECRET_KEY: test_sk
+e2e	Install Playwright browsers	2026-06-28T08:35:40.6796652Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Install Playwright browsers	2026-06-28T08:35:40.6796938Z ##[endgroup]
+e2e	Install Playwright browsers	2026-06-28T08:35:41.5792790Z Installing dependencies...
+e2e	Install Playwright browsers	2026-06-28T08:35:41.5911790Z Switching to root user to install dependencies...
+e2e	Install Playwright browsers	2026-06-28T08:35:41.7372905Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+e2e	Install Playwright browsers	2026-06-28T08:35:41.7947940Z Hit:6 https://packages.microsoft.com/repos/azure-cli noble InRelease
+e2e	Install Playwright browsers	2026-06-28T08:35:41.7949979Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+e2e	Install Playwright browsers	2026-06-28T08:35:41.7966114Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+e2e	Install Playwright browsers	2026-06-28T08:35:41.7990666Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:41.8037194Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:41.8092736Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:41.8155361Z Get:8 https://dl.google.com/linux/chrome-stable/deb stable InRelease [1825 B]
+e2e	Install Playwright browsers	2026-06-28T08:35:41.9991795Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [156 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.0248848Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [187 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1507420Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1041 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1596522Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [261 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1598373Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1624685Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 c-n-f Metadata [17.5 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1626256Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1656 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1688475Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [326 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1694679Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1728311Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [34.8 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.1729934Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1134 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.2119330Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [257 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.2672603Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.2674433Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5768 B]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.2869371Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [10.5 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.4622794Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [788 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5212845Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [179 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5218217Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [44.9 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5258302Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 c-n-f Metadata [11.6 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5274781Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1171 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5288507Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [229 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5308418Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5312726Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [24.1 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5314306Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1071 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5315672Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [245 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:42.5714215Z Get:34 https://dl.google.com/linux/chrome-stable/deb stable/main amd64 Packages [1210 B]
+e2e	Install Playwright browsers	2026-06-28T08:35:47.9465801Z Fetched 9881 kB in 2s (5896 kB/s)
+e2e	Install Playwright browsers	2026-06-28T08:35:48.6261399Z Reading package lists...
+e2e	Install Playwright browsers	2026-06-28T08:35:48.6538802Z Reading package lists...
+e2e	Install Playwright browsers	2026-06-28T08:35:48.8569563Z Building dependency tree...
+e2e	Install Playwright browsers	2026-06-28T08:35:48.8578201Z Reading state information...
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0342964Z libasound2t64 is already the newest version (1.2.11-1ubuntu0.2).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0344142Z libasound2t64 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0345289Z libatk-bridge2.0-0t64 is already the newest version (2.52.0-1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0346308Z libatk-bridge2.0-0t64 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0347511Z libatk1.0-0t64 is already the newest version (2.52.0-1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0348592Z libatk1.0-0t64 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0349527Z libatspi2.0-0t64 is already the newest version (2.52.0-1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0358072Z libatspi2.0-0t64 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0372486Z libcairo2 is already the newest version (1.18.0-3build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0373189Z libcairo2 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0388202Z libcups2t64 is already the newest version (2.4.7-1.2ubuntu7.14).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0393155Z libcups2t64 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0394017Z libdbus-1-3 is already the newest version (1.14.10-4ubuntu4.1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0394988Z libdbus-1-3 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0395916Z libdrm2 is already the newest version (2.4.125-1ubuntu0.1~24.04.2).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0396933Z libdrm2 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0398042Z libgbm1 is already the newest version (25.2.8-0ubuntu0.24.04.2).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0398959Z libgbm1 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0399802Z libglib2.0-0t64 is already the newest version (2.80.0-6ubuntu3.8).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0400663Z libglib2.0-0t64 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0401525Z libnspr4 is already the newest version (2:4.35-1.1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0402347Z libnspr4 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0403160Z libnss3 is already the newest version (2:3.98-1ubuntu0.1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0403934Z libnss3 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0404793Z libpango-1.0-0 is already the newest version (1.52.1+ds-1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0405568Z libpango-1.0-0 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0406305Z libx11-6 is already the newest version (2:1.8.7-1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0407222Z libx11-6 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0407968Z libxcb1 is already the newest version (1.15-1ubuntu2).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0408665Z libxcb1 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0409444Z libxcomposite1 is already the newest version (1:0.4.5-1build3).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0410218Z libxcomposite1 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0410990Z libxdamage1 is already the newest version (1:1.1.6-1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0411737Z libxdamage1 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0412464Z libxext6 is already the newest version (2:1.3.4-1build2).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0413176Z libxext6 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0413934Z libxfixes3 is already the newest version (1:6.0.0-2build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0414680Z libxfixes3 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0415423Z libxkbcommon0 is already the newest version (1.6.0-1build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0416184Z libxkbcommon0 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0416930Z libxrandr2 is already the newest version (2:1.5.2-2build1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0418094Z libxrandr2 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0418830Z xvfb is already the newest version (2:21.1.12-1ubuntu1.6).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0419808Z fonts-noto-color-emoji is already the newest version (2.047-0ubuntu0.24.04.1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0420802Z libfontconfig1 is already the newest version (2.15.0-1.1ubuntu2).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0421589Z libfontconfig1 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0422424Z libfreetype6 is already the newest version (2.13.2+dfsg-1ubuntu0.1).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0423219Z libfreetype6 set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0423999Z fonts-liberation is already the newest version (1:2.1.5-3).
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0424786Z fonts-liberation set to manually installed.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0425535Z The following additional packages will be installed:
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0426211Z   xfonts-encodings xfonts-utils
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0426840Z Recommended packages:
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0427561Z   fonts-ipafont-mincho fonts-tlwg-loma
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0600662Z The following NEW packages will be installed:
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0603716Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0611508Z   fonts-wqy-zenhei xfonts-cyrillic xfonts-encodings xfonts-scalable
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0612470Z   xfonts-utils
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0913746Z 0 upgraded, 9 newly installed, 0 to remove and 11 not upgraded.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0914923Z Need to get 21.1 MB of archives.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0916107Z After this operation, 79.5 MB of additional disk space will be used.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.0917347Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.1239749Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-ipafont-gothic all 00303-21ubuntu1 [3513 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.1583325Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-freefont-ttf all 20211204+svn4273-2 [5641 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.2106578Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-tlwg-loma-otf all 1:0.7.3-1 [107 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.2140433Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-unifont all 1:15.1.01-1build1 [2993 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.2445138Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-wqy-zenhei all 0.9.45-8 [7472 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.3074890Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-encodings all 1:1.0.5-0ubuntu2 [578 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.3147474Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-utils amd64 1:7.7+6build3 [94.4 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.3181520Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 xfonts-cyrillic all 1:1.0.5+nmu1 [384 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.3235993Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-scalable all 1:1.0.3-1.3 [304 kB]
+e2e	Install Playwright browsers	2026-06-28T08:35:49.5918748Z Fetched 21.1 MB in 0s (82.3 MB/s)
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6234394Z Selecting previously unselected package fonts-ipafont-gothic.
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6510663Z (Reading database ... 
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6511262Z (Reading database ... 5%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6512069Z (Reading database ... 10%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6518229Z (Reading database ... 15%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6519838Z (Reading database ... 20%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6520709Z (Reading database ... 25%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6523679Z (Reading database ... 30%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6524000Z (Reading database ... 35%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6524271Z (Reading database ... 40%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6524536Z (Reading database ... 45%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6525024Z (Reading database ... 50%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.6555726Z (Reading database ... 55%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.7487874Z (Reading database ... 60%
+e2e	Install Playwright browsers	2026-06-28T08:35:49.9522386Z (Reading database ... 65%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.1452096Z (Reading database ... 70%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.2164132Z (Reading database ... 75%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.2573953Z (Reading database ... 80%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.3608437Z (Reading database ... 85%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.5074378Z (Reading database ... 90%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.6128762Z (Reading database ... 95%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.6129622Z (Reading database ... 100%
+e2e	Install Playwright browsers	2026-06-28T08:35:50.6130751Z (Reading database ... 202407 files and directories currently installed.)
+e2e	Install Playwright browsers	2026-06-28T08:35:50.6179544Z Preparing to unpack .../0-fonts-ipafont-gothic_00303-21ubuntu1_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:50.6285917Z Unpacking fonts-ipafont-gothic (00303-21ubuntu1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:50.8808794Z Selecting previously unselected package fonts-freefont-ttf.
+e2e	Install Playwright browsers	2026-06-28T08:35:50.8928411Z Preparing to unpack .../1-fonts-freefont-ttf_20211204+svn4273-2_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:50.8936707Z Unpacking fonts-freefont-ttf (20211204+svn4273-2) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:50.9879067Z Selecting previously unselected package fonts-tlwg-loma-otf.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.0016429Z Preparing to unpack .../2-fonts-tlwg-loma-otf_1%3a0.7.3-1_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.0028163Z Unpacking fonts-tlwg-loma-otf (1:0.7.3-1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.0256666Z Selecting previously unselected package fonts-unifont.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.0395999Z Preparing to unpack .../3-fonts-unifont_1%3a15.1.01-1build1_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.0402802Z Unpacking fonts-unifont (1:15.1.01-1build1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.1658585Z Selecting previously unselected package fonts-wqy-zenhei.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.1788426Z Preparing to unpack .../4-fonts-wqy-zenhei_0.9.45-8_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.1901914Z Unpacking fonts-wqy-zenhei (0.9.45-8) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.6825013Z Selecting previously unselected package xfonts-encodings.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.6964193Z Preparing to unpack .../5-xfonts-encodings_1%3a1.0.5-0ubuntu2_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.6972378Z Unpacking xfonts-encodings (1:1.0.5-0ubuntu2) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.7298773Z Selecting previously unselected package xfonts-utils.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.7424981Z Preparing to unpack .../6-xfonts-utils_1%3a7.7+6build3_amd64.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.7434108Z Unpacking xfonts-utils (1:7.7+6build3) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.7820672Z Selecting previously unselected package xfonts-cyrillic.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.7959973Z Preparing to unpack .../7-xfonts-cyrillic_1%3a1.0.5+nmu1_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.7970295Z Unpacking xfonts-cyrillic (1:1.0.5+nmu1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.8334619Z Selecting previously unselected package xfonts-scalable.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.8471881Z Preparing to unpack .../8-xfonts-scalable_1%3a1.0.3-1.3_all.deb ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.8478012Z Unpacking xfonts-scalable (1:1.0.3-1.3) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.8920734Z Setting up fonts-wqy-zenhei (0.9.45-8) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9046947Z Setting up fonts-freefont-ttf (20211204+svn4273-2) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9068171Z Setting up fonts-tlwg-loma-otf (1:0.7.3-1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9086393Z Setting up xfonts-encodings (1:1.0.5-0ubuntu2) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9104218Z Setting up fonts-ipafont-gothic (00303-21ubuntu1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9172856Z update-alternatives: using /usr/share/fonts/opentype/ipafont-gothic/ipag.ttf to provide /usr/share/fonts/truetype/fonts-japanese-gothic.ttf (fonts-japanese-gothic.ttf) in auto mode
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9188101Z Setting up fonts-unifont (1:15.1.01-1build1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9203899Z Setting up xfonts-utils (1:7.7+6build3) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9245482Z Setting up xfonts-cyrillic (1:1.0.5+nmu1) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9563372Z Setting up xfonts-scalable (1:1.0.3-1.3) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9863733Z Processing triggers for man-db (2.12.0-4build2) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9885737Z Not building database; man-db/auto-update is not 'true'.
+e2e	Install Playwright browsers	2026-06-28T08:35:51.9902388Z Processing triggers for fontconfig (2.15.0-1.1ubuntu2) ...
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6929224Z 
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6930533Z Running kernel seems to be up-to-date.
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6931352Z 
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6936223Z No services need to be restarted.
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6936742Z 
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6937383Z No containers need to be restarted.
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6937937Z 
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6938421Z No user sessions are running outdated binaries.
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6938951Z 
+e2e	Install Playwright browsers	2026-06-28T08:35:52.6940260Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+e2e	Install Playwright browsers	2026-06-28T08:35:53.5698301Z Downloading Chrome for Testing 148.0.7778.96 (playwright chromium v1223) from https://cdn.playwright.dev/builds/cft/148.0.7778.96/linux64/chrome-linux64.zip
+e2e	Install Playwright browsers	2026-06-28T08:35:54.6174932Z |                                                                                |   0% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:54.9744530Z |■■■■■■■■                                                                        |  10% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.1718030Z |■■■■■■■■■■■■■■■■                                                                |  20% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.3061444Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.4263647Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.5394096Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.6480075Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.7572453Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.8647329Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:55.9736092Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:56.0804289Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 175.4 MiB
+e2e	Install Playwright browsers	2026-06-28T08:35:59.9604075Z Chrome for Testing 148.0.7778.96 (playwright chromium v1223) downloaded to /home/runner/.cache/ms-playwright/chromium-1223
+e2e	Install Playwright browsers	2026-06-28T08:35:59.9609359Z Downloading FFmpeg (playwright ffmpeg v1011) from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip
+e2e	Install Playwright browsers	2026-06-28T08:36:00.9918747Z |                                                                                |   0% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0033725Z |■■■■■■■■                                                                        |  10% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0119906Z |■■■■■■■■■■■■■■■■                                                                |  20% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0196059Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0230274Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0269718Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0295285Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0348631Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0375935Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0400157Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.0430935Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 2.3 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:01.1301461Z FFmpeg (playwright ffmpeg v1011) downloaded to /home/runner/.cache/ms-playwright/ffmpeg-1011
+e2e	Install Playwright browsers	2026-06-28T08:36:01.1307306Z Downloading Chrome Headless Shell 148.0.7778.96 (playwright chromium-headless-shell v1223) from https://cdn.playwright.dev/builds/cft/148.0.7778.96/linux64/chrome-headless-shell-linux64.zip
+e2e	Install Playwright browsers	2026-06-28T08:36:02.1841721Z |                                                                                |   0% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:02.4429575Z |■■■■■■■■                                                                        |  10% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:02.5716443Z |■■■■■■■■■■■■■■■■                                                                |  20% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:02.6704767Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:02.7529540Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:02.8320041Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:02.9099854Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:02.9821905Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:03.0576469Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:03.1304725Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:03.2024724Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 113.2 MiB
+e2e	Install Playwright browsers	2026-06-28T08:36:05.9628895Z Chrome Headless Shell 148.0.7778.96 (playwright chromium-headless-shell v1223) downloaded to /home/runner/.cache/ms-playwright/chromium_headless_shell-1223
+e2e	Push Database Schema	﻿2026-06-28T08:36:05.9881107Z ##[group]Run npx drizzle-kit push
+e2e	Push Database Schema	2026-06-28T08:36:05.9881688Z ^[[36;1mnpx drizzle-kit push^[[0m
+e2e	Push Database Schema	2026-06-28T08:36:05.9930660Z shell: /usr/bin/bash -e {0}
+e2e	Push Database Schema	2026-06-28T08:36:05.9931111Z env:
+e2e	Push Database Schema	2026-06-28T08:36:05.9931850Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Push Database Schema	2026-06-28T08:36:05.9932393Z   STRIPE_SECRET_KEY: test_sk
+e2e	Push Database Schema	2026-06-28T08:36:05.9932846Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Push Database Schema	2026-06-28T08:36:05.9933325Z ##[endgroup]
+e2e	Push Database Schema	2026-06-28T08:36:06.4927241Z No config path provided, using default 'drizzle.config.ts'
+e2e	Push Database Schema	2026-06-28T08:36:06.4931782Z Reading config file '/home/runner/work/propinno/propinno/drizzle.config.ts'
+e2e	Push Database Schema	2026-06-28T08:36:06.5684888Z ◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+e2e	Push Database Schema	2026-06-28T08:36:06.8449167Z Using 'postgres' driver for database querying
+e2e	Push Database Schema	2026-06-28T08:36:06.8900605Z [⣷] Pulling schema from database...
+e2e	Push Database Schema	2026-06-28T08:36:06.9321536Z ^[[2K^[[1G[✓] Pulling schema from database...
+e2e	Push Database Schema	2026-06-28T08:36:06.9621916Z [✓] Changes applied
+e2e	Build	﻿2026-06-28T08:36:06.9833295Z ##[group]Run npm run build
+e2e	Build	2026-06-28T08:36:06.9833627Z ^[[36;1mnpm run build^[[0m
+e2e	Build	2026-06-28T08:36:06.9867755Z shell: /usr/bin/bash -e {0}
+e2e	Build	2026-06-28T08:36:06.9868041Z env:
+e2e	Build	2026-06-28T08:36:06.9868537Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Build	2026-06-28T08:36:06.9868893Z   STRIPE_SECRET_KEY: test_sk
+e2e	Build	2026-06-28T08:36:06.9869287Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Build	2026-06-28T08:36:06.9869642Z   NEXTAUTH_URL: http://localhost:3000
+e2e	Build	2026-06-28T08:36:06.9869992Z   NEXTAUTH_SECRET: test-secret
+e2e	Build	2026-06-28T08:36:06.9870340Z   GOOGLE_CLIENT_ID: test
+e2e	Build	2026-06-28T08:36:06.9870599Z   GOOGLE_CLIENT_SECRET: test
+e2e	Build	2026-06-28T08:36:06.9870939Z ##[endgroup]
+e2e	Build	2026-06-28T08:36:07.1129802Z 
+e2e	Build	2026-06-28T08:36:07.1140384Z > propinno@0.1.0 build
+e2e	Build	2026-06-28T08:36:07.1141373Z > NODE_OPTIONS='--max-old-space-size=4096' next build
+e2e	Build	2026-06-28T08:36:07.1141982Z 
+e2e	Build	2026-06-28T08:36:07.5765830Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+e2e	Build	2026-06-28T08:36:07.5823982Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+e2e	Build	2026-06-28T08:36:07.5825440Z This information is used to shape Next.js' roadmap and prioritize features.
+e2e	Build	2026-06-28T08:36:07.5827287Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+e2e	Build	2026-06-28T08:36:07.5829021Z https://nextjs.org/telemetry
+e2e	Build	2026-06-28T08:36:07.5829586Z 
+e2e	Build	2026-06-28T08:36:07.5978508Z ▲ Next.js 16.2.6 (Turbopack)
+e2e	Build	2026-06-28T08:36:07.5986606Z 
+e2e	Build	2026-06-28T08:36:07.6717892Z   Creating an optimized production build ...
+e2e	Build	2026-06-28T08:36:24.6649069Z ✓ Compiled successfully in 16.8s
+e2e	Build	2026-06-28T08:36:24.6708068Z   Running TypeScript ...
+e2e	Build	2026-06-28T08:36:33.8067563Z   Finished TypeScript in 9.1s ...
+e2e	Build	2026-06-28T08:36:33.8150161Z   Collecting page data using 1 worker ...
+e2e	Build	2026-06-28T08:36:34.3279302Z {"level":40,"time":1782635794326,"pid":3577,"hostname":"runnervmmklqx","msg":"Upstash Redis environment variables are missing. Rate limiting is disabled."}
+e2e	Build	2026-06-28T08:36:34.5328472Z   Generating static pages using 1 worker (0/13) ...
+e2e	Build	2026-06-28T08:36:34.5633777Z   Generating static pages using 1 worker (3/13) 
+e2e	Build	2026-06-28T08:36:34.5650285Z   Generating static pages using 1 worker (6/13) 
+e2e	Build	2026-06-28T08:36:34.7291227Z   Generating static pages using 1 worker (9/13) 
+e2e	Build	2026-06-28T08:36:34.7308886Z ✓ Generating static pages using 1 worker (13/13) in 198ms
+e2e	Build	2026-06-28T08:36:34.7360044Z   Finalizing page optimization ...
+e2e	Build	2026-06-28T08:36:34.7437792Z 
+e2e	Build	2026-06-28T08:36:34.7463266Z Route (app)
+e2e	Build	2026-06-28T08:36:34.7463934Z ┌ ○ /
+e2e	Build	2026-06-28T08:36:34.7464425Z ├ ○ /_not-found
+e2e	Build	2026-06-28T08:36:34.7464980Z ├ ƒ /api/auth/send-otp
+e2e	Build	2026-06-28T08:36:34.7465531Z ├ ƒ /api/auth/verify-otp
+e2e	Build	2026-06-28T08:36:34.7466139Z ├ ƒ /api/billing/create-checkout
+e2e	Build	2026-06-28T08:36:34.7466699Z ├ ƒ /api/health
+e2e	Build	2026-06-28T08:36:34.7467396Z ├ ƒ /api/inngest
+e2e	Build	2026-06-28T08:36:34.7468112Z ├ ƒ /api/webhooks/stripe
+e2e	Build	2026-06-28T08:36:34.7468824Z ├ ○ /checkout
+e2e	Build	2026-06-28T08:36:34.7469563Z ├ ○ /privacy
+e2e	Build	2026-06-28T08:36:34.7470160Z └ ○ /terms
+e2e	Build	2026-06-28T08:36:34.7470526Z 
+e2e	Build	2026-06-28T08:36:34.7470624Z 
+e2e	Build	2026-06-28T08:36:34.7471192Z ○  (Static)   prerendered as static content
+e2e	Build	2026-06-28T08:36:34.7472117Z ƒ  (Dynamic)  server-rendered on demand
+e2e	Build	2026-06-28T08:36:34.7472686Z 
+e2e	Run E2E tests	﻿2026-06-28T08:36:34.8729079Z ##[group]Run npx playwright test
+e2e	Run E2E tests	2026-06-28T08:36:34.8729434Z ^[[36;1mnpx playwright test^[[0m
+e2e	Run E2E tests	2026-06-28T08:36:34.8764331Z shell: /usr/bin/bash -e {0}
+e2e	Run E2E tests	2026-06-28T08:36:34.8764609Z env:
+e2e	Run E2E tests	2026-06-28T08:36:34.8765076Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Run E2E tests	2026-06-28T08:36:34.8765421Z   STRIPE_SECRET_KEY: test_sk
+e2e	Run E2E tests	2026-06-28T08:36:34.8765698Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Run E2E tests	2026-06-28T08:36:34.8766026Z   PLAYWRIGHT_BASE_URL: http://localhost:3000
+e2e	Run E2E tests	2026-06-28T08:36:34.8766366Z   E2E_TEST_USER_EMAIL: e2e-test@example.com
+e2e	Run E2E tests	2026-06-28T08:36:34.8766665Z ##[endgroup]
+e2e	Run E2E tests	2026-06-28T08:36:35.9774554Z ◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+e2e	Run E2E tests	2026-06-28T08:36:37.9857654Z 
+e2e	Run E2E tests	2026-06-28T08:36:37.9880320Z Running 8 tests using 1 worker
+e2e	Run E2E tests	2026-06-28T08:36:38.5369732Z ◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+e2e	Run E2E tests	2026-06-28T08:36:40.0283264Z [WebServer] ^[[31m^[[1m⨯^[[22m^[[39m Error: Failed to create checkout session
+e2e	Run E2E tests	2026-06-28T08:36:40.0284555Z [WebServer]     at xn (.next/server/chunks/ssr/_07o..wo._.js:564:129120) {
+e2e	Run E2E tests	2026-06-28T08:36:40.0285486Z [WebServer]   digest: ^[[32m'3896441168'^[[39m
+e2e	Run E2E tests	2026-06-28T08:36:40.0292530Z [WebServer] }
+e2e	Run E2E tests	2026-06-28T08:36:45.6285609Z ··×◇ injected env (0) from .env.local // tip: ⌘ enable debugging { debug: true }
+e2e	Run E2E tests	2026-06-28T08:36:46.3162263Z [WebServer] ^[[31m^[[1m⨯^[[22m^[[39m Error: Failed to create checkout session
+e2e	Run E2E tests	2026-06-28T08:36:46.3180303Z [WebServer]     at xn (.next/server/chunks/ssr/_07o..wo._.js:564:129120) {
+e2e	Run E2E tests	2026-06-28T08:36:46.3181431Z [WebServer]   digest: ^[[32m'3896441168'^[[39m
+e2e	Run E2E tests	2026-06-28T08:36:46.3182028Z [WebServer] }
+e2e	Run E2E tests	2026-06-28T08:36:52.2037728Z ×◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+e2e	Run E2E tests	2026-06-28T08:36:52.8389324Z [WebServer] ^[[31m^[[1m⨯^[[22m^[[39m Error: Failed to create checkout session
+e2e	Run E2E tests	2026-06-28T08:36:52.8390876Z [WebServer]     at xn (.next/server/chunks/ssr/_07o..wo._.js:564:129120) {
+e2e	Run E2E tests	2026-06-28T08:36:52.8421326Z [WebServer]   digest: ^[[32m'3896441168'^[[39m
+e2e	Run E2E tests	2026-06-28T08:36:52.8422565Z [WebServer] }
+e2e	Run E2E tests	2026-06-28T08:36:58.4742439Z F◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+e2e	Run E2E tests	2026-06-28T08:37:00.4815320Z ·····
+e2e	Run E2E tests	2026-06-28T08:37:00.4823353Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4836578Z   1) [chromium] › tests/e2e/checkout.spec.ts:54:7 › Checkout Page › with valid pending_payment user shows checkout options and can checkout 
+e2e	Run E2E tests	2026-06-28T08:37:00.4840120Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4840808Z     Error: ^[[2mexpect(^[[22m^[[31mlocator^[[39m^[[2m).^[[22mtoBeDisabled^[[2m(^[[22m^[[2m)^[[22m failed
+e2e	Run E2E tests	2026-06-28T08:37:00.4841382Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4841726Z     Locator:  getByRole('button', { name: 'Get 30-Day Pass' })
+e2e	Run E2E tests	2026-06-28T08:37:00.4842257Z     Expected: disabled
+e2e	Run E2E tests	2026-06-28T08:37:00.4842627Z     Received: enabled
+e2e	Run E2E tests	2026-06-28T08:37:00.4843000Z     Timeout:  5000ms
+e2e	Run E2E tests	2026-06-28T08:37:00.4843211Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4843356Z     Call log:
+e2e	Run E2E tests	2026-06-28T08:37:00.4843903Z     ^[[2m  - Expect "toBeDisabled" with timeout 5000ms^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4844667Z     ^[[2m  - waiting for getByRole('button', { name: 'Get 30-Day Pass' })^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4848382Z     ^[[2m    13 × locator resolved to <button class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-black text-white hover:bg-gray-800 h-10 py-2 px-4 w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12 text-lg">Get 30-Day Pass</button>^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4851339Z     ^[[2m       - unexpected value "enabled"^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4851674Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4851685Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4851903Z       65 |     await checkoutBtn.click();
+e2e	Run E2E tests	2026-06-28T08:37:00.4852702Z       66 |     // Usually Stripe redirect happens, so we just let it happen or verify loading state
+e2e	Run E2E tests	2026-06-28T08:37:00.4853529Z     > 67 |     await expect(checkoutBtn).toBeDisabled();
+e2e	Run E2E tests	2026-06-28T08:37:00.4854064Z          |                               ^
+e2e	Run E2E tests	2026-06-28T08:37:00.4854933Z       68 |   });
+e2e	Run E2E tests	2026-06-28T08:37:00.4855165Z       69 |
+e2e	Run E2E tests	2026-06-28T08:37:00.4855685Z       70 |   test('with valid active user shows active pass state and can mark found place', async ({ page, context }) => {
+e2e	Run E2E tests	2026-06-28T08:37:00.4856368Z         at /home/runner/work/propinno/propinno/tests/e2e/checkout.spec.ts:67:31
+e2e	Run E2E tests	2026-06-28T08:37:00.4856680Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4857655Z     Error Context: test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium/error-context.md
+e2e	Run E2E tests	2026-06-28T08:37:00.4858504Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4859302Z     Error Context: test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium/error-context.md
+e2e	Run E2E tests	2026-06-28T08:37:00.4860163Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4860849Z     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+e2e	Run E2E tests	2026-06-28T08:37:00.4861356Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4861908Z     Error: ^[[2mexpect(^[[22m^[[31mlocator^[[39m^[[2m).^[[22mtoBeDisabled^[[2m(^[[22m^[[2m)^[[22m failed
+e2e	Run E2E tests	2026-06-28T08:37:00.4862465Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4862802Z     Locator:  getByRole('button', { name: 'Get 30-Day Pass' })
+e2e	Run E2E tests	2026-06-28T08:37:00.4863388Z     Expected: disabled
+e2e	Run E2E tests	2026-06-28T08:37:00.4863745Z     Received: enabled
+e2e	Run E2E tests	2026-06-28T08:37:00.4864111Z     Timeout:  5000ms
+e2e	Run E2E tests	2026-06-28T08:37:00.4864339Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4864489Z     Call log:
+e2e	Run E2E tests	2026-06-28T08:37:00.4865084Z     ^[[2m  - Expect "toBeDisabled" with timeout 5000ms^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4865954Z     ^[[2m  - waiting for getByRole('button', { name: 'Get 30-Day Pass' })^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4870002Z     ^[[2m    14 × locator resolved to <button class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-black text-white hover:bg-gray-800 h-10 py-2 px-4 w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12 text-lg">Get 30-Day Pass</button>^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4872882Z     ^[[2m       - unexpected value "enabled"^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4873579Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4873591Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4873825Z       65 |     await checkoutBtn.click();
+e2e	Run E2E tests	2026-06-28T08:37:00.4874659Z       66 |     // Usually Stripe redirect happens, so we just let it happen or verify loading state
+e2e	Run E2E tests	2026-06-28T08:37:00.4875526Z     > 67 |     await expect(checkoutBtn).toBeDisabled();
+e2e	Run E2E tests	2026-06-28T08:37:00.4876112Z          |                               ^
+e2e	Run E2E tests	2026-06-28T08:37:00.4876561Z       68 |   });
+e2e	Run E2E tests	2026-06-28T08:37:00.4876906Z       69 |
+e2e	Run E2E tests	2026-06-28T08:37:00.4878083Z       70 |   test('with valid active user shows active pass state and can mark found place', async ({ page, context }) => {
+e2e	Run E2E tests	2026-06-28T08:37:00.4879293Z         at /home/runner/work/propinno/propinno/tests/e2e/checkout.spec.ts:67:31
+e2e	Run E2E tests	2026-06-28T08:37:00.4879811Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4880671Z     Error Context: test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium-retry1/error-context.md
+e2e	Run E2E tests	2026-06-28T08:37:00.4881596Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4882462Z     Error Context: test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium-retry1/error-context.md
+e2e	Run E2E tests	2026-06-28T08:37:00.4883356Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4884102Z     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+e2e	Run E2E tests	2026-06-28T08:37:00.4885390Z     test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium-retry1/trace.zip
+e2e	Run E2E tests	2026-06-28T08:37:00.4886315Z     Usage:
+e2e	Run E2E tests	2026-06-28T08:37:00.4886498Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4887681Z         npx playwright show-trace test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium-retry1/trace.zip
+e2e	Run E2E tests	2026-06-28T08:37:00.4888652Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4889349Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+e2e	Run E2E tests	2026-06-28T08:37:00.4889849Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4890467Z     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+e2e	Run E2E tests	2026-06-28T08:37:00.4891286Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4891924Z     Error: ^[[2mexpect(^[[22m^[[31mlocator^[[39m^[[2m).^[[22mtoBeDisabled^[[2m(^[[22m^[[2m)^[[22m failed
+e2e	Run E2E tests	2026-06-28T08:37:00.4892504Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4892836Z     Locator:  getByRole('button', { name: 'Get 30-Day Pass' })
+e2e	Run E2E tests	2026-06-28T08:37:00.4893407Z     Expected: disabled
+e2e	Run E2E tests	2026-06-28T08:37:00.4893794Z     Received: enabled
+e2e	Run E2E tests	2026-06-28T08:37:00.4894173Z     Timeout:  5000ms
+e2e	Run E2E tests	2026-06-28T08:37:00.4894391Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4894533Z     Call log:
+e2e	Run E2E tests	2026-06-28T08:37:00.4895120Z     ^[[2m  - Expect "toBeDisabled" with timeout 5000ms^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4895980Z     ^[[2m  - waiting for getByRole('button', { name: 'Get 30-Day Pass' })^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4900070Z     ^[[2m    13 × locator resolved to <button class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-black text-white hover:bg-gray-800 h-10 py-2 px-4 w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12 text-lg">Get 30-Day Pass</button>^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4903521Z     ^[[2m       - unexpected value "enabled"^[[22m
+e2e	Run E2E tests	2026-06-28T08:37:00.4903873Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4903885Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4904110Z       65 |     await checkoutBtn.click();
+e2e	Run E2E tests	2026-06-28T08:37:00.4904820Z       66 |     // Usually Stripe redirect happens, so we just let it happen or verify loading state
+e2e	Run E2E tests	2026-06-28T08:37:00.4905598Z     > 67 |     await expect(checkoutBtn).toBeDisabled();
+e2e	Run E2E tests	2026-06-28T08:37:00.4906149Z          |                               ^
+e2e	Run E2E tests	2026-06-28T08:37:00.4906548Z       68 |   });
+e2e	Run E2E tests	2026-06-28T08:37:00.4906855Z       69 |
+e2e	Run E2E tests	2026-06-28T08:37:00.4907852Z       70 |   test('with valid active user shows active pass state and can mark found place', async ({ page, context }) => {
+e2e	Run E2E tests	2026-06-28T08:37:00.4908929Z         at /home/runner/work/propinno/propinno/tests/e2e/checkout.spec.ts:67:31
+e2e	Run E2E tests	2026-06-28T08:37:00.4909445Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4910270Z     Error Context: test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium-retry2/error-context.md
+e2e	Run E2E tests	2026-06-28T08:37:00.4911130Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4911953Z     Error Context: test-results/checkout-Checkout-Page-wit-3f8cc-ut-options-and-can-checkout-chromium-retry2/error-context.md
+e2e	Run E2E tests	2026-06-28T08:37:00.4912794Z 
+e2e	Run E2E tests	2026-06-28T08:37:00.4915578Z   1 failed
+e2e	Run E2E tests	2026-06-28T08:37:00.4916849Z     [chromium] › tests/e2e/checkout.spec.ts:54:7 › Checkout Page › with valid pending_payment user shows checkout options and can checkout 
+e2e	Run E2E tests	2026-06-28T08:37:00.4918182Z   7 passed (24.5s)
+e2e	Run E2E tests	2026-06-28T08:37:00.5424041Z ##[error]Process completed with exit code 1.
+e2e	Run actions/upload-artifact@v4	﻿2026-06-28T08:37:00.5495379Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5496666Z ##[group]Run actions/upload-artifact@v4
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5496961Z with:
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5497559Z   name: playwright-report
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5497840Z   path: playwright-report/
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5498107Z   retention-days: 7
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5498350Z   if-no-files-found: warn
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5498603Z   compression-level: 6
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5498845Z   overwrite: false
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5499084Z   include-hidden-files: false
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5499346Z env:
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5499795Z   DATABASE_URL: ***localhost:5432/dealinno_test
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5500137Z   STRIPE_SECRET_KEY: test_sk
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5500420Z   STRIPE_WEBHOOK_SECRET: whsec_test
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.5500729Z ##[endgroup]
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.7216093Z (node:4068) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.7217934Z (Use `node --trace-deprecation ...` to show where the warning was created)
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.7326943Z With the provided path, there will be 22 files uploaded
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.7331963Z Artifact name is valid!
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.7332678Z Root directory input is valid!
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:00.8838203Z Beginning upload of artifact content to blob storage
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.0264496Z (node:4068) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.0797880Z Uploaded bytes 1656025
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.0941818Z Finished uploading artifact content to blob storage!
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.0943379Z SHA256 digest of uploaded artifact zip is bf0c0376d44eb4f690f2e05323926b1bf07ce0cd11572cdad23f796b3e2140b5
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.0944527Z Finalizing artifact upload
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.2642093Z Artifact playwright-report.zip successfully finalized. Artifact ID 7932840092
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.2643773Z Artifact playwright-report has been successfully uploaded! Final size is 1656025 bytes. Artifact ID is 7932840092
+e2e	Run actions/upload-artifact@v4	2026-06-28T08:37:01.2650584Z Artifact download URL: https://github.com/ALLENDE123X/propinno/actions/runs/28316610352/artifacts/7932840092
+e2e	Post Run actions/checkout@v4	﻿2026-06-28T08:37:01.2859197Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.2860402Z Post job cleanup.
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.3797488Z [command]/usr/bin/git version
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.3839969Z git version 2.54.0
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.3879612Z Temporarily overriding HOME='/home/runner/work/_temp/5d2f0a60-c67b-43e8-9a3c-b73b43fc84c8' before making global git config changes
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.3883574Z Adding repository directory to the temporary git global config as a safe directory
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.3888426Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/propinno/propinno
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.3930791Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.3972930Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.4259369Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.4288204Z http.https://github.com/.extraheader
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.4300392Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.4338087Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.4589321Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+e2e	Post Run actions/checkout@v4	2026-06-28T08:37:01.4623883Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+e2e	Stop containers	﻿2026-06-28T08:37:01.5096065Z Print service container logs: 19a1b73492cc402a9eec2de6e7b95a94_postgres15_7bcfeb
+e2e	Stop containers	2026-06-28T08:37:01.5102420Z ##[command]/usr/bin/docker logs --details deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Stop containers	2026-06-28T08:37:01.5249185Z  initdb: warning: enabling "trust" authentication for local connections
+e2e	Stop containers	2026-06-28T08:37:01.5250001Z  The files belonging to this database system will be owned by user "postgres".
+e2e	Stop containers	2026-06-28T08:37:01.5251412Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+e2e	Stop containers	2026-06-28T08:37:01.5252952Z  2026-06-28 08:34:56.705 UTC [1] LOG:  starting PostgreSQL 15.18 (Debian 15.18-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+e2e	Stop containers	2026-06-28T08:37:01.5254135Z  2026-06-28 08:34:56.705 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+e2e	Stop containers	2026-06-28T08:37:01.5254932Z  2026-06-28 08:34:56.705 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+e2e	Stop containers	2026-06-28T08:37:01.5255844Z  2026-06-28 08:34:56.706 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+e2e	Stop containers	2026-06-28T08:37:01.5256771Z  2026-06-28 08:34:56.709 UTC [64] LOG:  database system was shut down at 2026-06-28 08:34:56 UTC
+e2e	Stop containers	2026-06-28T08:37:01.5268001Z  2026-06-28 08:34:56.713 UTC [1] LOG:  database system is ready to accept connections
+e2e	Stop containers	2026-06-28T08:37:01.5268798Z  2026-06-28 08:35:05.730 UTC [75] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5269606Z  2026-06-28 08:35:15.891 UTC [83] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5271055Z  2026-06-28 08:35:26.011 UTC [91] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5271691Z  2026-06-28 08:35:36.121 UTC [100] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5272352Z  2026-06-28 08:35:46.224 UTC [108] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5273341Z  2026-06-28 08:35:56.323 UTC [116] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5273794Z  2026-06-28 08:36:06.415 UTC [125] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5274195Z  2026-06-28 08:36:16.555 UTC [135] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5274587Z  2026-06-28 08:36:26.701 UTC [143] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5274970Z  2026-06-28 08:36:36.789 UTC [152] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5275363Z  2026-06-28 08:36:46.859 UTC [164] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5275757Z  2026-06-28 08:36:56.930 UTC [173] FATAL:  role "root" does not exist
+e2e	Stop containers	2026-06-28T08:37:01.5276133Z  This user must also own the server process.
+e2e	Stop containers	2026-06-28T08:37:01.5276450Z  
+e2e	Stop containers	2026-06-28T08:37:01.5276760Z  The database cluster will be initialized with locale "en_US.utf8".
+e2e	Stop containers	2026-06-28T08:37:01.5277504Z  The default database encoding has accordingly been set to "UTF8".
+e2e	Stop containers	2026-06-28T08:37:01.5277963Z  The default text search configuration will be set to "english".
+e2e	Stop containers	2026-06-28T08:37:01.5278312Z  
+e2e	Stop containers	2026-06-28T08:37:01.5278545Z  Data page checksums are disabled.
+e2e	Stop containers	2026-06-28T08:37:01.5278827Z  
+e2e	Stop containers	2026-06-28T08:37:01.5279143Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+e2e	Stop containers	2026-06-28T08:37:01.5279558Z  creating subdirectories ... ok
+e2e	Stop containers	2026-06-28T08:37:01.5279935Z  selecting dynamic shared memory implementation ... posix
+e2e	Stop containers	2026-06-28T08:37:01.5280313Z  selecting default max_connections ... 100
+e2e	Stop containers	2026-06-28T08:37:01.5280639Z  selecting default shared_buffers ... 128MB
+e2e	Stop containers	2026-06-28T08:37:01.5280953Z  selecting default time zone ... Etc/UTC
+e2e	Stop containers	2026-06-28T08:37:01.5281263Z  creating configuration files ... ok
+e2e	Stop containers	2026-06-28T08:37:01.5281567Z  running bootstrap script ... ok
+e2e	Stop containers	2026-06-28T08:37:01.5281900Z  performing post-bootstrap initialization ... ok
+e2e	Stop containers	2026-06-28T08:37:01.5282239Z  syncing data to disk ... ok
+e2e	Stop containers	2026-06-28T08:37:01.5282495Z  
+e2e	Stop containers	2026-06-28T08:37:01.5282729Z  
+e2e	Stop containers	2026-06-28T08:37:01.5282994Z  Success. You can now start the database server using:
+e2e	Stop containers	2026-06-28T08:37:01.5283328Z  
+e2e	Stop containers	2026-06-28T08:37:01.5283605Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+e2e	Stop containers	2026-06-28T08:37:01.5284211Z  
+e2e	Stop containers	2026-06-28T08:37:01.5285090Z  waiting for server to start....2026-06-28 08:34:56.395 UTC [48] LOG:  starting PostgreSQL 15.18 (Debian 15.18-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+e2e	Stop containers	2026-06-28T08:37:01.5300389Z  2026-06-28 08:34:56.396 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+e2e	Stop containers	2026-06-28T08:37:01.5301035Z  2026-06-28 08:34:56.399 UTC [51] LOG:  database system was shut down at 2026-06-28 08:34:56 UTC
+e2e	Stop containers	2026-06-28T08:37:01.5301581Z  2026-06-28 08:34:56.403 UTC [48] LOG:  database system is ready to accept connections
+e2e	Stop containers	2026-06-28T08:37:01.5301984Z   done
+e2e	Stop containers	2026-06-28T08:37:01.5302203Z  server started
+e2e	Stop containers	2026-06-28T08:37:01.5302432Z  CREATE DATABASE
+e2e	Stop containers	2026-06-28T08:37:01.5302652Z  
+e2e	Stop containers	2026-06-28T08:37:01.5302866Z  
+e2e	Stop containers	2026-06-28T08:37:01.5303216Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+e2e	Stop containers	2026-06-28T08:37:01.5303635Z  
+e2e	Stop containers	2026-06-28T08:37:01.5304026Z  waiting for server to shut down...2026-06-28 08:34:56.583 UTC [48] LOG:  received fast shutdown request
+e2e	Stop containers	2026-06-28T08:37:01.5304569Z  .2026-06-28 08:34:56.584 UTC [48] LOG:  aborting any active transactions
+e2e	Stop containers	2026-06-28T08:37:01.5305165Z  2026-06-28 08:34:56.588 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+e2e	Stop containers	2026-06-28T08:37:01.5305706Z  2026-06-28 08:34:56.589 UTC [49] LOG:  shutting down
+e2e	Stop containers	2026-06-28T08:37:01.5306118Z  2026-06-28 08:34:56.589 UTC [49] LOG:  checkpoint starting: shutdown immediate
+e2e	Stop containers	2026-06-28T08:37:01.5307562Z  2026-06-28 08:34:56.605 UTC [49] LOG:  checkpoint complete: wrote 922 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.014 s, sync=0.002 s, total=0.017 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4239 kB, estimate=4239 kB
+e2e	Stop containers	2026-06-28T08:37:01.5308820Z  2026-06-28 08:34:56.612 UTC [48] LOG:  database system is shut down
+e2e	Stop containers	2026-06-28T08:37:01.5309175Z   done
+e2e	Stop containers	2026-06-28T08:37:01.5309390Z  server stopped
+e2e	Stop containers	2026-06-28T08:37:01.5309612Z  
+e2e	Stop containers	2026-06-28T08:37:01.5309886Z  PostgreSQL init process complete; ready for start up.
+e2e	Stop containers	2026-06-28T08:37:01.5310219Z  
+e2e	Stop containers	2026-06-28T08:37:01.5316362Z Stop and remove container: 19a1b73492cc402a9eec2de6e7b95a94_postgres15_7bcfeb
+e2e	Stop containers	2026-06-28T08:37:01.5321627Z ##[command]/usr/bin/docker rm --force deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Stop containers	2026-06-28T08:37:01.7005936Z deaf2108ff38b7823ce767321e9baf8fe82ea11f4ef24676af8fced3a8afcce1
+e2e	Stop containers	2026-06-28T08:37:01.7038801Z Remove container network: github_network_51bec3742a8c444aba5074f03896f890
+e2e	Stop containers	2026-06-28T08:37:01.7043407Z ##[command]/usr/bin/docker network rm github_network_51bec3742a8c444aba5074f03896f890
+e2e	Stop containers	2026-06-28T08:37:01.7752494Z github_network_51bec3742a8c444aba5074f03896f890
+e2e	Complete job	﻿2026-06-28T08:37:01.7825443Z Cleaning up orphan processes
+e2e	Complete job	2026-06-28T08:37:01.8109863Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
