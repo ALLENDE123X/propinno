@@ -88,7 +88,7 @@ describe('Billing Checkout & Webhook', () => {
     const res = await POST(req)
     expect(res.status).toBe(200)
 
-    expect(db.update().set).toHaveBeenCalledWith(
+    expect((db.update as any)().set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'active',
         plan: 'pass_90',
@@ -101,7 +101,7 @@ describe('Billing Checkout & Webhook', () => {
     const res = await markFoundPlace(testUserId)
     expect(res.success).toBe(true)
 
-    expect(db.update().set).toHaveBeenCalledWith(
+    expect((db.update as any)().set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'done'
       })
