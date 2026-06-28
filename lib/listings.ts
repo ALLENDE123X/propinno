@@ -43,7 +43,7 @@ export async function dedupeAndUpsertListings(
     sqft: number | null
     url: string | null
     postedAt: Date | null
-    raw: any
+    raw: unknown
   }[]
 ) {
   let count = 0

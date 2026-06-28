@@ -7,7 +7,6 @@ const mockInsert = vi.fn().mockReturnValue({ values: mockValues })
 
 vi.mock('@/lib/db', () => ({
   db: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     insert: (...args: unknown[]) => mockInsert(...args),
     execute: vi.fn().mockResolvedValue([])
   }
