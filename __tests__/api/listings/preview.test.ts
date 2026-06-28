@@ -6,7 +6,7 @@ vi.mock('next/headers', () => ({
     get: vi.fn().mockReturnValue('127.0.0.1'),
   }),
   cookies: vi.fn().mockResolvedValue({
-    get: vi.fn().mockReturnValue({ value: '00000000-0000-0000-0000-000000000001' }),
+    get: vi.fn().mockReturnValue({ value: '123e4567-e89b-12d3-a456-426614174000' }),
   }),
 }))
 
@@ -32,11 +32,11 @@ vi.mock('@/lib/db', () => {
           from: vi.fn().mockReturnThis(),
           where: vi.fn().mockImplementation(() => {
             if (idx === 0) {
-              return Promise.resolve([{ id: '00000000-0000-0000-0000-000000000001' }])
+              return Promise.resolve([{ id: '123e4567-e89b-12d3-a456-426614174000' }])
             }
             if (idx === 1) {
               return Promise.resolve([{
-                userId: '00000000-0000-0000-0000-000000000001',
+                userId: '123e4567-e89b-12d3-a456-426614174000',
                 priceMin: 2000, priceMax: 4000, bedsMin: 1, bedsMax: null,
               }])
             }
@@ -86,6 +86,70 @@ describe('GET /api/listings/preview', () => {
     const req = new Request('http://localhost/api/listings/preview')
     const res = await previewRoute(req)
     expect(res.status).toBe(401)
+  })
+
+  it('returns 404 when user not found', async () => {
+    const { cookies } = await import('next/headers')
+    vi.mocked(cookies).mockImplementation(() => Promise.resolve({
+      get: vi.fn().mockReturnValue({ value: '123e4567-e89b-12d3-a456-426614174000' }),
+    } as unknown as Awaited<ReturnType<typeof cookies>>))
+
+    const { db } = await import('@/lib/db')
+    vi.mocked(db.select).mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([]),
+    }) as any)
+
+    const req = new Request('http://localhost/api/listings/preview')
+    const res = await previewRoute(req)
+    if (res.status !== 404) {
+      console.log('404 test failed. Response:', await res.clone().json())
+    }
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 200 OK and masked listings on success', async () => {
+    const { cookies } = await import('next/headers')
+    vi.mocked(cookies).mockImplementation(() => Promise.resolve({
+      get: vi.fn().mockReturnValue({ value: '123e4567-e89b-12d3-a456-426614174000' }),
+    } as unknown as Awaited<ReturnType<typeof cookies>>))
+
+    const { db } = await import('@/lib/db')
+    // Mock user
+    vi.mocked(db.select).mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-426614174000' }]),
+    }) as any)
+    // Mock criteria
+    vi.mocked(db.select).mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([{ userId: '123e4567-e89b-12d3-a456-426614174000', priceMin: 2000, priceMax: 4000 }]),
+    }) as any)
+    // Mock listings
+    vi.mocked(db.select).mockImplementationOnce(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([{
+          id: 'listing-1',
+          address: '123 Main St, Mission, San Francisco, CA',
+          price: 2800,
+          beds: 1,
+          baths: 1,
+          source: 'rentcast',
+          postedAt: null,
+        }]),
+      }),
+    }) as any)
+
+    const req = new Request('http://localhost/api/listings/preview')
+    const res = await previewRoute(req)
+    if (res.status !== 200) {
+      console.log('200 test failed. Response:', await res.clone().json())
+    }
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.listings).toHaveLength(1)
+    expect(data.listings[0].neighborhood).toBe('Mission, San Francisco, CA')
   })
 })
 

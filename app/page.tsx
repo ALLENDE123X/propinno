@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MapPin, BedDouble, Lock, Loader2, ChevronRight } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 
 type PreviewListing = {
   id: string;
@@ -145,8 +146,10 @@ export default function Home() {
         if (previewRes.ok && Array.isArray(previewData.listings)) {
           setPreviewListings(previewData.listings);
         }
-      } catch {
+      } catch (err) {
         // Non-fatal: preview just shows empty state
+        console.error("Failed to load preview:", err);
+        Sentry.captureException(err);
       } finally {
         setPreviewLoading(false);
       }

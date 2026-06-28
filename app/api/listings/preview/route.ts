@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { listings, criteria, users } from '@/lib/db/schema'
-import { eq, and, gte, lte, isNotNull } from 'drizzle-orm'
+import { eq, and, gte, lte, isNotNull, sql } from 'drizzle-orm'
 import { limitRequest } from '@/lib/ratelimit'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
@@ -43,6 +43,9 @@ export async function GET(req: Request) {
 
     // Build listing filters based on criteria
     // Build filter conditions
+    const hasNeighborhoods = userCriteria?.neighborhoods && userCriteria.neighborhoods.length > 0
+    const hasZips = userCriteria?.zips && userCriteria.zips.length > 0
+
     const whereClause = and(
       eq(listings.isCanonical, true),
       isNotNull(listings.price),
@@ -50,6 +53,13 @@ export async function GET(req: Request) {
       userCriteria?.priceMax ? lte(listings.price, userCriteria.priceMax) : undefined,
       userCriteria?.bedsMin ? gte(listings.beds, userCriteria.bedsMin) : undefined,
       userCriteria?.bedsMax ? lte(listings.beds, userCriteria.bedsMax) : undefined,
+      (hasNeighborhoods || hasZips)
+        ? sql`(
+            EXISTS (SELECT 1 FROM unnest(${userCriteria.neighborhoods || []}::text[]) n WHERE ${listings.address} ILIKE '%' || n || '%')
+            OR
+            EXISTS (SELECT 1 FROM unnest(${userCriteria.zips || []}::text[]) z WHERE ${listings.address} ILIKE '%' || z || '%')
+          )`
+        : undefined
     )
 
     const matched = await db
