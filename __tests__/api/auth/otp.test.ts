@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST as sendOtp } from '@/app/api/auth/send-otp/route'
 import { POST as verifyOtp } from '@/app/api/auth/verify-otp/route'
 
+vi.mock('next/headers', () => {
+  return {
+    headers: vi.fn().mockResolvedValue({
+      get: vi.fn().mockReturnValue('127.0.0.1')
+    }),
+    cookies: vi.fn().mockResolvedValue({
+      set: vi.fn()
+    })
+  }
+})
+
 vi.mock('twilio', () => {
   return {
     default: () => ({

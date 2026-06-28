@@ -4,7 +4,7 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { stripe } from "@/lib/stripe"
-import { headers } from "next/headers"
+import { headers, cookies } from "next/headers"
 import * as Sentry from '@sentry/nextjs'
 import { logger } from "@/lib/logger"
 import { z } from "zod"
@@ -12,67 +12,93 @@ import { limitRequest } from "@/lib/ratelimit"
 
 const userIdSchema = z.string().uuid()
 const checkoutSchema = z.object({
-  userId: z.string().uuid(),
   plan: z.enum(['pass_30', 'pass_90'])
 })
 
-export async function getUserStatus(userId: string) {
+async function getSessionUserId() {
+  const cookieStore = await cookies()
+  const session = cookieStore.get('session')?.value
+  if (!session) return null
+  try {
+    return userIdSchema.parse(session)
+  } catch {
+    return null
+  }
+}
+
+export async function getUserStatus() {
   try {
     const ip = (await headers()).get('x-forwarded-for') || 'anonymous'
     const rateLimit = await limitRequest(`getUserStatus-${ip}`)
     if (!rateLimit.success) throw new Error("Too many requests")
 
-    const validId = userIdSchema.parse(userId)
-    const [user] = await db.select().from(users).where(eq(users.id, validId))
+    const validId = await getSessionUserId()
+    if (!validId) return null
+
+    const [user] = await db.select({
+      id: users.id,
+      status: users.status,
+      plan: users.plan,
+      accessExpiresAt: users.accessExpiresAt,
+      createdAt: users.createdAt
+    }).from(users).where(eq(users.id, validId))
+    
     return user || null
   } catch (err) {
-    Sentry.captureException(err, { extra: { action: 'getUserStatus', userId } })
+    Sentry.captureException(err, { extra: { action: 'getUserStatus' } })
     return null
   }
 }
 
-export async function markFoundPlace(userId: string) {
+export async function markFoundPlace() {
   try {
     const ip = (await headers()).get('x-forwarded-for') || 'anonymous'
     const rateLimit = await limitRequest(`markFoundPlace-${ip}`)
     if (!rateLimit.success) throw new Error("Too many requests")
 
-    const validId = userIdSchema.parse(userId)
+    const validId = await getSessionUserId()
+    if (!validId) throw new Error("Unauthorized")
+
     await db.update(users).set({ status: 'done' }).where(eq(users.id, validId))
     logger.info({ userId: validId, action: 'found_place_marked_done' })
     return { success: true }
   } catch (err) {
-    Sentry.captureException(err, { extra: { action: 'markFoundPlace', userId } })
-    throw new Error(`Failed to update status for user: ${userId}`)
+    Sentry.captureException(err, { extra: { action: 'markFoundPlace' } })
+    throw new Error(`Failed to update status`)
   }
 }
 
-export async function createCheckoutSession(userId: string, plan: 'pass_30' | 'pass_90') {
+export async function createCheckoutSession(plan: 'pass_30' | 'pass_90') {
   try {
     const ip = (await headers()).get('x-forwarded-for') || 'anonymous'
     const rateLimit = await limitRequest(`checkoutSession-${ip}`)
     if (!rateLimit.success) throw new Error("Too many requests")
 
-    const parsed = checkoutSchema.parse({ userId, plan })
+    const validId = await getSessionUserId()
+    if (!validId) throw new Error("Unauthorized")
+
+    const parsed = checkoutSchema.parse({ plan })
     const priceId = parsed.plan === 'pass_30' ? process.env.STRIPE_PRICE_30DAY : process.env.STRIPE_PRICE_90DAY
     if (!priceId) throw new Error(`Stripe price not configured for plan: ${parsed.plan}`)
     
     const headersList = await headers()
-    const origin = headersList.get('origin') || 'http://localhost:3000'
+    const host = headersList.get('host') || 'localhost:3000'
+    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
+    const origin = `${protocol}://${host}`
     
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
-      success_url: `${origin}/checkout?userId=${parsed.userId}&success=true`,
-      cancel_url: `${origin}/checkout?userId=${parsed.userId}`,
-      client_reference_id: parsed.userId,
+      success_url: `${origin}/checkout?success=true`,
+      cancel_url: `${origin}/checkout?canceled=true`,
+      client_reference_id: validId,
       metadata: { plan: parsed.plan }
     })
     
     return { url: session.url }
   } catch (err) {
-    Sentry.captureException(err, { extra: { action: 'createCheckoutSession', userId, plan } })
-    throw new Error(`Failed to create checkout session for plan ${plan}`)
+    Sentry.captureException(err, { extra: { action: 'createCheckoutSession', plan } })
+    throw new Error("Failed to create checkout session")
   }
 }

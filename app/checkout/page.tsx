@@ -1,67 +1,87 @@
 "use client"
 
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useState, useEffect, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Check, Loader2 } from "lucide-react"
 import { getUserStatus, markFoundPlace, createCheckoutSession } from "./actions"
 
-import { type InferSelectModel } from "drizzle-orm"
-import type { users } from "@/lib/db/schema"
+type UserStatus = {
+  id: string
+  status: "pending_payment" | "active" | "expired" | "done"
+  plan: "pass_30" | "pass_90" | null
+  accessExpiresAt: Date | null
+  createdAt: Date
+}
 
-function CheckoutContent() {
-  const searchParams = useSearchParams()
-  const userId = searchParams.get("userId")
-  
-  const [loading, setLoading] = useState<string | null>("init")
-  const [user, setUser] = useState<InferSelectModel<typeof users> | null>(null)
+function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (userId) {
-      getUserStatus(userId).then(u => {
-        setUser(u)
-        setLoading(null)
-      })
-    } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoading(null)
+  const handleFoundPlace = async () => {
+    setLoading(true)
+    try {
+      await markFoundPlace()
+      onFoundPlace()
+      toast.success("Congratulations! We've stopped your texts.")
+    } catch (err) {
+      toast.error("Failed to update status")
     }
-  }, [userId])
+    setLoading(false)
+  }
 
-  if (!userId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black p-6 text-white text-center">
-        <div>
-          <h1 className="text-2xl font-bold mb-4">Missing User ID</h1>
-          <p className="text-zinc-400">Please go back and verify your phone number again.</p>
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
+      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
+        <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Check className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-bold text-white mb-2">Your pass is active</h1>
+        <p className="text-zinc-400 mb-8">
+          We are scanning for listings and will text you as soon as matches drop.
+        </p>
+        <div className="space-y-4 border-t border-zinc-800 pt-6">
+          <h3 className="text-white font-medium">No longer looking?</h3>
+          <Button 
+            onClick={handleFoundPlace}
+            disabled={loading}
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
+          >
+            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            I found a place (Stop texts)
+          </Button>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
-  if (loading === "init") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="w-8 h-8 text-white animate-spin" />
+function FoundPlaceView({ onNeedToHunt }: { onNeedToHunt: () => void }) {
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
+      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
+        <h1 className="text-2xl font-bold text-white mb-2">Congratulations! 🎉</h1>
+        <p className="text-zinc-400 mb-8">
+          We&apos;re glad you found a place. Your texts have been paused.
+        </p>
+        <Button 
+          onClick={onNeedToHunt}
+          className="w-full bg-white text-black hover:bg-zinc-200"
+        >
+          I need to hunt again
+        </Button>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white text-center">
-        <div>
-          <h1 className="text-2xl font-bold mb-4">User not found</h1>
-        </div>
-      </div>
-    )
-  }
+function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
+  const [loading, setLoading] = useState<string | null>(null)
 
   const handleCheckout = async (plan: "pass_30" | "pass_90") => {
     setLoading(plan)
     try {
-      const res = await createCheckoutSession(userId, plan)
+      const res = await createCheckoutSession(plan)
       if (res.url) window.location.href = res.url
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
@@ -69,70 +89,12 @@ function CheckoutContent() {
     }
   }
 
-  const handleFoundPlace = async () => {
-    setLoading("done")
-    try {
-      await markFoundPlace(userId)
-      setUser({ ...user, status: "done" })
-      toast.success("Congratulations! We've stopped your texts.")
-    } catch (err) {
-      toast.error("Failed to update status")
-    }
-    setLoading(null)
-  }
-
-  if (user.status === "active") {
-    return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
-        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Your pass is active</h1>
-          <p className="text-zinc-400 mb-8">
-            We are scanning for listings and will text you as soon as matches drop.
-          </p>
-          <div className="space-y-4 border-t border-zinc-800 pt-6">
-            <h3 className="text-white font-medium">No longer looking?</h3>
-            <Button 
-              onClick={handleFoundPlace}
-              disabled={loading === "done"}
-              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
-            >
-              {loading === "done" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              I found a place (Stop texts)
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (user.status === "done") {
-    return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
-        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Congratulations! 🎉</h1>
-          <p className="text-zinc-400 mb-8">
-            We&apos;re glad you found a place. Your texts have been paused.
-          </p>
-          <Button 
-            onClick={() => setUser({ ...user, status: "expired" })}
-            className="w-full bg-white text-black hover:bg-zinc-200"
-          >
-            I need to hunt again
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6 py-20">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            {user.status === "expired" ? "Extend your access" : "Choose your access pass"}
+            {isExpired ? "Extend your access" : "Choose your access pass"}
           </h1>
           <p className="text-zinc-400 text-lg">One-time payment. No recurring subscription. No auto-renew.</p>
         </div>
@@ -213,6 +175,63 @@ function CheckoutContent() {
       </div>
     </div>
   )
+}
+
+function CheckoutContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const success = searchParams.get("success")
+  const canceled = searchParams.get("canceled")
+  
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<UserStatus | null>(null)
+
+  useEffect(() => {
+    getUserStatus().then((u) => {
+      setUser(u as UserStatus | null)
+      setLoading(false)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (success) {
+      toast.success("Payment successful! Your pass is active.")
+      router.replace("/checkout") // Clear query params
+    }
+    if (canceled) {
+      toast.error("Payment canceled.")
+      router.replace("/checkout")
+    }
+  }, [success, canceled, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white text-center p-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-4">User not found or Session expired</h1>
+          <p className="text-zinc-400">Please go back and verify your phone number again.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (user.status === "active") {
+    return <ActivePassView onFoundPlace={() => setUser({ ...user, status: "done" })} />
+  }
+
+  if (user.status === "done") {
+    return <FoundPlaceView onNeedToHunt={() => setUser({ ...user, status: "expired" })} />
+  }
+
+  return <CheckoutPassesView isExpired={user.status === "expired"} />
 }
 
 export default function CheckoutPage() {
