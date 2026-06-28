@@ -7,8 +7,8 @@ const mockInsert = vi.fn().mockReturnValue({ values: mockValues })
 
 vi.mock('@/lib/db', () => ({
   db: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    insert: (...args: unknown[]) => mockInsert(...args)
+    insert: (...args: unknown[]) => mockInsert(...args),
+    execute: vi.fn().mockResolvedValue([])
   }
 }))
 
@@ -88,7 +88,7 @@ describe('RentCast Poller', () => {
       await upsertListings(data)
 
       expect(mockInsert).toHaveBeenCalledTimes(1)
-      expect(mockValues).toHaveBeenCalledWith([
+      expect(mockValues).toHaveBeenCalledWith(
         expect.objectContaining({
           source: 'rentcast',
           sourceId: '1',
@@ -103,7 +103,7 @@ describe('RentCast Poller', () => {
           postedAt: new Date('2023-01-01T00:00:00.000Z'),
           raw: data[0]
         })
-      ])
+      )
       expect(mockOnConflictDoUpdate).toHaveBeenCalledTimes(1)
     })
   })

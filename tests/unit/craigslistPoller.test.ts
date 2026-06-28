@@ -7,7 +7,8 @@ const mockInsert = vi.fn().mockReturnValue({ values: mockValues })
 
 vi.mock('@/lib/db', () => ({
   db: {
-    insert: (...args: unknown[]) => mockInsert(...args)
+    insert: (...args: unknown[]) => mockInsert(...args),
+    execute: vi.fn().mockResolvedValue([])
   }
 }))
 
@@ -100,7 +101,7 @@ describe('upsertCraigslistListings', () => {
     const count = await upsertCraigslistListings(items)
     expect(count).toBe(1)
     expect(mockInsert).toHaveBeenCalledTimes(1)
-    expect(mockValues).toHaveBeenCalledWith([
+    expect(mockValues).toHaveBeenCalledWith(
       expect.objectContaining({
         source: 'craigslist',
         sourceId: 'https://sfbay.craigslist.org/sfc/apa/1234567890.html',
@@ -108,7 +109,7 @@ describe('upsertCraigslistListings', () => {
         beds: 2,
         url: 'https://sfbay.craigslist.org/sfc/apa/1234567890.html'
       })
-    ])
+    )
     expect(mockOnConflictDoUpdate).toHaveBeenCalledTimes(1)
   })
 })
