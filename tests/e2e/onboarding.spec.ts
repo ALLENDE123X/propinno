@@ -76,7 +76,7 @@ test('onboarding flow with mocked OTP and preview step', async ({ page }) => {
   await expect(page.locator('text=$2,800/mo')).toBeVisible();
 
   // Link should be locked (gated)
-  await expect(page.locator('text=Link')).toBeVisible();
+  await expect(page.locator('text=Link').first()).toBeVisible();
 
   // CTA leads to checkout
   await page.click('#preview-cta-90day');
@@ -103,7 +103,7 @@ test('onboarding preview shows empty state when no listings', async ({ page }) =
   await page.click('button[type="submit"]');
 
   // Empty state should show
-  await expect(page.locator('text=scanning for your perfect match').or(page.locator('text=No listings indexed yet'))).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('text=No listings indexed yet')).toBeVisible({ timeout: 5000 });
 
   // CTA still present
   await expect(page.locator('#preview-cta-90day')).toBeVisible();
