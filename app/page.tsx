@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, BedDouble, Lock, Loader2, ChevronRight } from "lucide-react";
+import { MapPin, BedDouble, Lock, Loader2, ChevronRight } from "lucide-react";
 
 type PreviewListing = {
   id: string;
@@ -195,7 +195,7 @@ export default function Home() {
                   <BedDouble className="w-8 h-8 text-zinc-600" />
                 </div>
                 <p className="text-zinc-400 text-sm">
-                  No listings indexed yet — the scraper is warming up. Once your pass is active you'll get texts within minutes of new listings matching your criteria.
+                  No listings indexed yet — the scraper is warming up. Once your pass is active you&apos;ll get texts within minutes of new listings matching your criteria.
                 </p>
               </div>
             )}
