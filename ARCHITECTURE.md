@@ -141,6 +141,7 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | AH-010 | #22 | Failure alerts + admin endpoints + test pipeline | 2026-06-28 |
 | AH-012 | #21 | Integration tests for core pipeline | 2026-06-28 |
 | AH-011 | #11 | Live-match preview paywall step (onboarding) | 2026-06-28 |
+| AH-013 | TBD | Landing page conversion copy overhaul | 2026-06-29 |
 
 ---
 
@@ -150,3 +151,11 @@ Decision: Third onboarding step ("preview") shown after OTP. Fetches `GET /api/l
 Route: `GET /api/listings/preview` — session cookie auth → UUID parse, rate limit, Drizzle query `listings` table (`is_canonical=true` + criteria price/beds filters) with `.limit(3)`. Drizzle `and()` with optional `gte/lte` clauses (Drizzle accepts `undefined` in `and()` and silently drops those conditions).
 UI: Inline `ListingTeaser` in `app/page.tsx`. Blurred placeholder rows hint at hidden address. Lock icon + "Link" badge makes gating explicit. Empty state handles case where scraper hasn't run yet. Failure is non-fatal (shows empty state, CTA still goes to /checkout).
 Consequences: Preview is useful only after AH-005/AH-008 populate `listings`. Until then, empty state shows. Session cookie from verify-otp reused — no new auth mechanism. maskAddress regex strips leading `\d+[A-Za-z]?\s+` then returns everything after the first comma.
+
+---
+
+## 2026-06-29 — AH-013: Landing page conversion copy overhaul
+Context: Bare minimum requirement before marketing launch. The landing page needs to match AH3000's proven conversion structure.
+Decision: Refactored `app/page.tsx` from a Client Component to a Server Component to directly query `listings` and `users` tables for dynamic social proof stats. Extracted the interactive OTP onboarding form into a new Client Component `components/onboarding-flow.tsx`.
+UI: Added 7 sections to the landing page: Hero with quick-start criteria, Social Proof Bar (live stats), How It Works, Comparison Table, Origin Story, Pricing Section, and Final CTA.
+Consequences: `app/page.tsx` now hits the DB on page load (with a 10-minute cache via `revalidate`). Onboarding form is rendered twice (Hero and Final CTA) which required updating E2E test locators with `.first()` to avoid strict mode violations.
