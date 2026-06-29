@@ -7,15 +7,28 @@ import { CheckCircle2, XCircle } from "lucide-react";
 export const revalidate = 600; // Cache for 10 minutes
 
 export default async function Home() {
-  const [{ count: recentListingsCount }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(listings)
-    .where(sql`first_seen_at > now() - interval '3 days'`);
+  let recentListingsCount = 0;
+  let activeSubscribersCount = 0;
 
-  const [{ count: activeSubscribersCount }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(users)
-    .where(sql`status = 'active'`);
+  try {
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(listings)
+      .where(sql`first_seen_at > now() - interval '3 days'`);
+    recentListingsCount = count;
+  } catch (e) {
+    console.warn("Failed to fetch listings count", e);
+  }
+
+  try {
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(sql`status = 'active'`);
+    activeSubscribersCount = count;
+  } catch (e) {
+    console.warn("Failed to fetch active subscribers count", e);
+  }
 
   // Default fallbacks in case DB is empty in dev
   const displayListingsCount = Math.max(recentListingsCount, 400);
