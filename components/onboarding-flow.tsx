@@ -340,6 +340,13 @@ export function OnboardingFlow() {
               />
             </div>
 
+            <p className="text-xs text-zinc-500 leading-relaxed pt-2">
+              By tapping Start matching, you agree to receive automated SMS from Propinno with matching apartment listings. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe or HELP for help. See our{" "}
+              <a href="/terms" className="underline text-zinc-400 hover:text-white">Terms</a>
+              {" "}and{" "}
+              <a href="/privacy" className="underline text-zinc-400 hover:text-white">Privacy Policy</a>.
+            </p>
+
             <Button type="submit" className="w-full bg-white text-black hover:bg-zinc-200 mt-2 font-semibold" disabled={loading}>
               {loading ? "Sending..." : "Start matching"}
               {!loading && <Zap className="w-4 h-4 ml-1.5" />}
