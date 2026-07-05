@@ -68,10 +68,13 @@ export const upsertListings = async (data: RentCastListing[]) => {
   return await dedupeAndUpsertListings(values)
 }
 
+// CRON DISABLED — was `*/15 * * * *` costing ~$19/day with zero subscribers.
+// Re-enable with a saner schedule (e.g. `0 */6 * * *`) once A2P is approved
+// and there are paying subscribers to justify the API cost.
 export const rentcastPoller = inngest.createFunction(
   { 
     id: 'rentcast-poller',
-    triggers: [{ cron: '*/15 * * * *' }]
+    triggers: [{ event: 'app/rentcast.manual-poll' }]
   },
   async ({ step }) => {
     try {
