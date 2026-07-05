@@ -1,14 +1,13 @@
 import { db } from "@/lib/db";
-import { listings, users } from "@/lib/db/schema";
+import { listings } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
-import { OnboardingFlow } from "@/components/onboarding-flow";
+import { WaitlistForm } from "@/components/waitlist-form";
 import { CheckCircle2, XCircle } from "lucide-react";
 
-export const revalidate = 600; // Cache for 10 minutes
+export const revalidate = 600;
 
 export default async function Home() {
   let recentListingsCount = 0;
-  let activeSubscribersCount = 0;
 
   try {
     const [{ count }] = await db
@@ -20,33 +19,24 @@ export default async function Home() {
     console.warn("Failed to fetch listings count", e);
   }
 
-  try {
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(users)
-      .where(sql`status = 'active'`);
-    activeSubscribersCount = count;
-  } catch (e) {
-    console.warn("Failed to fetch active subscribers count", e);
-  }
-
-  // Default fallbacks in case DB is empty in dev
   const displayListingsCount = Math.max(recentListingsCount, 400);
-  const displaySubscribersCount = Math.max(activeSubscribersCount, 100);
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-zinc-800">
       {/* 1. Hero Section */}
       <section className="pt-24 pb-16 px-6 max-w-5xl mx-auto text-center">
+        <div className="inline-block bg-zinc-900 border border-zinc-700 rounded-full px-4 py-1.5 text-xs font-medium text-zinc-300 mb-8">
+          Launching soon — join the waitlist
+        </div>
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6">
           SF apartments move fast. <br className="hidden md:block" />
           <span className="text-zinc-400">We text you first.</span>
         </h1>
         <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-12">
-          Stop refreshing Zillow. We watch every source 24/7 and text you the second a match drops.
+          Stop refreshing Zillow. We watch every source 24/7 and text you the second a match drops. Join the waitlist to get early access.
         </p>
         
-        <OnboardingFlow />
+        <WaitlistForm />
       </section>
 
       {/* 2. Social Proof Bar */}
@@ -58,13 +48,13 @@ export default async function Home() {
           </div>
           <div className="hidden md:block w-px h-16 bg-zinc-800"></div>
           <div>
-            <div className="text-4xl font-bold text-white mb-2">{displaySubscribersCount}+</div>
-            <div className="text-sm font-medium text-zinc-400 uppercase tracking-wide">active SF renters on the hunt</div>
+            <div className="text-4xl font-bold text-white mb-2">~3 min</div>
+            <div className="text-sm font-medium text-zinc-400 uppercase tracking-wide">from posting to your phone</div>
           </div>
           <div className="hidden md:block w-px h-16 bg-zinc-800"></div>
           <div>
-            <div className="text-4xl font-bold text-white mb-2">~3 min</div>
-            <div className="text-sm font-medium text-zinc-400 uppercase tracking-wide">from posting to your phone</div>
+            <div className="text-4xl font-bold text-white mb-2">24/7</div>
+            <div className="text-sm font-medium text-zinc-400 uppercase tracking-wide">automated listing monitoring</div>
           </div>
         </div>
       </section>
@@ -73,21 +63,18 @@ export default async function Home() {
       <section className="py-24 px-6 max-w-5xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-16">How Propinno works</h2>
         <div className="grid md:grid-cols-3 gap-8">
-          {/* Step 1 */}
           <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800">
             <div className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center font-bold text-xl mb-6">1</div>
             <h3 className="text-xl font-semibold mb-3">Set your criteria</h3>
             <p className="text-zinc-400">Tell us your budget, beds, and favorite neighborhoods or zip codes.</p>
           </div>
           
-          {/* Step 2 */}
           <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800">
             <div className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center font-bold text-xl mb-6">2</div>
             <h3 className="text-xl font-semibold mb-3">We watch 24/7</h3>
-            <p className="text-zinc-400">Our scrapers constantly poll RentCast, Craigslist, and other sources.</p>
+            <p className="text-zinc-400">Our scrapers constantly poll Zillow, Craigslist, Facebook Marketplace, and other sources every 15 minutes.</p>
           </div>
 
-          {/* Step 3 */}
           <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800">
             <div className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center font-bold text-xl mb-6">3</div>
             <h3 className="text-xl font-semibold mb-3">Get texted instantly</h3>
@@ -168,55 +155,12 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 6. Pricing */}
-      <section className="py-24 px-6 max-w-5xl mx-auto border-t border-zinc-800">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Simple, one-time pricing</h2>
-          <p className="text-zinc-400">No subscriptions. No auto-renewals. Pay once, find a place, and you&apos;re done.</p>
-        </div>
-        
-        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-          {/* 30 Day */}
-          <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800 flex flex-col">
-            <h3 className="text-xl font-semibold mb-2">30-Day Pass</h3>
-            <p className="text-zinc-400 text-sm mb-8">Perfect for quick moves.</p>
-            <div className="mb-8">
-              <span className="text-5xl font-bold text-white">$39</span>
-              <span className="text-zinc-500 ml-2 font-medium">one-time</span>
-            </div>
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-zinc-500" /> Real-time SMS alerts</li>
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-zinc-500" /> All sources watched</li>
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-zinc-500" /> 30 days of access</li>
-            </ul>
-          </div>
-
-          {/* 90 Day */}
-          <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-600 relative flex flex-col shadow-2xl shadow-white/5 transform md:-translate-y-4">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white text-black px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase">
-              Most Popular
-            </div>
-            <h3 className="text-xl font-semibold mb-2">90-Day Pass</h3>
-            <p className="text-zinc-400 text-sm mb-8">For the serious apartment hunter.</p>
-            <div className="mb-8">
-              <span className="text-5xl font-bold text-white">$69</span>
-              <span className="text-zinc-500 ml-2 font-medium">one-time</span>
-            </div>
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-white" /> Real-time SMS alerts</li>
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-white" /> All sources watched</li>
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-white" /> 90 days of access</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* 7. Final CTA */}
+      {/* 6. Final CTA */}
       <section className="py-24 px-6 bg-zinc-900 text-center border-t border-zinc-800">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold mb-6">Ready to stop scrolling?</h2>
-          <p className="text-zinc-400 mb-10 text-lg">Enter your criteria below and let us do the heavy lifting.</p>
-          <OnboardingFlow />
+          <h2 className="text-3xl font-bold mb-6">Don&apos;t miss the launch</h2>
+          <p className="text-zinc-400 mb-10 text-lg">Join the waitlist now. When we go live, you&apos;ll be the first to get apartment alerts.</p>
+          <WaitlistForm />
         </div>
       </section>
       
