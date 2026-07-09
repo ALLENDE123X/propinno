@@ -58,7 +58,7 @@ export function WaitlistForm() {
             </div>
           )}
 
-          <p className="text-xs text-zinc-500 leading-relaxed pt-2">By joining the waitlist, you agree to receive updates from Propinno about our launch and apartment listing alerts. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe or HELP for help. See our{" "}<a href="/terms" className="underline text-zinc-400 hover:text-white">Terms</a>{" "}and{" "}<a href="/privacy" className="underline text-zinc-400 hover:text-white">Privacy Policy</a>.</p>
+          <p className="text-xs text-zinc-500 leading-relaxed pt-2">By joining the waitlist, you agree to receive apartment listing alerts via SMS from Propinno if you provide a phone number. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe or HELP for help. See our{" "}<a href="/terms" className="underline text-zinc-400 hover:text-white">Terms</a>{" "}and{" "}<a href="/privacy" className="underline text-zinc-400 hover:text-white">Privacy Policy</a>.</p>
           <button type="submit" disabled={loading} className="w-full mt-2 py-3 px-4 rounded-md font-semibold text-base transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" style={{backgroundColor:"#fff",color:"#000"}}>{loading ? "Joining..." : "Join the waitlist"}{!loading && <Zap className="w-4 h-4" />}</button>
         </form>
       </div>
