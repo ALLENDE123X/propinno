@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Zap, CheckCircle2 } from "lucide-react";
+import { Zap, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 
 export function WaitlistForm() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showCriteria, setShowCriteria] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [priceMin, setPriceMin] = useState("");
@@ -13,7 +14,7 @@ export function WaitlistForm() {
   const [bedsMin, setBedsMin] = useState("");
   const [bedsMax, setBedsMax] = useState("");
   const [locations, setLocations] = useState("");
-  const fillTemplate = (pMax: string, bMin: string, locs: string) => { setPriceMax(pMax); setBedsMin(bMin); setLocations(locs); };
+  const fillTemplate = (pMax: string, bMin: string, locs: string) => { setPriceMax(pMax); setBedsMin(bMin); setLocations(locs); setShowCriteria(true); };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email && !phone) { toast.error("Please enter your email or phone number"); return; }
@@ -42,10 +43,21 @@ export function WaitlistForm() {
       <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 shadow-xl shadow-black/50">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div><label className="block text-sm font-medium text-zinc-300 mb-1">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div>
-          <div><label className="block text-sm font-medium text-zinc-300 mb-1">Phone Number <span className="text-zinc-500">(optional)</span></label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(415) 555-0123" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div>
-          <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-zinc-300 mb-1">Min Price</label><input type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="$2,000" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div><div><label className="block text-sm font-medium text-zinc-300 mb-1">Max Price</label><input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="$4,000" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div></div>
-          <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-zinc-300 mb-1">Min Beds</label><input type="number" value={bedsMin} onChange={(e) => setBedsMin(e.target.value)} placeholder="1" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div><div><label className="block text-sm font-medium text-zinc-300 mb-1">Max Beds</label><input type="number" value={bedsMax} onChange={(e) => setBedsMax(e.target.value)} placeholder="2" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div></div>
-          <div><label className="block text-sm font-medium text-zinc-300 mb-1">Neighborhoods or Zips (comma separated)</label><input type="text" value={locations} onChange={(e) => setLocations(e.target.value)} placeholder="Marina, 94123, Mission" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div>
+
+          <button type="button" onClick={() => setShowCriteria(!showCriteria)} className="flex items-center justify-between w-full text-sm text-zinc-400 hover:text-white transition-colors">
+            <span>Add your criteria <span className="text-zinc-600">(optional)</span></span>
+            {showCriteria ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {showCriteria && (
+            <div className="space-y-4">
+              <div><label className="block text-sm font-medium text-zinc-300 mb-1">Phone Number <span className="text-zinc-500">(optional)</span></label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(415) 555-0123" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div>
+              <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-zinc-300 mb-1">Min Price</label><input type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="$2,000" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div><div><label className="block text-sm font-medium text-zinc-300 mb-1">Max Price</label><input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="$4,000" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div></div>
+              <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-zinc-300 mb-1">Min Beds</label><input type="number" value={bedsMin} onChange={(e) => setBedsMin(e.target.value)} placeholder="1" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div><div><label className="block text-sm font-medium text-zinc-300 mb-1">Max Beds</label><input type="number" value={bedsMax} onChange={(e) => setBedsMax(e.target.value)} placeholder="2" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div></div>
+              <div><label className="block text-sm font-medium text-zinc-300 mb-1">Neighborhoods or Zips (comma separated)</label><input type="text" value={locations} onChange={(e) => setLocations(e.target.value)} placeholder="Marina, 94123, Mission" className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600" /></div>
+            </div>
+          )}
+
           <p className="text-xs text-zinc-500 leading-relaxed pt-2">By joining the waitlist, you agree to receive updates from Propinno about our launch and apartment listing alerts. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe or HELP for help. See our{" "}<a href="/terms" className="underline text-zinc-400 hover:text-white">Terms</a>{" "}and{" "}<a href="/privacy" className="underline text-zinc-400 hover:text-white">Privacy Policy</a>.</p>
           <button type="submit" disabled={loading} className="w-full mt-2 py-3 px-4 rounded-md font-semibold text-base transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" style={{backgroundColor:"#fff",color:"#000"}}>{loading ? "Joining..." : "Join the waitlist"}{!loading && <Zap className="w-4 h-4" />}</button>
         </form>
