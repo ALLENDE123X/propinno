@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import twilio from 'twilio'
 import { z } from 'zod'
+import { twilioClient } from '@/lib/twilio'
 import { limitRequest } from '@/lib/ratelimit'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
@@ -20,11 +20,10 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { phone } = sendOtpSchema.parse(body)
 
-    const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
     const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID
 
-    if (!verifyServiceSid) {
-      logger.warn('TWILIO_VERIFY_SERVICE_SID is missing, skipping actual SMS send (development mode)')
+    if (!twilioClient || !verifyServiceSid) {
+      logger.warn('Twilio client or TWILIO_VERIFY_SERVICE_SID missing, skipping actual SMS send (development mode)')
       return NextResponse.json({ success: true, devMode: true })
     }
 
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
       .verifications.create({ to: phone, channel: 'sms' })
 
     logger.info({ phone }, 'Sent OTP')
-    
+
     return NextResponse.json({ success: true })
   } catch (error) {
     Sentry.captureException(error)
