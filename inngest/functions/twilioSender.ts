@@ -3,9 +3,9 @@ import { db } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { sent } from '@/lib/db/schema'
-import twilio from 'twilio'
+import { createTwilioClient } from '@/lib/twilio'
 
-export const getTwilioClient = () => twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+export const getTwilioClient = () => createTwilioClient()
 
 export const twilioSender = inngest.createFunction(
   { id: 'twilio-sender', triggers: [{ event: 'app/notification.send' }] },
@@ -51,6 +51,9 @@ export const twilioSender = inngest.createFunction(
         const body = `${addressText} · ${priceText} · ${bedsText}\n${link}`
 
         const client = getTwilioClient()
+        if (!client) {
+          throw new Error('Twilio client unavailable: set TWILIO_ACCOUNT_SID + either an API key pair or TWILIO_AUTH_TOKEN')
+        }
         await client.messages.create({
           body,
           from: process.env.TWILIO_FROM,
