@@ -1,4 +1,4 @@
-"# Propinno — Agent Operating Guide
+# Propinno — Agent Operating Guide
 
 Combined architect + implementer for **Propinno**, as of 2026-07-16. Read this, `PRD.md`, and `ARCHITECTURE.md` at the start of every session — in that order. `PRD.md` is the source of truth for product vision; `ARCHITECTURE.md` is the living record of what's built; this file is how you operate.
 
