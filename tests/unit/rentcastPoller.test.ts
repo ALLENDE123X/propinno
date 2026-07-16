@@ -22,6 +22,7 @@ vi.mock('@sentry/nextjs', () => ({
 vi.mock('@/lib/logger', () => ({
   logger: {
     info: vi.fn(),
+    warn: vi.fn(),
     error: vi.fn()
   }
 }))
@@ -115,8 +116,10 @@ describe('RentCast Poller', () => {
     it('dispatches trigger-matching event when canonicalIds are returned', async () => {
       const mockStep = {
         run: vi.fn().mockImplementation((name, fn) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
           if (name === 'fetch-rentcast') return Promise.resolve([{}])
           if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: ['1'] })
+          return fn()
         }),
         sendEvent: vi.fn().mockResolvedValue(undefined)
       }
@@ -132,8 +135,10 @@ describe('RentCast Poller', () => {
     it('skips sendEvent when no canonicalIds are returned', async () => {
       const mockStep = {
         run: vi.fn().mockImplementation((name, fn) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
           if (name === 'fetch-rentcast') return Promise.resolve([{}])
           if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: [] })
+          return fn()
         }),
         sendEvent: vi.fn()
       }
@@ -146,7 +151,10 @@ describe('RentCast Poller', () => {
     it('catches and logs errors properly', async () => {
       const error = new Error('Test run error')
       const mockStep = {
-        run: vi.fn().mockRejectedValue(error)
+        run: vi.fn().mockImplementation((name: string) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
+          return Promise.reject(error)
+        })
       }
 
       await expect(rentcastPoller['fn']({ step: mockStep })).rejects.toThrow('Test run error')
