@@ -8,6 +8,13 @@
       "when": 1782629610233,
       "tag": "0000_ah-002-schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784233647524,
+      "tag": "0001_ah-019-notification-settings",
+      "breakpoints": true
     }
   ]
 }

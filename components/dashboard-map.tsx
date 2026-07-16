@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Button } from "@/components/ui/button"
-import { X, SlidersHorizontal, ExternalLink } from "lucide-react"
+import { X, SlidersHorizontal, ExternalLink, Settings } from "lucide-react"
 
 type Listing = {
   id: string
@@ -168,13 +169,24 @@ export function DashboardMap() {
         <div className="pointer-events-auto bg-zinc-900/90 border border-zinc-800 rounded-full px-4 py-2 text-sm text-white backdrop-blur">
           {loading ? "Loading listings…" : `${freshCount} fresh listings in the last 3 days`}
         </div>
-        <Button
-          size="sm"
-          className="pointer-events-auto bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
-          onClick={() => setFiltersOpen((o) => !o)}
-        >
-          <SlidersHorizontal className="w-4 h-4 mr-2" /> Filters
-        </Button>
+        <div className="pointer-events-auto flex items-center gap-2">
+          <Button
+            size="sm"
+            className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
+            onClick={() => setFiltersOpen((o) => !o)}
+          >
+            <SlidersHorizontal className="w-4 h-4 mr-2" /> Filters
+          </Button>
+          <Link href="/dashboard/settings">
+            <Button
+              size="sm"
+              className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
+              aria-label="Notification settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && (

@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   timestamp,
+  time,
   pgEnum,
   unique,
   real,
@@ -22,6 +23,16 @@ export const users = pgTable('users', {
   plan: userPlanEnum('plan'),
   accessExpiresAt: timestamp('access_expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  // AH-019 notification preferences. Quiet hours are wall-clock time-of-day
+  // (no date/timezone component) evaluated against America/Los_Angeles at
+  // send time — see inngest/functions/twilioSender.ts. Defaults (21:00-08:00,
+  // cap 20/day, not paused) are chosen so existing users get a reasonable
+  // "don't text me overnight" behavior without silently going unlimited
+  // (null) or silently going to zero (blocked).
+  quietStart: time('quiet_start').notNull().default('21:00:00'),
+  quietEnd: time('quiet_end').notNull().default('08:00:00'),
+  maxDailySms: integer('max_daily_sms').notNull().default(20),
+  notificationsPaused: boolean('notifications_paused').notNull().default(false),
 })
 
 export const listings = pgTable('listings', {
