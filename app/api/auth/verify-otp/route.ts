@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { twilioClient } from '@/lib/twilio'
+import { createTwilioClient } from '@/lib/twilio'
 import { limitRequest } from '@/lib/ratelimit'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
@@ -32,10 +32,11 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { phone, code, criteria: userCriteria } = verifyOtpSchema.parse(body)
 
+    const twilioClient = createTwilioClient()
     const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID
 
-    if (!twilioClient || !verifyServiceSid) {
-      logger.warn('Twilio client or TWILIO_VERIFY_SERVICE_SID missing, accepting dev override code 000000')
+    if (!verifyServiceSid) {
+      logger.warn('TWILIO_VERIFY_SERVICE_SID is missing, accepting any code in dev mode')
       if (code !== '000000') { // Let's use 000000 as a dev override code
         return NextResponse.json({ error: 'Invalid OTP code (dev mode expects 000000)' }, { status: 400 })
       }
