@@ -2,108 +2,118 @@ import { inngest } from '../client'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
+import { claimDailyBudget } from '@/lib/pollerBudget'
 
-// Craigslist sfbay apartment RSS feeds — split by sub-region to work around
-// the 120-item per-feed cap. RSS is the lower-risk path (vs HTML scraping);
-// ToS technically prohibits automated access, but RSS is a published data
-// format explicitly intended for syndication. We use it as-is with no auth
-// bypass, no session spoofing, no HTML parsing.
-const CL_RSS_FEEDS = [
-  'https://sfbay.craigslist.org/search/sfc/apa?format=rss', // SF city
-  'https://sfbay.craigslist.org/search/eby/apa?format=rss', // East Bay
-  'https://sfbay.craigslist.org/search/nby/apa?format=rss', // North Bay
-  'https://sfbay.craigslist.org/search/pen/apa?format=rss', // Peninsula
-  'https://sfbay.craigslist.org/search/sby/apa?format=rss', // South Bay
-]
+// Craigslist's own RSS feeds (?format=rss) are confirmed blocked outright as
+// of July 16, 2026 - "Your request has been blocked" (blockID=39468) on
+// every region, every User-Agent, from multiple independent IPs. This isn't
+// rate limiting or a Vercel-IP problem, RSS syndication for this site
+// appears to be dead entirely. Craigslist listings now come from an Apify
+// actor (memo23/craigslist-scraper) instead, which routes through a
+// residential proxy and was confirmed working live before this switch.
+//
+// One call with subdomain=sfbay + category=apa covers the entire Bay Area
+// (SF, East Bay, North Bay, Peninsula, South Bay all in one response,
+// confirmed from a live test run) - replacing what used to be 5 separate
+// per-region RSS feed fetches.
+const APIFY_ACTOR = 'memo23~craigslist-scraper'
+const MAX_ITEMS_PER_RUN = 80 // hard cap on billed results per run, independent of cron cadence
 
-interface CraigslistItem {
-  guid: string
-  title: string
-  link: string
-  price: number | null
-  address: string
-  postedAt: Date | string | null
-  beds: number | null
-  raw: Record<string, unknown>
+interface ApifyCraigslistItem {
+  id: string
+  url: string
+  title?: string
+  datetime?: string | null
+  location?: string | null
+  price?: string | null
+  longitude?: string | null
+  latitude?: string | null
+  bedrooms?: string | null
+  bathrooms?: string | null
+  space?: string | null
+  address?: {
+    street?: string
+    city?: string
+    postalCode?: string
+    region?: string
+    country?: string
+  }
+  [key: string]: unknown
 }
 
-/** Extract text content from a simple XML tag (no namespace). */
-function extractTag(xml: string, tag: string): string {
-  const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'))
-  return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : ''
+function parseDollarAmount(value: string | null | undefined): number | null {
+  if (!value) return null
+  const m = value.match(/([0-9,]+)/)
+  return m ? parseInt(m[1].replace(/,/g, ''), 10) : null
 }
 
-/** Parse price like "$3,200 / 2br" → 3200, or null if not parseable. */
-function parsePrice(title: string): number | null {
-  const m = title.match(/\$([0-9,]+)/)
-  if (!m) return null
-  return parseInt(m[1].replace(/,/g, ''), 10)
+function parseSqft(space: string | null | undefined): number | null {
+  if (!space) return null
+  const m = space.match(/(\d+)/)
+  return m ? parseInt(m[1], 10) : null
 }
 
-/** Parse bed count like "2br" → 2, or null. */
-function parseBeds(title: string): number | null {
-  const m = title.match(/(\d+(?:\.\d+)?)\s*br/i)
-  return m ? parseFloat(m[1]) : null
+function parseNumeric(value: string | null | undefined): number | null {
+  if (!value) return null
+  const n = parseFloat(value)
+  return Number.isFinite(n) ? n : null
 }
 
-export const fetchCraigslistFeed = async (url: string): Promise<CraigslistItem[]> => {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Propinno-RSS-Reader/1.0 (+https://propinno.com)' }
-  })
+export const fetchCraigslistViaApify = async (): Promise<ApifyCraigslistItem[]> => {
+  const apifyToken = process.env.APIFY_API_TOKEN
+  if (!apifyToken) {
+    throw new Error('APIFY_API_TOKEN is not set')
+  }
+
+  const res = await fetch(
+    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subdomain: 'sfbay',
+        category: 'apa',
+        postedToday: true,
+        hideDuplicates: true,
+        maxItems: MAX_ITEMS_PER_RUN,
+      }),
+    }
+  )
 
   if (!res.ok) {
-    throw new Error(`Craigslist RSS ${url} returned ${res.status}`)
+    throw new Error(`Apify Craigslist actor returned ${res.status}: ${await res.text()}`)
   }
 
-  const xml = await res.text()
-  const items: CraigslistItem[] = []
-
-  // Split on <item> tags
-  const itemBlocks = xml.split('<item>').slice(1)
-  for (const block of itemBlocks) {
-    const endIdx = block.indexOf('</item>')
-    const itemXml = endIdx >= 0 ? block.slice(0, endIdx) : block
-
-    const guid = extractTag(itemXml, 'guid')
-    const title = extractTag(itemXml, 'title')
-    const link = extractTag(itemXml, 'link') || guid
-    const pubDate = extractTag(itemXml, 'pubDate')
-    const description = extractTag(itemXml, 'description')
-
-    if (!guid || !title) continue
-
-    items.push({
-      guid,
-      title,
-      link,
-      price: parsePrice(title),
-      address: title.replace(/^\$[\d,]+\s*\/?\s*\d*br\s*-?\s*/i, '').trim() || 'SF Bay Area, CA',
-      postedAt: pubDate ? new Date(pubDate) : null,
-      beds: parseBeds(title),
-      raw: { guid, title, link, pubDate, description }
-    })
-  }
-
-  return items
+  return (await res.json()) as ApifyCraigslistItem[]
 }
 
-export const upsertCraigslistListings = async (items: CraigslistItem[]): Promise<{ count: number, canonicalIds: string[] }> => {
-  if (items.length === 0) return { count: 0, canonicalIds: [] }
+export const upsertApifyCraigslistListings = async (
+  items: ApifyCraigslistItem[]
+): Promise<{ count: number; canonicalIds: string[] }> => {
+  if (!Array.isArray(items) || items.length === 0) return { count: 0, canonicalIds: [] }
 
-  const values = items.map((l) => ({
-    source: 'craigslist' as const,
-    sourceId: l.guid,
-    address: l.address,
-    lat: null,
-    lng: null,
-    price: l.price,
-    beds: l.beds,
-    baths: null,
-    sqft: null,
-    url: l.link,
-    postedAt: l.postedAt ? new Date(l.postedAt) : null,
-    raw: l.raw
-  }))
+  const values = items.map((item) => {
+    const streetAndCity = [item.address?.street, item.location].filter(Boolean).join(', ')
+    return {
+      source: 'craigslist' as const,
+      sourceId: item.id,
+      address: streetAndCity || item.location || 'SF Bay Area, CA',
+      // Apify gives real per-listing map coordinates, unlike the old RSS
+      // feed which never had lat/lng and relied on dedupeAndUpsertListings'
+      // Mapbox geocoding fallback for every single row. That fallback still
+      // exists for the rare row missing coordinates, but the common case is
+      // now a real pin instead of an address-string guess.
+      lat: parseNumeric(item.latitude),
+      lng: parseNumeric(item.longitude),
+      price: parseDollarAmount(item.price),
+      beds: parseNumeric(item.bedrooms),
+      baths: parseNumeric(item.bathrooms),
+      sqft: parseSqft(item.space),
+      url: item.url,
+      postedAt: item.datetime ? new Date(item.datetime) : null,
+      raw: item as unknown as Record<string, unknown>,
+    }
+  })
 
   return await dedupeAndUpsertListings(values)
 }
@@ -111,56 +121,38 @@ export const upsertCraigslistListings = async (items: CraigslistItem[]): Promise
 export const craigslistPoller = inngest.createFunction(
   {
     id: 'craigslist-poller',
-    triggers: [{ cron: '*/15 * * * *' }]
+    triggers: [{ cron: '0 */2 * * *' }]
   },
   async ({ step }) => {
-    let totalFetched = 0
-    let totalUpserted = 0
-    const allCanonicalIds: string[] = []
-    const feedErrors: string[] = []
-
-    // Each region is isolated: one blocked/broken feed must not prevent the
-    // other four from being attempted. Previously a single throw here
-    // aborted the whole function immediately (always on the first feed,
-    // "sfc"), meaning zero regions - not just the failing one - ever got
-    // polled once any region started failing.
-    for (const feedUrl of CL_RSS_FEEDS) {
-      const region = feedUrl.split('/search/')[1]?.split('/')[0] ?? 'feed'
-      try {
-        const items = await step.run(`fetch-cl-${region}`, () => fetchCraigslistFeed(feedUrl))
-        const result = await step.run(`upsert-cl-${region}`, () => upsertCraigslistListings(items))
-        totalFetched += items.length
-        totalUpserted += result.count
-        if (result.canonicalIds) {
-          allCanonicalIds.push(...result.canonicalIds)
-        }
-      } catch (error) {
-        feedErrors.push(`${region}: ${error instanceof Error ? error.message : String(error)}`)
-        Sentry.captureException(error)
-        logger.error({ err: error, region }, 'Craigslist feed failed, continuing to next region')
-      }
-    }
-
-    if (allCanonicalIds.length > 0) {
-      await step.sendEvent('trigger-matching', {
-        name: 'app/listings.upserted',
-        data: { listingIds: allCanonicalIds }
-      })
-    }
-
-    logger.info(
-      { fetched: totalFetched, upserted: totalUpserted, feeds: CL_RSS_FEEDS.length, failedFeeds: feedErrors.length },
-      'Craigslist poller completed'
+    const withinBudget = await step.run('check-daily-budget', () =>
+      claimDailyBudget('craigslist-poller', 24) // 2x the 12 scheduled runs/day, headroom for retries
     )
-
-    if (feedErrors.length === CL_RSS_FEEDS.length) {
-      // Every single region failed - a real, actionable problem (the whole
-      // RSS format being blocked, say) rather than one flaky feed. Surface
-      // it as a genuine failure so it's still visible, just not 5x noisier
-      // than it needs to be.
-      throw new Error(`All Craigslist feeds failed: ${feedErrors.join('; ')}`)
+    if (!withinBudget) {
+      logger.warn('Craigslist poller skipped - daily run budget already used today')
+      return { skipped: true, reason: 'daily-budget-exceeded' }
     }
 
-    return { fetched: totalFetched, upserted: totalUpserted, failedFeeds: feedErrors }
+    try {
+      const items = await step.run('fetch-craigslist-apify', fetchCraigslistViaApify)
+      const result = await step.run('upsert-listings', () => upsertApifyCraigslistListings(items))
+
+      if (result.canonicalIds.length > 0) {
+        await step.sendEvent('trigger-matching', {
+          name: 'app/listings.upserted',
+          data: { listingIds: result.canonicalIds }
+        })
+      }
+
+      logger.info(
+        { fetched: items.length, upserted: result.count },
+        'Craigslist (Apify) poller completed successfully'
+      )
+
+      return { fetched: items.length, upserted: result.count }
+    } catch (error) {
+      Sentry.captureException(error)
+      logger.error({ err: error }, 'Craigslist (Apify) poller failed')
+      throw error
+    }
   }
 )
