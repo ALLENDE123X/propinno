@@ -63,13 +63,17 @@ All functions in `inngest/functions/`. Registered in `app/api/inngest/route.ts`.
 
 **GET /api/admin/status?secret=ADMIN_SECRET** — Returns system health: DB connectivity, user/listing counts, recent Inngest failures from Redis.
 
+**GET /api/listings/map** — Full-detail listing feed for the dashboard map. Session cookie auth + requires `status='active'` (paid, not just verified) — unlike `/api/listings/preview`, returns exact address/lat/lng/url. Query params `minPrice`/`maxPrice`/`minBeds`/`source` filter canonical listings with non-null lat/lng, capped at 500 results.
+
 ---
 
 ## 6. Pages (app/)
 
 **/ (page.tsx)** — Landing + onboarding. Phone input → OTP → criteria form → plan selection → Stripe redirect.
 
-**/checkout** — Post-checkout confirmation page.
+**/checkout** — Post-checkout confirmation page. Active-pass users see a "View live map" link to `/dashboard`.
+
+**/dashboard** — Server Component auth gate (session cookie → `status='active'` only, else redirect to `/checkout`) wrapping the `DashboardMap` client component.
 
 **/privacy** — Privacy policy.
 
@@ -95,6 +99,8 @@ All functions in `inngest/functions/`. Registered in `app/api/inngest/route.ts`.
 
 **lib/supabase/** — Supabase client helpers (server/browser).
 
+**components/dashboard-map.tsx** — Client component: full-screen Mapbox GL JS map centered on SF, one marker per canonical listing (colored by recency: green <24h, yellow <3d, gray older; label shows price + time-since-posted). Click a pin → detail card (address, beds/baths, source, link out). Filter panel (price range, min beds, source) re-fetches `/api/listings/map` on change. Stats bar shows count posted in the last 3 days. Mobile: filter panel and detail card collapse to bottom sheets. Renders a "Mapbox token not configured" message if `NEXT_PUBLIC_MAPBOX_TOKEN` is unset rather than a blank/broken map.
+
 ---
 
 ## 8. External service map
@@ -105,7 +111,8 @@ All functions in `inngest/functions/`. Registered in `app/api/inngest/route.ts`.
 | Stripe | STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_PRICE_30DAY, STRIPE_PRICE_90DAY, STRIPE_WEBHOOK_SECRET | One-time checkout payments |
 | Twilio | TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM, TWILIO_VERIFY_SERVICE_SID | SMS delivery + phone OTP |
 | RentCast | RENTCAST_API_KEY | Licensed SF rental listing data |
-| Mapbox | MAPBOX_TOKEN | Address geocoding (lat/lng) |
+| Mapbox | MAPBOX_TOKEN | Address geocoding (lat/lng), server-side only |
+| Mapbox | NEXT_PUBLIC_MAPBOX_TOKEN | Client-side Mapbox GL JS map on `/dashboard`. Mapbox tokens prefixed `pk.` are already public-scoped — if `MAPBOX_TOKEN` is a `pk.` token (it is, as of AH-015), the same value can be reused here; never expose an `sk.` (secret) token this way |
 | Inngest | INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY | Background job orchestration |
 | Sentry | SENTRY_DSN | Error tracking |
 | Axiom | AXIOM_TOKEN, AXIOM_DATASET | Structured log ingestion |
@@ -141,7 +148,8 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | AH-010 | #22 | Failure alerts + admin endpoints + test pipeline | 2026-06-28 |
 | AH-012 | #21 | Integration tests for core pipeline | 2026-06-28 |
 | AH-011 | #11 | Live-match preview paywall step (onboarding) | 2026-06-28 |
-| AH-013 | TBD | Landing page conversion copy overhaul | 2026-06-29 |
+| AH-013 | #36 | Landing page conversion copy overhaul | 2026-06-29 |
+| AH-015 | TBD | Dashboard with interactive listing map | 2026-07-16 |
 
 ---
 
@@ -159,3 +167,14 @@ Context: Bare minimum requirement before marketing launch. The landing page need
 Decision: Refactored `app/page.tsx` from a Client Component to a Server Component to directly query `listings` and `users` tables for dynamic social proof stats. Extracted the interactive OTP onboarding form into a new Client Component `components/onboarding-flow.tsx`.
 UI: Added 7 sections to the landing page: Hero with quick-start criteria, Social Proof Bar (live stats), How It Works, Comparison Table, Origin Story, Pricing Section, and Final CTA.
 Consequences: `app/page.tsx` now hits the DB on page load (with a 10-minute cache via `revalidate`). Onboarding form is rendered twice (Hero and Final CTA) which required updating E2E test locators with `.first()` to avoid strict mode violations.
+
+---
+
+## 2026-07-16 — AH-015: Dashboard with interactive listing map
+Context: AH3000's core UX per the competitive teardown (§4a) — top-priority fast-follow, sequenced first because most remaining backlog tickets (inbox, favorites, amenity map) assume the dashboard shell exists.
+Decision: New `/dashboard` route, gated to `status='active'` users only (not just any verified session) — expired/done/pending users are redirected to `/checkout` to (re)purchase, since this is the paid product surface, not the pre-payment teaser.
+Route: `GET /api/listings/map` — same session-cookie auth pattern as `/api/listings/preview`, but requires active status and returns full untruncated listing data (exact address, lat/lng, url) instead of the masked/limited preview. Supports `minPrice`/`maxPrice`/`minBeds`/`source` query filters, capped at 500 results.
+UI: `components/dashboard-map.tsx` — Mapbox GL JS (new dependency), full-screen dark-themed map centered on SF. Custom marker per listing (not Mapbox's default pin) showing price + relative time-since-posted, color-coded green/yellow/gray by recency. Click → bottom-sheet/side-panel detail card. Collapsible filter panel and stats bar ("X fresh listings in the last 3 days"), both responsive down to mobile widths.
+Consequences: Requires a new env var `NEXT_PUBLIC_MAPBOX_TOKEN` (client-exposed, so intentionally separate from the server-only `MAPBOX_TOKEN` geocoding key — use a public-scoped Mapbox token, not the secret one) added to Vercel before the map renders; falls back to a clear "not configured" message rather than a blank map if missing. Map is only as useful as the pipeline's freshness — see the poller budget/health notes above.
+
+**Follow-up real-browser fix (same day, still on the AH-015 PR):** initial real-Chrome verification (not just the sandboxed preview browser) found the map rendering as a solid black div with zero tiles. Root cause: `mapbox-gl.css` (imported by the component) loads as a separate stylesheet *after* Tailwind's compiled CSS, and `.mapboxgl-map { position: relative }` in that file beats Tailwind's `.absolute` utility at equal specificity — silently flipping the map container from `position: absolute` to `relative` and collapsing it to 0 height. Fixed by having the container fill its parent via `h-full w-full` instead of `absolute inset-0`, so it no longer depends on winning that cascade fight. Separately, the custom stats/filters bar and Mapbox's default `NavigationControl` both anchored to the top-right corner with no clearance (confirmed by measuring overlapping DOM rects at mobile and desktop widths) — moved the control to `bottom-right`. General lesson: any component that imports a third-party library's own CSS alongside Tailwind should assume that library's class-selector rules can silently win the cascade on shared class names (here, `position` on an element the library itself tags with its own class) — verify in a real browser, not just a typecheck/build pass.
