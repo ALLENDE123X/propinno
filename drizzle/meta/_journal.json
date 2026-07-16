@@ -12,8 +12,15 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1784233653003,
-      "tag": "0001_ah-016-sent-read-tracking",
+      "when": 1784233647524,
+      "tag": "0001_ah-019-notification-settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784237423143,
+      "tag": "0002_ah-016-sent-read-tracking",
       "breakpoints": true
     }
   ]

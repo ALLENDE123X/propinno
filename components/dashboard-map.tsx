@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Button } from "@/components/ui/button"
 import { InboxNavLink } from "@/components/inbox-nav-link"
-import { X, SlidersHorizontal, ExternalLink } from "lucide-react"
+import { X, SlidersHorizontal, ExternalLink, Settings } from "lucide-react"
 import { formatPrice, timeAgo } from "@/lib/format"
 
 type Listing = {
@@ -165,6 +166,15 @@ export function DashboardMap() {
           >
             <SlidersHorizontal className="w-4 h-4 mr-2" /> Filters
           </Button>
+          <Link href="/dashboard/settings">
+            <Button
+              size="sm"
+              className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
+              aria-label="Notification settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </div>
 

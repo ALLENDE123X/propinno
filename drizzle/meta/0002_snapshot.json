@@ -1,6 +1,6 @@
 {
-  "id": "6ba05c91-48f8-43a2-a70a-c5c81c36a854",
-  "prevId": "0e630cc4-dae0-424c-9314-56010d539b86",
+  "id": "23eebf58-769c-4b81-a70d-02ee0e150ba0",
+  "prevId": "6ba05c91-48f8-43a2-a70a-c5c81c36a854",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -238,6 +238,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "read_at": {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dismissed_at": {
+          "name": "dismissed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
