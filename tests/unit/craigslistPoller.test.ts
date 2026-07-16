@@ -102,12 +102,13 @@ describe('craigslistPoller handler', () => {
     vi.mocked(claimDailyBudget).mockResolvedValue(true)
   })
 
-  function runStep(overrides: { budget?: boolean; canonicalIds?: string[] } = {}) {
+  function runStep(overrides: { budget?: boolean; canonicalIds?: string[]; items?: unknown[] } = {}) {
+    const items = overrides.items ?? [SAMPLE_ITEM]
     const step = {
       run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
         if (name === 'check-daily-budget') return Promise.resolve(overrides.budget ?? true)
-        if (name === 'fetch-craigslist-apify') return Promise.resolve([SAMPLE_ITEM])
-        if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: overrides.canonicalIds ?? ['1'] })
+        if (name === 'fetch-craigslist-apify') return Promise.resolve(items)
+        if (name === 'upsert-listings-chunk-0') return Promise.resolve({ count: items.length, canonicalIds: overrides.canonicalIds ?? ['1'] })
         return fn()
       }),
       sendEvent: vi.fn().mockResolvedValue(undefined)
@@ -136,6 +137,35 @@ describe('craigslistPoller handler', () => {
     const result = await craigslistPoller['fn']({ step })
     expect(result).toEqual({ skipped: true, reason: 'daily-budget-exceeded' })
     expect(step.sendEvent).not.toHaveBeenCalled()
+  })
+
+  it('chunks results into multiple step.run calls when above the chunk size', async () => {
+    // 120 items at a 50-item chunk size should produce 3 chunks: 50, 50, 20.
+    const items = Array.from({ length: 120 }, (_, i) => ({ ...SAMPLE_ITEM, id: `item-${i}` }))
+    const chunkCalls: string[] = []
+
+    const step = {
+      run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
+        if (name === 'check-daily-budget') return Promise.resolve(true)
+        if (name === 'fetch-craigslist-apify') return Promise.resolve(items)
+        if (/^upsert-listings-chunk-\d+$/.test(name)) {
+          chunkCalls.push(name)
+          const chunkIndex = chunkCalls.length - 1
+          return Promise.resolve({ count: 1, canonicalIds: [`canonical-${chunkIndex}`] })
+        }
+        return fn()
+      }),
+      sendEvent: vi.fn().mockResolvedValue(undefined)
+    }
+
+    const result = await craigslistPoller['fn']({ step })
+
+    expect(chunkCalls).toEqual(['upsert-listings-chunk-0', 'upsert-listings-chunk-1', 'upsert-listings-chunk-2'])
+    expect(result).toEqual({ fetched: 120, upserted: 3 })
+    expect(step.sendEvent).toHaveBeenCalledWith('trigger-matching', {
+      name: 'app/listings.upserted',
+      data: { listingIds: ['canonical-0', 'canonical-1', 'canonical-2'] }
+    })
   })
 
   it('catches and logs errors properly', async () => {
