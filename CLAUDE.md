@@ -35,16 +35,17 @@ Next.js · Drizzle ORM · Supabase (Postgres) · Inngest (background jobs — po
 ## Current data pipeline state (2026-07-16)
 
 - **RentCast poller:** live, cron `0 */6 * * *`, budget-capped at 20 req/day via `lib/pollerBudget.ts`.
-- **Craigslist poller:** rewired off dead RSS onto Apify actor `memo23/craigslist-scraper` (residential-proxy routed — plain RSS/datacenter scraping is blocked by Craigslist site-wide, confirmed independently). Cron `0 */2 * * *`, capped at 80 items/run + budget-capped at 24 runs/day. **Requires `APIFY_API_TOKEN` in Vercel env vars — check this is set before assuming the poller is producing data; it fails closed with a clear error if missing.**
+- **Craigslist poller:** rewired off dead RSS onto Apify actor `memo23/craigslist-scraper` (residential-proxy routed — plain RSS/datacenter scraping is blocked by Craigslist site-wide, confirmed independently). Cron `0 */2 * * *`, capped at 80 items/run + budget-capped at 24 runs/day. **Requires `APIFY_API_TOKEN` in Vercel env vars — as of 2026-07-16 this was still NOT set, poller failing closed with a clear error. Check it's set before assuming Craigslist data is flowing.**
+- **Both pollers' upsert step is chunked** (`step.run('upsert-listings-chunk-N', ...)`, 50 items/chunk) as of 2026-07-16 (issue #40, PR #41) — RentCast's up-to-500-item runs were hitting the route's 60s `maxDuration` doing sequential per-item DB round-trips in one un-chunked step. If either poller's per-run item cap grows a lot, watch for the same failure mode resurfacing; `lib/listings.ts`'s `dedupeAndUpsertListings()` itself is still O(n) sequential round-trips per chunk.
 - Verify actual freshness before trusting the pipeline's health: `SELECT source, count(*), max(first_seen_at) FROM listings GROUP BY source;` in Supabase (project ref `klyzbaepzyyhykyeobbp`).
 
 ## Ticket priority — do NOT default to "lowest open number"
 
 GitHub Issues `AH-XXX` (labels) are the ticket system. The old convention was "lowest open AH number = top of queue until the Projects board is wired" — that's now explicitly wrong to follow blindly. As of 2026-07-16, in order:
 
-**AH-015 (dashboard + map, #27) → AH-016 (in-app inbox, #28) → AH-014 (Facebook Marketplace source, #26) → AH-019 (notification settings, #31) → AH-018 (pet/laundry filters, #30) → AH-017 (commute filtering, #29) → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)**
+~~AH-015 (dashboard + map, #27)~~ SHIPPED 2026-07-16 (PR #39) → **AH-016 (in-app inbox, #28) ← NEXT** → AH-014 (Facebook Marketplace source, #26) → AH-019 (notification settings, #31) → AH-018 (pet/laundry filters, #30) → AH-017 (commute filtering, #29) → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)
 
-AH-015 goes first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013 and AH-021 are done (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted).
+AH-015 went first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013, AH-015, and AH-021 are done (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted).
 
 ## Parallel implementation
 
