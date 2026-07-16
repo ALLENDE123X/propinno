@@ -44,6 +44,11 @@ export async function dedupeAndUpsertListings(
     url: string | null
     postedAt: Date | null
     raw: unknown
+    // AH-018, optional so existing/test callers that don't parse pet/laundry
+    // data don't need updating - omitted or undefined behaves the same as
+    // null (matching engine treats null as "unknown, don't filter on it").
+    petsAllowed?: string | null
+    laundryType?: string | null
   }[]
 ) {
   let count = 0
@@ -97,7 +102,9 @@ export async function dedupeAndUpsertListings(
       postedAt: item.postedAt,
       isCanonical,
       canonicalId,
-      raw: item.raw
+      raw: item.raw,
+      petsAllowed: item.petsAllowed,
+      laundryType: item.laundryType
     }).onConflictDoUpdate({
       target: [listings.source, listings.sourceId],
       set: {
@@ -106,7 +113,9 @@ export async function dedupeAndUpsertListings(
         raw: sql`EXCLUDED.raw`,
         postedAt: sql`EXCLUDED.posted_at`,
         lat: sql`EXCLUDED.lat`,
-        lng: sql`EXCLUDED.lng`
+        lng: sql`EXCLUDED.lng`,
+        petsAllowed: sql`EXCLUDED.pets_allowed`,
+        laundryType: sql`EXCLUDED.laundry_type`
       }
     }).returning({ id: listings.id, isCanonical: listings.isCanonical })
     

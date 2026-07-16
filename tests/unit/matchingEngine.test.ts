@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { matchingEngine, getTodaysSentCount } from '@/inngest/functions/matchingEngine'
+import { matchingEngine, getTodaysSentCount, findMatchingUsers } from '@/inngest/functions/matchingEngine'
+import { listings } from '@/lib/db/schema'
+import { StringChunk } from 'drizzle-orm'
 import * as Sentry from '@sentry/nextjs'
 import { logger } from '@/lib/logger'
 
@@ -166,6 +168,94 @@ describe('Matching Engine', () => {
 
     expect(Sentry.captureException).toHaveBeenCalledWith(error)
     expect(logger.error).toHaveBeenCalledWith({ err: error, listingIds: ['123'] }, 'Matching engine failed')
+  })
+})
+
+describe('findMatchingUsers - AH-018 pets/laundry filter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function buildListing(overrides: Partial<typeof listings.$inferSelect> = {}): typeof listings.$inferSelect {
+    return {
+      id: 'listing-1',
+      source: 'craigslist',
+      sourceId: 'src-1',
+      address: '123 Main St, San Francisco, CA',
+      lat: 37.77,
+      lng: -122.41,
+      price: 3000,
+      beds: 2,
+      baths: 1,
+      sqft: 900,
+      url: null,
+      postedAt: null,
+      firstSeenAt: new Date('2026-07-16T00:00:00Z'),
+      isCanonical: true,
+      canonicalId: null,
+      raw: null,
+      petsAllowed: null,
+      laundryType: null,
+      ...overrides
+    }
+  }
+
+  // The `SQL` object drizzle-orm's `sql` tagged template produces stores its
+  // template-literal parts as `StringChunk` instances and every interpolated
+  // JS value inline (in order) in `.queryChunks`. Filtering out the
+  // StringChunks leaves exactly the bound values, in the exact order they
+  // were interpolated - which lets these tests assert the real query the
+  // matching engine builds, not just that db.execute() was called.
+  function extractInterpolatedValues(sqlObj: unknown): unknown[] {
+    const chunks = (sqlObj as { queryChunks: unknown[] }).queryChunks
+    return chunks.filter((c) => !(c instanceof StringChunk))
+  }
+
+  it('threads listing.petsAllowed and listing.laundryType into the query as bound params, in order', async () => {
+    mockExecute.mockResolvedValueOnce([])
+    const listing = buildListing({ petsAllowed: 'cats_and_dogs', laundryType: 'in_unit' })
+
+    await findMatchingUsers(listing)
+
+    expect(mockExecute).toHaveBeenCalledTimes(1)
+    const values = extractInterpolatedValues(mockExecute.mock.calls[0][0])
+    // Order per the query in matchingEngine.ts: listing.id, price (x4 - the
+    // min and max checks each interpolate it twice), beds (x4, same
+    // reason), petsAllowed (x3), laundryType (x3), address (x2).
+    expect(values).toEqual([
+      'listing-1',
+      3000, 3000, 3000, 3000,
+      2, 2, 2, 2,
+      'cats_and_dogs', 'cats_and_dogs', 'cats_and_dogs',
+      'in_unit', 'in_unit', 'in_unit',
+      '123 Main St, San Francisco, CA', '123 Main St, San Francisco, CA'
+    ])
+  })
+
+  it('threads null petsAllowed/laundryType through when the listing has no parsed value', async () => {
+    mockExecute.mockResolvedValueOnce([])
+    const listing = buildListing({ petsAllowed: null, laundryType: null })
+
+    await findMatchingUsers(listing)
+
+    const values = extractInterpolatedValues(mockExecute.mock.calls[0][0])
+    // Index 9,10,11 = petsAllowed (x3); 12,13,14 = laundryType (x3) - see
+    // the index layout asserted explicitly in the previous test.
+    expect(values[9]).toBeNull()
+    expect(values[10]).toBeNull()
+    expect(values[11]).toBeNull()
+    expect(values[12]).toBeNull()
+    expect(values[13]).toBeNull()
+    expect(values[14]).toBeNull()
+  })
+
+  it('returns rows from db.execute unchanged regardless of pets/laundry values (filtering itself happens in Postgres, not JS)', async () => {
+    mockExecute.mockResolvedValueOnce([{ user_id: 'u1', max_daily_sms: 20 }])
+    const listing = buildListing({ petsAllowed: 'dogs', laundryType: 'on_site' })
+
+    const result = await findMatchingUsers(listing)
+
+    expect(result).toEqual([{ user_id: 'u1', max_daily_sms: 20 }])
   })
 })
 

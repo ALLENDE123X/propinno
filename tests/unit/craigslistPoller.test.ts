@@ -35,7 +35,9 @@ const SAMPLE_ITEM = {
   bedrooms: '2',
   bathrooms: '1',
   space: '850 sqft',
-  address: { street: '123 Main St' }
+  address: { street: '123 Main St' },
+  amenities: ['monthly', 'cats are OK - purrr', 'apartment', 'dogs are OK - wooof', 'w/d in unit', 'no smoking'],
+  post: 'Beautiful 2BR flat, freshly painted.'
 }
 
 describe('fetchCraigslistViaApify', () => {
@@ -92,6 +94,26 @@ describe('upsertApifyCraigslistListings', () => {
         lng: -122.4194,
         url: SAMPLE_ITEM.url
       })
+    ])
+  })
+
+  it('AH-018: parses petsAllowed/laundryType from the amenities array (real Apify shape)', async () => {
+    await upsertApifyCraigslistListings([SAMPLE_ITEM])
+    expect(dedupeAndUpsertListings).toHaveBeenCalledWith([
+      expect.objectContaining({ petsAllowed: 'cats_and_dogs', laundryType: 'in_unit' })
+    ])
+  })
+
+  it('AH-018: leaves petsAllowed/laundryType null (not a guess) when nothing in amenities or free text mentions them', async () => {
+    const item = {
+      ...SAMPLE_ITEM,
+      id: 'no-signal-item',
+      amenities: ['apartment', 'no smoking'],
+      post: 'Sunny room with hardwood floors and great views.'
+    }
+    await upsertApifyCraigslistListings([item])
+    expect(dedupeAndUpsertListings).toHaveBeenCalledWith([
+      expect.objectContaining({ petsAllowed: null, laundryType: null })
     ])
   })
 })

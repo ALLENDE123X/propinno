@@ -19,6 +19,11 @@ const verifyOtpSchema = z.object({
     bedsMax: z.coerce.number().optional(),
     zips: z.array(z.string()).optional(),
     neighborhoods: z.array(z.string()).optional(),
+    // AH-018. See lib/db/schema.ts's criteria.pets/criteria.laundry comment
+    // for the value domain - kept in sync with the onboarding form's <select>
+    // options in components/onboarding-flow.tsx.
+    pets: z.enum(['cats', 'dogs', 'cats_and_dogs']).optional(),
+    laundry: z.enum(['in_unit', 'on_site']).optional(),
   })
 })
 

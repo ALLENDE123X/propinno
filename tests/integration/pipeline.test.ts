@@ -232,4 +232,129 @@ describe.skipIf(!process.env.DATABASE_URL)('Core Pipeline Integration', () => {
     expect(matches).toHaveLength(1)
     expect(matches[0].user_id).toBe(user.id)
   })
+
+  it('AH-018: matches when the listing pets_allowed satisfies the user pets requirement', async () => {
+    const [user] = await db.insert(users).values({
+      phone: '+15550000008',
+      status: 'active'
+    }).returning()
+
+    await db.insert(criteria).values({
+      userId: user.id,
+      pets: 'cats'
+    })
+
+    const [listing] = await db.insert(listings).values({
+      source: 'craigslist',
+      sourceId: 'match-8',
+      address: '123 Main St, San Francisco, CA',
+      price: 3000,
+      isCanonical: true,
+      petsAllowed: 'cats_and_dogs'
+    }).returning()
+
+    const matches = await findMatchingUsers(listing)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].user_id).toBe(user.id)
+  })
+
+  it('AH-018: does not match when the listing pets_allowed conflicts with the user pets requirement', async () => {
+    const [user] = await db.insert(users).values({
+      phone: '+15550000009',
+      status: 'active'
+    }).returning()
+
+    await db.insert(criteria).values({
+      userId: user.id,
+      pets: 'dogs'
+    })
+
+    const [listing] = await db.insert(listings).values({
+      source: 'craigslist',
+      sourceId: 'match-9',
+      address: '123 Main St, San Francisco, CA',
+      price: 3000,
+      isCanonical: true,
+      petsAllowed: 'cats'
+    }).returning()
+
+    const matches = await findMatchingUsers(listing)
+    expect(matches).toHaveLength(0)
+  })
+
+  it('AH-018: an in-unit-laundry listing satisfies a user who only requires on-site laundry', async () => {
+    const [user] = await db.insert(users).values({
+      phone: '+15550000010',
+      status: 'active'
+    }).returning()
+
+    await db.insert(criteria).values({
+      userId: user.id,
+      laundry: 'on_site'
+    })
+
+    const [listing] = await db.insert(listings).values({
+      source: 'craigslist',
+      sourceId: 'match-10',
+      address: '123 Main St, San Francisco, CA',
+      price: 3000,
+      isCanonical: true,
+      laundryType: 'in_unit'
+    }).returning()
+
+    const matches = await findMatchingUsers(listing)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].user_id).toBe(user.id)
+  })
+
+  it('AH-018: a hookups-only listing does not satisfy a user who requires in-unit laundry', async () => {
+    const [user] = await db.insert(users).values({
+      phone: '+15550000011',
+      status: 'active'
+    }).returning()
+
+    await db.insert(criteria).values({
+      userId: user.id,
+      laundry: 'in_unit'
+    })
+
+    const [listing] = await db.insert(listings).values({
+      source: 'craigslist',
+      sourceId: 'match-11',
+      address: '123 Main St, San Francisco, CA',
+      price: 3000,
+      isCanonical: true,
+      laundryType: 'hookups'
+    }).returning()
+
+    const matches = await findMatchingUsers(listing)
+    expect(matches).toHaveLength(0)
+  })
+
+  it('AH-018: unparsed (null) pets/laundry data on a listing never disqualifies an otherwise-matching user', async () => {
+    const [user] = await db.insert(users).values({
+      phone: '+15550000012',
+      status: 'active'
+    }).returning()
+
+    await db.insert(criteria).values({
+      userId: user.id,
+      pets: 'cats_and_dogs',
+      laundry: 'in_unit'
+    })
+
+    const [listing] = await db.insert(listings).values({
+      source: 'rentcast',
+      sourceId: 'match-12',
+      address: '123 Main St, San Francisco, CA',
+      price: 3000,
+      isCanonical: true
+      // petsAllowed/laundryType intentionally omitted - null, as RentCast
+      // listings always are today (see AH-018 checkpoint).
+    }).returning()
+
+    const matches = await findMatchingUsers(listing)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].user_id).toBe(user.id)
+  })
 })

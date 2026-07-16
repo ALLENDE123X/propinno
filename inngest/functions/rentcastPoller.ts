@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
+import { parsePetsFromRentcast, parseLaundryFromRentcast } from '@/lib/listingAttributes'
 
 interface RentCastListing {
   id: string | number
@@ -72,7 +73,12 @@ export const upsertListings = async (data: RentCastListing[]) => {
     sqft: l.squareFootage,
     url: null,
     postedAt: l.listedDate ? new Date(l.listedDate) : null,
-    raw: l
+    raw: l,
+    // AH-018 - see lib/listingAttributes.ts. Always null today (RentCast's
+    // rental listings endpoint doesn't return pet/laundry data - confirmed
+    // against live production data), but the parser is real and tested.
+    petsAllowed: parsePetsFromRentcast(l),
+    laundryType: parseLaundryFromRentcast(l)
   }))
 
   return await dedupeAndUpsertListings(values)
