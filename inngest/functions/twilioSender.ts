@@ -51,9 +51,6 @@ export const twilioSender = inngest.createFunction(
         const body = `${addressText} · ${priceText} · ${bedsText}\n${link}`
 
         const client = getTwilioClient()
-        if (!client) {
-          throw new Error('Twilio client unavailable: set TWILIO_ACCOUNT_SID + either an API key pair or TWILIO_AUTH_TOKEN')
-        }
         await client.messages.create({
           body,
           from: process.env.TWILIO_FROM,
