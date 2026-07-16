@@ -5,7 +5,15 @@ import { dedupeAndUpsertListings } from '@/lib/listings'
 import { findMatchingUsers } from '@/inngest/functions/matchingEngine'
 import { sql } from 'drizzle-orm'
 
-describe.skipIf(!process.env.DATABASE_URL)('Core Pipeline Integration', () => {
+// Requires explicit opt-in, not just a configured DATABASE_URL - this project
+// has no separate dev/test Postgres, so DATABASE_URL being set is this repo's
+// normal local state and would otherwise make the destructive path the
+// default. TRUNCATE below wipes users/listings (CASCADE also takes
+// criteria/sent) against whatever DB is configured, which in every worktree
+// so far has been the live production Supabase project. Run explicitly via
+// `RUN_DESTRUCTIVE_DB_TESTS=true npm test` only against a database you can
+// afford to lose (see CLAUDE.md HARD STOP #5).
+describe.skipIf(process.env.RUN_DESTRUCTIVE_DB_TESTS !== 'true')('Core Pipeline Integration', () => {
   beforeEach(async () => {
     // Clear all tables before each test
     await db.execute(sql`TRUNCATE TABLE users, listings CASCADE`)
