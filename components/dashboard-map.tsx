@@ -1,10 +1,13 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Button } from "@/components/ui/button"
-import { X, SlidersHorizontal, ExternalLink } from "lucide-react"
+import { InboxNavLink } from "@/components/inbox-nav-link"
+import { X, SlidersHorizontal, ExternalLink, Settings } from "lucide-react"
+import { formatPrice, timeAgo } from "@/lib/format"
 
 type Listing = {
   id: string
@@ -23,23 +26,9 @@ type Filters = { minPrice: string; maxPrice: string; minBeds: string; source: st
 const SF_CENTER: [number, number] = [-122.4194, 37.7749]
 const FRESH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
 
-function formatPrice(price: number | null) {
-  if (!price) return "N/A"
-  return price >= 1000 ? `$${(price / 1000).toFixed(1)}k` : `$${price}`
-}
-
-// Both helpers take `now` explicitly rather than calling Date.now()
-// internally, since one is used during render (recencyColor/timeAgo for the
-// detail card) and React's purity rule disallows impure calls in render.
-function timeAgo(postedAt: string | null, now: number) {
-  if (!postedAt) return "unknown"
-  const ms = now - new Date(postedAt).getTime()
-  const hrs = Math.floor(ms / (1000 * 60 * 60))
-  if (hrs < 1) return "just now"
-  if (hrs < 24) return `${hrs}h`
-  return `${Math.floor(hrs / 24)}d`
-}
-
+// recencyColor takes `now` explicitly (like timeAgo, imported from
+// lib/format) rather than calling Date.now() internally, since it's used
+// during render and React's purity rule disallows impure calls in render.
 function recencyColor(postedAt: string | null, now: number) {
   if (!postedAt) return "#71717a" // zinc-500
   const ms = now - new Date(postedAt).getTime()
@@ -168,13 +157,25 @@ export function DashboardMap() {
         <div className="pointer-events-auto bg-zinc-900/90 border border-zinc-800 rounded-full px-4 py-2 text-sm text-white backdrop-blur">
           {loading ? "Loading listings…" : `${freshCount} fresh listings in the last 3 days`}
         </div>
-        <Button
-          size="sm"
-          className="pointer-events-auto bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
-          onClick={() => setFiltersOpen((o) => !o)}
-        >
-          <SlidersHorizontal className="w-4 h-4 mr-2" /> Filters
-        </Button>
+        <div className="pointer-events-auto flex items-center gap-2">
+          <InboxNavLink />
+          <Button
+            size="sm"
+            className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
+            onClick={() => setFiltersOpen((o) => !o)}
+          >
+            <SlidersHorizontal className="w-4 h-4 mr-2" /> Filters
+          </Button>
+          <Link href="/dashboard/settings">
+            <Button
+              size="sm"
+              className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
+              aria-label="Notification settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && (

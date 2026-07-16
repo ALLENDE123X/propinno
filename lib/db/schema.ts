@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   timestamp,
+  time,
   pgEnum,
   unique,
   real,
@@ -22,6 +23,16 @@ export const users = pgTable('users', {
   plan: userPlanEnum('plan'),
   accessExpiresAt: timestamp('access_expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  // AH-019 notification preferences. Quiet hours are wall-clock time-of-day
+  // (no date/timezone component) evaluated against America/Los_Angeles at
+  // send time — see inngest/functions/twilioSender.ts. Defaults (21:00-08:00,
+  // cap 20/day, not paused) are chosen so existing users get a reasonable
+  // "don't text me overnight" behavior without silently going unlimited
+  // (null) or silently going to zero (blocked).
+  quietStart: time('quiet_start').notNull().default('21:00:00'),
+  quietEnd: time('quiet_end').notNull().default('08:00:00'),
+  maxDailySms: integer('max_daily_sms').notNull().default(20),
+  notificationsPaused: boolean('notifications_paused').notNull().default(false),
 })
 
 export const listings = pgTable('listings', {
@@ -60,6 +71,13 @@ export const sent = pgTable('sent', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   listingId: uuid('listing_id').notNull().references(() => listings.id, { onDelete: 'cascade' }),
   sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
+  // Null = unread/not dismissed. Set to the action timestamp when the user
+  // reads or dismisses the item in the in-app inbox (AH-016). Two separate
+  // nullable timestamps (rather than booleans) so we keep a record of *when*
+  // each action happened, matching this schema's existing convention
+  // (sentAt/firstSeenAt/postedAt) of timestamp-as-event-marker over boolean flags.
+  readAt: timestamp('read_at', { withTimezone: true }),
+  dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
 }, (table) => [
   unique('sent_user_id_listing_id_unique').on(table.userId, table.listingId)
 ])

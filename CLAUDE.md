@@ -43,9 +43,13 @@ Next.js · Drizzle ORM · Supabase (Postgres) · Inngest (background jobs — po
 
 GitHub Issues `AH-XXX` (labels) are the ticket system. The old convention was "lowest open AH number = top of queue until the Projects board is wired" — that's now explicitly wrong to follow blindly. As of 2026-07-16, in order:
 
-~~AH-015 (dashboard + map, #27)~~ SHIPPED 2026-07-16 (PR #39) → **AH-016 (in-app inbox, #28) ← NEXT** → AH-014 (Facebook Marketplace source, #26) → AH-019 (notification settings, #31) → AH-018 (pet/laundry filters, #30) → AH-017 (commute filtering, #29) → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)
+~~AH-015 (dashboard + map, #27)~~ SHIPPED 2026-07-16 (PR #39) → ~~AH-016 (in-app inbox, #28)~~ implemented 2026-07-16, PR #44 open (not yet merged) → AH-014 (Facebook Marketplace source, #26) — implemented in parallel, PR #42 open (not yet merged) → AH-019 (notification settings, #31) → AH-018 (pet/laundry filters, #30) → AH-017 (commute filtering, #29) → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)
 
-AH-015 went first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013, AH-015, and AH-021 are done (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted).
+AH-014 was implemented out of the above order (worked in parallel via a git worktree, per the "Parallel implementation" section below) — **PR #42 is open, CI green, awaiting Pranav's explicit review/merge go-ahead (flagged for ToS/scraping-risk sign-off specifically, not just green CI).** Don't re-implement it; check PR #42's status first. Update this note (and the ticket priority list itself) once it's merged.
+
+AH-016 (this session, also via its own parallel worktree) is similarly implemented but not yet merged — **PR #44 is open; confirm its CI/merge status before assuming the inbox is live or re-implementing it.**
+
+AH-015 went first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013, AH-015, and AH-021 are merged and live (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted). AH-016 and AH-014 are implemented with open PRs but **not yet merged** as of this writing — multiple sessions were working in parallel via separate worktrees; check actual PR/merge state on GitHub, not just this file, before assuming either is live in production.
 
 ## Parallel implementation
 
