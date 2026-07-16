@@ -3,6 +3,7 @@ import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
+import { parsePetsFromCraigslist, parseLaundryFromCraigslist } from '@/lib/listingAttributes'
 
 // Craigslist's own RSS feeds (?format=rss) are confirmed blocked outright as
 // of July 16, 2026 - "Your request has been blocked" (blockID=39468) on
@@ -46,6 +47,15 @@ interface ApifyCraigslistItem {
     region?: string
     country?: string
   }
+  // AH-018 - the actor normalizes Craigslist's housing checkboxes into this
+  // array (e.g. "cats are OK - purrr", "w/d in unit") - see
+  // lib/listingAttributes.ts's parsePetsFromCraigslist/parseLaundryFromCraigslist,
+  // confirmed against a live sample run on 2026-07-16.
+  amenities?: string[] | null
+  // Full post body, used as the free-text fallback when `amenities` doesn't
+  // have a pet/laundry tag (e.g. the poster mentioned it in prose but didn't
+  // tick the corresponding Craigslist checkbox).
+  post?: string | null
   [key: string]: unknown
 }
 
@@ -120,6 +130,9 @@ export const upsertApifyCraigslistListings = async (
       url: item.url,
       postedAt: item.datetime ? new Date(item.datetime) : null,
       raw: item as unknown as Record<string, unknown>,
+      // AH-018 - see lib/listingAttributes.ts.
+      petsAllowed: parsePetsFromCraigslist(item),
+      laundryType: parseLaundryFromCraigslist(item),
     }
   })
 

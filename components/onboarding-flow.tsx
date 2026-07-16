@@ -69,6 +69,8 @@ export function OnboardingFlow() {
   const [priceMax, setPriceMax] = useState("");
   const [bedsMin, setBedsMin] = useState("");
   const [bedsMax, setBedsMax] = useState("");
+  const [pets, setPets] = useState("");
+  const [laundry, setLaundry] = useState("");
   const [locations, setLocations] = useState("");
   const [code, setCode] = useState("");
   const [previewListings, setPreviewListings] = useState<PreviewListing[]>([]);
@@ -161,6 +163,8 @@ export function OnboardingFlow() {
         bedsMax: bedsMax ? Number(bedsMax) : undefined,
         zips: zips.length > 0 ? zips : undefined,
         neighborhoods: neighborhoods.length > 0 ? neighborhoods : undefined,
+        pets: pets || undefined,
+        laundry: laundry || undefined,
       };
 
       const res = await fetch("/api/auth/verify-otp", {
@@ -360,6 +364,34 @@ export function OnboardingFlow() {
                   placeholder="2"
                   className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-1">Pets (optional)</label>
+                <select
+                  value={pets}
+                  onChange={(e) => setPets(e.target.value)}
+                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-600"
+                >
+                  <option value="">No preference</option>
+                  <option value="cats">Cat-friendly</option>
+                  <option value="dogs">Dog-friendly</option>
+                  <option value="cats_and_dogs">Cats &amp; dogs</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-1">Laundry (optional)</label>
+                <select
+                  value={laundry}
+                  onChange={(e) => setLaundry(e.target.value)}
+                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-600"
+                >
+                  <option value="">No preference</option>
+                  <option value="in_unit">In-unit washer/dryer</option>
+                  <option value="on_site">On-site laundry</option>
+                </select>
               </div>
             </div>
 

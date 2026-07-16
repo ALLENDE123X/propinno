@@ -10,6 +10,8 @@ export async function findMatchingUsers(listing: typeof listings.$inferSelect): 
   const address = listing.address || ''
   const price = listing.price ?? null
   const beds = listing.beds ?? null
+  const petsAllowed = listing.petsAllowed ?? null
+  const laundryType = listing.laundryType ?? null
 
   const matchingUsers = await db.execute(sql`
     SELECT u.id as user_id, u.max_daily_sms as max_daily_sms
@@ -23,6 +25,16 @@ export async function findMatchingUsers(listing: typeof listings.$inferSelect): 
       AND (${price}::int IS NULL OR c.price_max IS NULL OR c.price_max >= ${price}::int)
       AND (${beds}::real IS NULL OR c.beds_min IS NULL OR c.beds_min <= ${beds}::real)
       AND (${beds}::real IS NULL OR c.beds_max IS NULL OR c.beds_max >= ${beds}::real)
+      AND (
+        ${petsAllowed}::text IS NULL OR c.pets IS NULL
+        OR ${petsAllowed}::text IN ('cats_and_dogs', 'yes')
+        OR ${petsAllowed}::text = c.pets
+      )
+      AND (
+        ${laundryType}::text IS NULL OR c.laundry IS NULL
+        OR (c.laundry = 'in_unit' AND ${laundryType}::text = 'in_unit')
+        OR (c.laundry = 'on_site' AND ${laundryType}::text IN ('in_unit', 'on_site'))
+      )
       AND (
         (array_length(c.zips, 1) IS NULL AND array_length(c.neighborhoods, 1) IS NULL)
         OR

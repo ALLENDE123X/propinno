@@ -10,7 +10,7 @@ This repo's own docs (`PRD.md`, `ARCHITECTURE.md`) cover product and codebase st
 
 - `/Users/pranavlende/Documents/claude-memory/projects/startup/MEMORY.md` — index of lessons learned + links to every checkpoint
 - `/Users/pranavlende/Documents/claude-memory/projects/startup/checkpoints/` — one `.md` per past session, newest first by filename (`YYYY-MM-DD-HHMMSS-topic.md`); read at least the newest one in full at session start
-- The newest checkpoint as of this writing is `2026-07-16-014500-pipeline-fix-and-code-migration.md` — read it before starting AH-015, it has the full picture of what just happened and why
+- The newest checkpoint as of this writing is `2026-07-16-223000-ah-018-pet-laundry-filters.md` — read it (and the other same-day AH-016/AH-019/AH-014 checkpoints) before starting AH-017, for the full picture of what just shipped, plus two environment gotchas worth knowing before running `npm test` or a schema migration in this repo again: this worktree setup has no separate dev database (a copied-in `.env.local` points at live production), and `drizzle-kit migrate` doesn't work against this Supabase project at all.
 
 If you have local filesystem access (you should, as Claude Code running on Pranav's machine), read these at session start the same way you'd read `PRD.md`. If a session produces meaningful decisions or state changes, write a new checkpoint there before ending (same file format as the existing ones — frontmatter + TL;DR + decisions + next steps, at minimum).
 
@@ -23,6 +23,8 @@ If you have local filesystem access (you should, as Claude Code running on Prana
 3. **NEVER push to `main` directly** for feature work. Exception: urgent infra/cost fixes (e.g. a poller burning money) — Pranav has explicitly greenlit direct-to-main pushes for that category before; use judgment, but default to a branch+PR.
 
 4. **Never write literal `*/` inside a `/* */` block comment** (e.g. referencing cron syntax like `*/15 * * * *`). It closes the comment early and silently breaks the build. Describe schedules in words instead. (This actually happened this session — see the newest checkpoint.)
+
+5. **Never run `tests/integration/pipeline.test.ts` (or write anything else that runs `TRUNCATE`) against a real `DATABASE_URL`.** This environment has no separate local/dev Postgres — any worktree's `.env.local` (often copied in from the main checkout, since it's gitignored and a fresh worktree doesn't get it) points at the **live production Supabase project**. That test file's `beforeEach` runs `TRUNCATE TABLE users, listings CASCADE` (CASCADE also takes `criteria`/`sent`). As of 2026-07-16 (AH-018) it's gated behind an explicit `RUN_DESTRUCTIVE_DB_TESTS=true` env var (skipped by default even if `DATABASE_URL` is set, unlike the original `skipIf(!DATABASE_URL)` gate, which made the destructive path this repo's *default* local state) — do not remove or weaken that gate, and do not set that env var against anything but a database you can afford to lose. When writing any other DB-touching script or migration, prefer disposable insert/delete over anything that could wipe a whole table.
 
 ## What Propinno is
 
@@ -43,13 +45,9 @@ Next.js · Drizzle ORM · Supabase (Postgres) · Inngest (background jobs — po
 
 GitHub Issues `AH-XXX` (labels) are the ticket system. The old convention was "lowest open AH number = top of queue until the Projects board is wired" — that's now explicitly wrong to follow blindly. As of 2026-07-16, in order:
 
-~~AH-015 (dashboard + map, #27)~~ SHIPPED 2026-07-16 (PR #39) → ~~AH-016 (in-app inbox, #28)~~ implemented 2026-07-16, PR #44 open (not yet merged) → AH-014 (Facebook Marketplace source, #26) — implemented in parallel, PR #42 open (not yet merged) → AH-019 (notification settings, #31) → AH-018 (pet/laundry filters, #30) → AH-017 (commute filtering, #29) → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)
+~~AH-015 (dashboard + map, #27)~~ SHIPPED 2026-07-16 (PR #39) → ~~AH-016 (in-app inbox, #28)~~ SHIPPED 2026-07-16 (PR #44) → ~~AH-014 (Facebook Marketplace source, #26)~~ SHIPPED 2026-07-16 (PR #42) → ~~AH-019 (notification settings, #31)~~ SHIPPED 2026-07-16 (PR #43) → AH-018 (pet/laundry filters, #30) — implemented 2026-07-16 on `feature/ah-018-pet-laundry-filters`, PR open, **not yet merged ← check PR status before re-implementing** → **AH-017 (commute filtering, #29) ← NEXT** → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)
 
-AH-014 was implemented out of the above order (worked in parallel via a git worktree, per the "Parallel implementation" section below) — **PR #42 is open, CI green, awaiting Pranav's explicit review/merge go-ahead (flagged for ToS/scraping-risk sign-off specifically, not just green CI).** Don't re-implement it; check PR #42's status first. Update this note (and the ticket priority list itself) once it's merged.
-
-AH-016 (this session, also via its own parallel worktree) is similarly implemented but not yet merged — **PR #44 is open; confirm its CI/merge status before assuming the inbox is live or re-implementing it.**
-
-AH-015 went first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013, AH-015, and AH-021 are merged and live (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted). AH-016 and AH-014 are implemented with open PRs but **not yet merged** as of this writing — multiple sessions were working in parallel via separate worktrees; check actual PR/merge state on GitHub, not just this file, before assuming either is live in production.
+AH-015 went first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013, AH-015, AH-016, AH-014, AH-019, and AH-021 are merged and live (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted). AH-016, AH-014, and AH-019 all landed the same day via parallel worktrees — see the newest checkpoints for the merge-conflict/migration-numbering lessons from that (matters again any time 2+ schema-changing tickets are worked concurrently). AH-018 is implemented with an open PR but **not yet merged** as of this writing — check actual PR/merge state on GitHub, not just this file, before assuming it's live in production or re-implementing it.
 
 ## Parallel implementation
 
@@ -72,7 +70,8 @@ Multiple tickets can be worked simultaneously using git worktrees (one per ticke
 
 - Match existing patterns (Drizzle schema style, Inngest function structure, file layout).
 - Secrets live in env (Vercel dashboard + local `.env`), **never** in the repo.
-- Listing sources: RentCast (licensed) + Craigslist via Apify (`memo23/craigslist-scraper`) — both budget-capped. Facebook Marketplace (AH-014) should follow the same Apify pattern; see the commit history around 2026-07-16 for the reference implementation and `lib/pollerBudget.ts` for the cost-safety pattern to reuse.
+- Listing sources: RentCast (licensed) + Craigslist via Apify (`memo23/craigslist-scraper`) + Facebook Marketplace via Apify (`memo23/facebook-marketplace-scraper-ppe`, AH-014) — all budget-capped via `lib/pollerBudget.ts`.
+- Pet-policy/laundry-type parsing (AH-018) lives in `lib/listingAttributes.ts`, shared by all pollers — check real production data (`raw` jsonb column, or a live Apify sample run) before writing a parser for a new field/source rather than guessing at field names; RentCast's rental-listings endpoint was confirmed to have zero pet/laundry data, Craigslist's Apify actor has a structured `amenities` array. `facebookPoller.ts` does not parse pets/laundry yet (landed same day as AH-018 in a separate worktree) — a reasonable follow-up once that actor's field shape is inspected.
 - Shared UI components (like `components/ui/button.tsx`) must merge Tailwind classNames via `cn()` (`lib/utils.ts`, clsx + tailwind-merge) — never raw template-string concatenation. See newest checkpoint for why.
 
 ## Key refs

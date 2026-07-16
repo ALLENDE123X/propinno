@@ -51,7 +51,16 @@ export const listings = pgTable('listings', {
   firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).defaultNow().notNull(),
   isCanonical: boolean('is_canonical').default(false).notNull(),
   canonicalId: uuid('canonical_id'),
-  raw: jsonb('raw')
+  raw: jsonb('raw'),
+  // AH-018 pet policy and laundry type, parsed per-source at poll time (see
+  // lib/listingAttributes.ts). Plain text rather than a pgEnum since the
+  // value domain is source-parsing-derived and may grow; null means "not
+  // parseable from this listing's data", not "no pets"/"no laundry" - the
+  // matching engine treats null as non-disqualifying (see matchingEngine.ts).
+  // petsAllowed: 'cats' | 'dogs' | 'cats_and_dogs' | 'yes' | 'no' | null
+  // laundryType: 'in_unit' | 'hookups' | 'on_site' | null
+  petsAllowed: text('pets_allowed'),
+  laundryType: text('laundry_type')
 }, (table) => [
   unique('listings_source_source_id_unique').on(table.source, table.sourceId),
   index('listings_geo_idx').on(table.lat, table.lng),
@@ -65,6 +74,14 @@ export const criteria = pgTable('criteria', {
   bedsMax: real('beds_max'),
   zips: text('zips').array(),
   neighborhoods: text('neighborhoods').array(),
+  // AH-018 subscriber pet/laundry requirements, optional (null = no
+  // preference, matched by the matching engine's null-passthrough filter
+  // pattern - see matchingEngine.ts). Domains intentionally narrower than
+  // listings.petsAllowed/laundryType since a subscriber states a need, not
+  // an observed value: pets: 'cats' | 'dogs' | 'cats_and_dogs' | null;
+  // laundry: 'in_unit' | 'on_site' | null.
+  pets: text('pets'),
+  laundry: text('laundry'),
 })
 
 export const sent = pgTable('sent', {

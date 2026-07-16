@@ -110,6 +110,57 @@ describe('RentCast Poller', () => {
       )
       expect(mockOnConflictDoUpdate).toHaveBeenCalledTimes(1)
     })
+
+    it('AH-018: maps petsAllowed/laundryType to null for a real-shaped RentCast item (no pet/laundry data in this endpoint)', async () => {
+      const data = [
+        {
+          id: '2',
+          formattedAddress: '270 Turk St',
+          city: 'San Francisco',
+          state: 'CA',
+          zipCode: '94102',
+          latitude: 37.78,
+          longitude: -122.41,
+          price: 2092,
+          bedrooms: 0,
+          bathrooms: 1,
+          squareFootage: 0,
+          propertyType: 'Apartment'
+        }
+      ]
+
+      await upsertListings(data)
+
+      expect(mockValues).toHaveBeenCalledWith(
+        expect.objectContaining({ petsAllowed: null, laundryType: null })
+      )
+    })
+
+    it('AH-018: parses petsAllowed/laundryType when a RentCast item happens to include those fields', async () => {
+      const data = [
+        {
+          id: '3',
+          formattedAddress: '1 Fake St',
+          city: 'San Francisco',
+          state: 'CA',
+          zipCode: '94102',
+          latitude: 37.78,
+          longitude: -122.41,
+          price: 3000,
+          bedrooms: 1,
+          bathrooms: 1,
+          squareFootage: 500,
+          petsAllowed: 'No pets',
+          laundryType: 'W/D in unit'
+        }
+      ]
+
+      await upsertListings(data)
+
+      expect(mockValues).toHaveBeenCalledWith(
+        expect.objectContaining({ petsAllowed: 'no', laundryType: 'in_unit' })
+      )
+    })
   })
 
   describe('rentcastPoller handler', () => {
