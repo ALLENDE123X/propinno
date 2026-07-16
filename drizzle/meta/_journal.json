@@ -8,6 +8,13 @@
       "when": 1782629610233,
       "tag": "0000_ah-002-schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784233653003,
+      "tag": "0001_ah-016-sent-read-tracking",
+      "breakpoints": true
     }
   ]
 }

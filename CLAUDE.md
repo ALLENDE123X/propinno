@@ -43,9 +43,9 @@ Next.js · Drizzle ORM · Supabase (Postgres) · Inngest (background jobs — po
 
 GitHub Issues `AH-XXX` (labels) are the ticket system. The old convention was "lowest open AH number = top of queue until the Projects board is wired" — that's now explicitly wrong to follow blindly. As of 2026-07-16, in order:
 
-~~AH-015 (dashboard + map, #27)~~ SHIPPED 2026-07-16 (PR #39) → **AH-016 (in-app inbox, #28) ← NEXT** → AH-014 (Facebook Marketplace source, #26) → AH-019 (notification settings, #31) → AH-018 (pet/laundry filters, #30) → AH-017 (commute filtering, #29) → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)
+~~AH-015 (dashboard + map, #27)~~ SHIPPED 2026-07-16 (PR #39) → ~~AH-016 (in-app inbox, #28)~~ SHIPPED 2026-07-16 (branch `feature/ah-016-inbox`, PR pending merge) → **AH-014 (Facebook Marketplace source, #26) ← NEXT** → AH-019 (notification settings, #31) → AH-018 (pet/laundry filters, #30) → AH-017 (commute filtering, #29) → AH-020 (NLP input, #32) → AH-022 (favorites, #34) → AH-023 (amenity map, #35)
 
-AH-015 went first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013, AH-015, and AH-021 are done (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted).
+AH-015 went first because most of the others assume or benefit from the dashboard shell existing. Update this list in `CLAUDE.md` itself as tickets complete, so the next session doesn't have to reconstruct priority from scratch. AH-013, AH-015, AH-016, and AH-021 are done (AH-021 was done but uncommunicated until 2026-07-16 — check actual code, not just issue state, before assuming a ticket is unstarted). AH-016's PR was open, CI-green, but not yet merged as of this writing — confirm merge status before assuming the inbox is live in production.
 
 ## Parallel implementation
 
