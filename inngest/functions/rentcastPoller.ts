@@ -3,6 +3,7 @@ import { inngest } from '../client'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
+import { claimDailyBudget } from '@/lib/pollerBudget'
 
 interface RentCastListing {
   id: string | number
@@ -75,6 +76,12 @@ export const upsertListings = async (data: RentCastListing[]) => {
 // event kept alongside the cron for on-demand testing without waiting for
 // the schedule. Plan is to ramp toward hourly as paying subscriber volume
 // grows and can absorb the higher RentCast request cost.
+//
+// claimDailyBudget is a second, independent safety net on top of the cron
+// schedule itself (max 20 req/day, ~5x the 4/day this schedule should
+// actually produce) - so a future schedule edit or an Inngest retry storm
+// can't reproduce the original cost-bleed incident even if the cron itself
+// is ever misconfigured.
 export const rentcastPoller = inngest.createFunction(
   { 
     id: 'rentcast-poller',
@@ -84,6 +91,14 @@ export const rentcastPoller = inngest.createFunction(
     ]
   },
   async ({ step }) => {
+    const withinBudget = await step.run('check-daily-budget', () =>
+      claimDailyBudget('rentcast-poller', 20)
+    )
+    if (!withinBudget) {
+      logger.warn('RentCast poller skipped - daily request budget (20) already used today')
+      return { skipped: true, reason: 'daily-budget-exceeded' }
+    }
+
     try {
       const data = await step.run('fetch-rentcast', fetchRentcastListings)
       const result = await step.run('upsert-listings', async () => upsertListings(data))
