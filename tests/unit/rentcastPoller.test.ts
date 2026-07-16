@@ -22,6 +22,7 @@ vi.mock('@sentry/nextjs', () => ({
 vi.mock('@/lib/logger', () => ({
   logger: {
     info: vi.fn(),
+    warn: vi.fn(),
     error: vi.fn()
   }
 }))
@@ -115,8 +116,10 @@ describe('RentCast Poller', () => {
     it('dispatches trigger-matching event when canonicalIds are returned', async () => {
       const mockStep = {
         run: vi.fn().mockImplementation((name, fn) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
           if (name === 'fetch-rentcast') return Promise.resolve([{}])
-          if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: ['1'] })
+          if (name === 'upsert-listings-chunk-0') return Promise.resolve({ count: 1, canonicalIds: ['1'] })
+          return fn()
         }),
         sendEvent: vi.fn().mockResolvedValue(undefined)
       }
@@ -132,8 +135,10 @@ describe('RentCast Poller', () => {
     it('skips sendEvent when no canonicalIds are returned', async () => {
       const mockStep = {
         run: vi.fn().mockImplementation((name, fn) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
           if (name === 'fetch-rentcast') return Promise.resolve([{}])
-          if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: [] })
+          if (name === 'upsert-listings-chunk-0') return Promise.resolve({ count: 1, canonicalIds: [] })
+          return fn()
         }),
         sendEvent: vi.fn()
       }
@@ -143,10 +148,71 @@ describe('RentCast Poller', () => {
       expect(mockStep.sendEvent).not.toHaveBeenCalled()
     })
 
+    it('skips the run entirely when the daily budget is exhausted', async () => {
+      const mockStep = {
+        run: vi.fn().mockImplementation((name: string) => {
+          if (name === 'check-daily-budget') return Promise.resolve(false)
+          throw new Error(`unexpected step.run call: ${name}`)
+        }),
+        sendEvent: vi.fn()
+      }
+
+      const result = await rentcastPoller['fn']({ step: mockStep })
+      expect(result).toEqual({ skipped: true, reason: 'daily-budget-exceeded' })
+      expect(mockStep.sendEvent).not.toHaveBeenCalled()
+    })
+
+    it('does not call step.run for chunking when zero listings are fetched', async () => {
+      const mockStep = {
+        run: vi.fn().mockImplementation((name: string) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
+          if (name === 'fetch-rentcast') return Promise.resolve([])
+          throw new Error(`unexpected step.run call: ${name}`)
+        }),
+        sendEvent: vi.fn()
+      }
+
+      const result = await rentcastPoller['fn']({ step: mockStep })
+      expect(result).toEqual({ fetched: 0, upserted: 0 })
+      expect(mockStep.sendEvent).not.toHaveBeenCalled()
+    })
+
+    it('chunks large result sets into multiple step.run calls and accumulates results', async () => {
+      // 120 items at a 50-item chunk size should produce 3 chunks: 50, 50, 20.
+      const fetched = Array.from({ length: 120 }, (_, i) => ({ id: i }))
+      const chunkCalls: string[] = []
+
+      const mockStep = {
+        run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
+          if (name === 'fetch-rentcast') return Promise.resolve(fetched)
+          if (/^upsert-listings-chunk-\d+$/.test(name)) {
+            chunkCalls.push(name)
+            const chunkIndex = chunkCalls.length - 1
+            return Promise.resolve({ count: 1, canonicalIds: [`canonical-${chunkIndex}`] })
+          }
+          return fn()
+        }),
+        sendEvent: vi.fn().mockResolvedValue(undefined)
+      }
+
+      const result = await rentcastPoller['fn']({ step: mockStep })
+
+      expect(chunkCalls).toEqual(['upsert-listings-chunk-0', 'upsert-listings-chunk-1', 'upsert-listings-chunk-2'])
+      expect(result).toEqual({ fetched: 120, upserted: 3 })
+      expect(mockStep.sendEvent).toHaveBeenCalledWith('trigger-matching', {
+        name: 'app/listings.upserted',
+        data: { listingIds: ['canonical-0', 'canonical-1', 'canonical-2'] }
+      })
+    })
+
     it('catches and logs errors properly', async () => {
       const error = new Error('Test run error')
       const mockStep = {
-        run: vi.fn().mockRejectedValue(error)
+        run: vi.fn().mockImplementation((name: string) => {
+          if (name === 'check-daily-budget') return Promise.resolve(true)
+          return Promise.reject(error)
+        })
       }
 
       await expect(rentcastPoller['fn']({ step: mockStep })).rejects.toThrow('Test run error')

@@ -46,6 +46,15 @@ export const fetchRentcastListings = async () => {
   return (await res.json()) as RentCastListing[]
 }
 
+// app/api/inngest/route.ts caps the whole Inngest route at maxDuration=60,
+// which applies per step.run() invocation. RentCast can return up to 500
+// listings/run, and dedupeAndUpsertListings does 2 sequential DB round-trips
+// per item (dedupe SELECT + upsert), which reliably blew past 60s in
+// production and timed out every run (issue #40). Chunking the upsert into
+// multiple step.run() calls fixes this: each call is a separately
+// checkpointed Inngest invocation with its own fresh 60s budget.
+const UPSERT_CHUNK_SIZE = 50
+
 export const upsertListings = async (data: RentCastListing[]) => {
   if (!Array.isArray(data) || data.length === 0) {
     return { count: 0, canonicalIds: [] }
@@ -101,18 +110,28 @@ export const rentcastPoller = inngest.createFunction(
 
     try {
       const data = await step.run('fetch-rentcast', fetchRentcastListings)
-      const result = await step.run('upsert-listings', async () => upsertListings(data))
 
-      if (result.canonicalIds && result.canonicalIds.length > 0) {
+      let upserted = 0
+      const canonicalIds: string[] = []
+      for (let i = 0; i < data.length; i += UPSERT_CHUNK_SIZE) {
+        const chunk = data.slice(i, i + UPSERT_CHUNK_SIZE)
+        const chunkResult = await step.run(`upsert-listings-chunk-${i / UPSERT_CHUNK_SIZE}`, () =>
+          upsertListings(chunk)
+        )
+        upserted += chunkResult.count
+        canonicalIds.push(...chunkResult.canonicalIds)
+      }
+
+      if (canonicalIds.length > 0) {
         await step.sendEvent('trigger-matching', {
           name: 'app/listings.upserted',
-          data: { listingIds: result.canonicalIds }
+          data: { listingIds: canonicalIds }
         })
       }
 
-      logger.info({ fetched: data.length, upserted: result.count }, 'RentCast poller completed successfully')
+      logger.info({ fetched: data.length, upserted }, 'RentCast poller completed successfully')
 
-      return { fetched: data.length, upserted: result.count }
+      return { fetched: data.length, upserted }
     } catch (error) {
       Sentry.captureException(error)
       logger.error({ err: error }, 'RentCast poller failed')
