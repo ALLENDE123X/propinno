@@ -19,6 +19,14 @@ import { claimDailyBudget } from '@/lib/pollerBudget'
 const APIFY_ACTOR = 'memo23~craigslist-scraper'
 const MAX_ITEMS_PER_RUN = 80 // hard cap on billed results per run, independent of cron cadence
 
+// Not currently hit (MAX_ITEMS_PER_RUN=80 stays under the 60s route ceiling
+// today), but chunked the same way as rentcastPoller.ts for consistency and
+// so a future bump to MAX_ITEMS_PER_RUN or the Apify actor's output can't
+// silently reproduce the RentCast timeout from issue #40. Each step.run()
+// call is a separately checkpointed Inngest invocation with its own fresh
+// 60s budget (app/api/inngest/route.ts sets maxDuration=60 for the route).
+const UPSERT_CHUNK_SIZE = 50
+
 interface ApifyCraigslistItem {
   id: string
   url: string
@@ -134,21 +142,31 @@ export const craigslistPoller = inngest.createFunction(
 
     try {
       const items = await step.run('fetch-craigslist-apify', fetchCraigslistViaApify)
-      const result = await step.run('upsert-listings', () => upsertApifyCraigslistListings(items))
 
-      if (result.canonicalIds.length > 0) {
+      let upserted = 0
+      const canonicalIds: string[] = []
+      for (let i = 0; i < items.length; i += UPSERT_CHUNK_SIZE) {
+        const chunk = items.slice(i, i + UPSERT_CHUNK_SIZE)
+        const chunkResult = await step.run(`upsert-listings-chunk-${i / UPSERT_CHUNK_SIZE}`, () =>
+          upsertApifyCraigslistListings(chunk)
+        )
+        upserted += chunkResult.count
+        canonicalIds.push(...chunkResult.canonicalIds)
+      }
+
+      if (canonicalIds.length > 0) {
         await step.sendEvent('trigger-matching', {
           name: 'app/listings.upserted',
-          data: { listingIds: result.canonicalIds }
+          data: { listingIds: canonicalIds }
         })
       }
 
       logger.info(
-        { fetched: items.length, upserted: result.count },
+        { fetched: items.length, upserted },
         'Craigslist (Apify) poller completed successfully'
       )
 
-      return { fetched: items.length, upserted: result.count }
+      return { fetched: items.length, upserted }
     } catch (error) {
       Sentry.captureException(error)
       logger.error({ err: error }, 'Craigslist (Apify) poller failed')
