@@ -33,9 +33,9 @@ Next.js 15 (App Router) · TypeScript · Drizzle ORM · Supabase (Postgres, us-w
 
 All functions in `inngest/functions/`. Registered in `app/api/inngest/route.ts`.
 
-**rentcastPoller.ts** — Cron: every 15 min. Calls RentCast API for SF rental listings. Upserts into listings table (source='rentcast'). Emits `listing/new` event for each new listing.
+**rentcastPoller.ts** — Cron: every 6h (`0 */6 * * *`), plus a manual `app/rentcast.manual-poll` trigger. Calls RentCast API for SF rental listings (`limit=500`). Budget-capped via `lib/pollerBudget.ts` (`claimDailyBudget`, max 20 req/day, Redis-backed) as an independent safety net on top of the cron schedule itself (see the RentCast cost-bleed incident in the memory checkpoint tree). Upserts into listings table (source='rentcast') via `dedupeAndUpsertListings`, chunked into multiple `step.run()` calls of 50 items each so no single Inngest step invocation exceeds the route's 60s `maxDuration` — up to 500 sequential DB round-trips in one step reliably timed out otherwise (fixed 2026-07-16, issue #40). Emits `app/listings.upserted` for canonical IDs.
 
-**craigslistPoller.ts** — Cron: every 15 min. Parses Craigslist sfbay RSS feed. Upserts into listings (source='craigslist'). Emits `listing/new` event.
+**craigslistPoller.ts** — Cron: every 2h (`0 */2 * * *`). Craigslist's own RSS feeds (`?format=rss`) are blocked site-wide as of 2026-07-16 (confirmed independently, not IP/UA-specific) — listings now come from an Apify actor (`memo23/craigslist-scraper`, residential-proxy routed) instead, capped at 80 items/run via `MAX_ITEMS_PER_RUN`. Requires `APIFY_API_TOKEN` in Vercel env vars; fails closed with a clear error if missing. Budget-capped via the same `claimDailyBudget` pattern (max 24 runs/day). Same chunked-upsert fix as rentcastPoller, applied preemptively (not yet triggered at the 80-item cap, but same latent failure mode). Emits `app/listings.upserted`.
 
 **matchingEngine.ts** — Triggered by `listing/new` event. Geocodes via Mapbox if lat/lng missing. Runs cross-source dedupe (sets is_canonical/canonical_id). For canonical listings: queries all active users whose criteria match (price range, beds range, neighborhood/zip overlap), excluding already-sent pairs. Emits `notification/send` for each match.
 
@@ -149,7 +149,7 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | AH-012 | #21 | Integration tests for core pipeline | 2026-06-28 |
 | AH-011 | #11 | Live-match preview paywall step (onboarding) | 2026-06-28 |
 | AH-013 | #36 | Landing page conversion copy overhaul | 2026-06-29 |
-| AH-015 | TBD | Dashboard with interactive listing map | 2026-07-16 |
+| AH-015 | #39 | Dashboard with interactive listing map | 2026-07-16 |
 
 ---
 
@@ -178,3 +178,11 @@ UI: `components/dashboard-map.tsx` — Mapbox GL JS (new dependency), full-scree
 Consequences: Requires a new env var `NEXT_PUBLIC_MAPBOX_TOKEN` (client-exposed, so intentionally separate from the server-only `MAPBOX_TOKEN` geocoding key — use a public-scoped Mapbox token, not the secret one) added to Vercel before the map renders; falls back to a clear "not configured" message rather than a blank map if missing. Map is only as useful as the pipeline's freshness — see the poller budget/health notes above.
 
 **Follow-up real-browser fix (same day, still on the AH-015 PR):** initial real-Chrome verification (not just the sandboxed preview browser) found the map rendering as a solid black div with zero tiles. Root cause: `mapbox-gl.css` (imported by the component) loads as a separate stylesheet *after* Tailwind's compiled CSS, and `.mapboxgl-map { position: relative }` in that file beats Tailwind's `.absolute` utility at equal specificity — silently flipping the map container from `position: absolute` to `relative` and collapsing it to 0 height. Fixed by having the container fill its parent via `h-full w-full` instead of `absolute inset-0`, so it no longer depends on winning that cascade fight. Separately, the custom stats/filters bar and Mapbox's default `NavigationControl` both anchored to the top-right corner with no clearance (confirmed by measuring overlapping DOM rects at mobile and desktop widths) — moved the control to `bottom-right`. General lesson: any component that imports a third-party library's own CSS alongside Tailwind should assume that library's class-selector rules can silently win the cascade on shared class names (here, `position` on an element the library itself tags with its own class) — verify in a real browser, not just a typecheck/build pass.
+
+---
+
+## 2026-07-16 — Fix: poller upsert step timing out (issue #40, PR #41)
+Context: Every RentCast poller run on 2026-07-16 failed with `FUNCTION_INVOCATION_TIMEOUT` (Vercel's 60s ceiling on `app/api/inngest/route.ts`, added the same week for the Craigslist/Apify call). Zero new listings ingested from any source that day — Craigslist was separately blocked on a missing `APIFY_API_TOKEN` at the same time.
+Root cause: `dedupeAndUpsertListings()` (`lib/listings.ts`) processes its input sequentially, 2 blocking DB round-trips per item (dedupe `SELECT` + `INSERT ... ON CONFLICT`), all inside one un-chunked `step.run()` call. RentCast requests up to 500 listings/run; at 500 × 2 sequential round-trips with real Vercel(iad1)↔Supabase(us-west-1) latency, this reliably exceeded 60s. Craigslist's 80-item cap kept it under the same ceiling — latent, not yet triggered.
+Fix: Both pollers now chunk the upsert into multiple `step.run('upsert-listings-chunk-N', ...)` calls (50 items/chunk), accumulating results before the `trigger-matching` event dispatch. Each `step.run()` is a separately checkpointed Inngest invocation with its own fresh `maxDuration` budget, so this fixes the timeout without changing `dedupeAndUpsertListings()` itself or fighting Inngest's execution model.
+Consequences: `tests/unit/rentcastPoller.test.ts` and `tests/unit/craigslistPoller.test.ts` now mock chunked step names (`upsert-listings-chunk-0`, etc.) instead of a single `upsert-listings` step — any future poller changes touching the upsert step need to match this pattern. `dedupeAndUpsertListings()`'s underlying per-item sequential-round-trip cost is still there per chunk; if a poller's per-run item count or the chunk size grows significantly, the same failure mode could resurface — a batched (single multi-row `SELECT`/`INSERT`) rewrite of `dedupeAndUpsertListings()` itself would be the more durable fix if that happens.
