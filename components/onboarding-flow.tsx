@@ -156,7 +156,23 @@ export function OnboardingFlow() {
       const combinedLocations = [...(c.neighborhoods || []), ...(c.zips || [])];
       if (combinedLocations.length > 0) setLocations(combinedLocations.join(", "));
 
-      if (Object.keys(c).length > 0) {
+      // neighborhoods/zips are always present in the response (possibly as
+      // empty arrays - see lib/nlpCriteria.ts), so a plain Object.keys(c)
+      // check would report "found something" even when nothing meaningful
+      // was extracted. Check the actual scalar/array fields instead.
+      const foundAnything =
+        c.priceMin !== undefined ||
+        c.priceMax !== undefined ||
+        c.bedsMin !== undefined ||
+        c.bedsMax !== undefined ||
+        Boolean(c.pets) ||
+        Boolean(c.laundry) ||
+        Boolean(c.commuteAddress) ||
+        c.commuteMaxMinutes !== undefined ||
+        Boolean(c.commuteMode) ||
+        combinedLocations.length > 0;
+
+      if (foundAnything) {
         toast.success("Parsed — review the fields below before continuing");
       } else {
         toast("Didn't find specific criteria in that description — fill in the fields below");
