@@ -107,7 +107,13 @@ export function DashboardMap() {
       center: SF_CENTER,
       zoom: 12,
     })
-    instance.addControl(new mapboxgl.NavigationControl(), "top-right")
+    // bottom-right, not top-right: the custom stats/filters bar (and the
+    // filter panel it opens) both anchor to the top-right corner too, and
+    // Mapbox's own control sits on top of them there with no clearance at
+    // any viewport width - confirmed by measuring both rects in a real
+    // browser, not just eyeballing screenshots. Bottom-right stays clear of
+    // both in every state the UI can be in.
+    instance.addControl(new mapboxgl.NavigationControl(), "bottom-right")
     map.current = instance
 
     // Dispose the WebGL context on unmount - without this, React Strict
@@ -147,7 +153,16 @@ export function DashboardMap() {
 
   return (
     <div className="relative h-screen w-full bg-black">
-      <div ref={mapContainer} className="absolute inset-0" />
+      {/* mapbox-gl's own stylesheet sets `.mapboxgl-map { position: relative }`,
+          which overrides Tailwind's `.absolute` utility on this element (same
+          specificity, mapbox-gl.css is injected after Tailwind's compiled
+          sheet) and collapses this container to zero height. Fill the parent
+          via width/height instead of `absolute inset-0` so nothing here
+          depends on winning that cascade fight; the parent is already
+          `relative h-screen`, so this stays in normal flow at full size while
+          the overlay UI below uses `absolute` (a class mapbox-gl never
+          touches) to sit on top of it. */}
+      <div ref={mapContainer} className="h-full w-full" />
 
       <div className="absolute top-4 left-4 right-4 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         <div className="pointer-events-auto bg-zinc-900/90 border border-zinc-800 rounded-full px-4 py-2 text-sm text-white backdrop-blur">
