@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import twilio from 'twilio'
 import { z } from 'zod'
+import { createTwilioClient } from '@/lib/twilio'
 import { limitRequest } from '@/lib/ratelimit'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { phone, code, criteria: userCriteria } = verifyOtpSchema.parse(body)
 
-    const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    const twilioClient = createTwilioClient()
     const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID
 
     if (!verifyServiceSid) {

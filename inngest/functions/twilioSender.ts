@@ -3,9 +3,9 @@ import { db } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { sent } from '@/lib/db/schema'
-import twilio from 'twilio'
+import { createTwilioClient } from '@/lib/twilio'
 
-export const getTwilioClient = () => twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+export const getTwilioClient = () => createTwilioClient()
 
 export const twilioSender = inngest.createFunction(
   { id: 'twilio-sender', triggers: [{ event: 'app/notification.send' }] },

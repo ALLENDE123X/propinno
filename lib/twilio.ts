@@ -3,13 +3,35 @@ import { logger } from './logger'
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID
 const authToken = process.env.TWILIO_AUTH_TOKEN
+const apiKeySid = process.env.TWILIO_API_KEY_SID
+const apiKeySecret = process.env.TWILIO_API_KEY_SECRET
 const fromNumber = process.env.TWILIO_FROM
 
-export const twilioClient = accountSid && authToken ? twilio(accountSid, authToken) : null
+/**
+ * Build a Twilio REST client, fresh on every call (never cached at module
+ * scope), so each request/test always reads the current environment.
+ *
+ * Auth precedence:
+ *  1. API Key (SK... SID + secret) scoped to the account — Twilio's
+ *     recommended auth method. Used when TWILIO_API_KEY_SID +
+ *     TWILIO_API_KEY_SECRET are set.
+ *  2. Legacy Account SID + Auth Token, as a fallback — matches prior
+ *     behavior exactly when no API key is configured.
+ */
+export function createTwilioClient() {
+  if (apiKeySid && apiKeySecret) {
+    return twilio(apiKeySid, apiKeySecret, { accountSid })
+  }
+  return twilio(accountSid, authToken)
+}
+
+export const twilioClient = accountSid && (authToken || (apiKeySid && apiKeySecret))
+  ? createTwilioClient()
+  : null
 
 export async function sendSMS(to: string, body: string) {
-  if (!twilioClient) {
-    logger.warn('TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing, skipping actual SMS send (development mode)')
+  if (!accountSid || !(authToken || (apiKeySid && apiKeySecret))) {
+    logger.warn('Twilio credentials missing (need TWILIO_ACCOUNT_SID + either an API key pair or TWILIO_AUTH_TOKEN), skipping actual SMS send (development mode)')
     logger.info(`[SMS to ${to}]`)
     return 'mock-sid'
   }
@@ -19,7 +41,7 @@ export async function sendSMS(to: string, body: string) {
     throw new Error('TWILIO_FROM is missing')
   }
 
-  const message = await twilioClient.messages.create({
+  const message = await createTwilioClient().messages.create({
     body,
     from: fromNumber,
     to,
@@ -30,9 +52,6 @@ export async function sendSMS(to: string, body: string) {
 }
 
 export async function sendAdminAlert(body: string) {
-  // Use a hardcoded admin phone or ideally from env.
-  // The ticket says "+14044446018" is the test user phone, I'll send alerts to the same or just expect ADMIN_PHONE.
-  // Let's use process.env.ADMIN_PHONE or default to '+14044446018'.
   const adminPhone = process.env.ADMIN_PHONE || '+14044446018'
   return sendSMS(adminPhone, `[PROPINNO ALERT] ${body}`)
 }
