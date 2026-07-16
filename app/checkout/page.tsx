@@ -2,9 +2,10 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, useEffect, Suspense } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Check, Loader2 } from "lucide-react"
+import { Check, Loader2, Map } from "lucide-react"
 import { getUserStatus, markFoundPlace, createCheckoutSession } from "./actions"
 
 type UserStatus = {
@@ -40,6 +41,11 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
         <p className="text-zinc-400 mb-8">
           We are scanning for listings and will text you as soon as matches drop.
         </p>
+        <Link href="/dashboard" className="block mb-6">
+          <Button className="w-full bg-white text-black hover:bg-zinc-200">
+            <Map className="w-4 h-4 mr-2" /> View live map
+          </Button>
+        </Link>
         <div className="space-y-4 border-t border-zinc-800 pt-6">
           <h3 className="text-white font-medium">No longer looking?</h3>
           <Button 
