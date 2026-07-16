@@ -54,6 +54,13 @@ export async function POST(req: Request) {
       }
     }
 
+    // Only include criteria keys that were actually provided. An empty object
+    // would make the ON CONFLICT DO UPDATE below a `SET` with no assignments,
+    // which Postgres rejects with a syntax error.
+    const criteriaValues = Object.fromEntries(
+      Object.entries(userCriteria).filter(([, v]) => v !== undefined)
+    )
+
     // Insert user and criteria inside a transaction
     const result = await db.transaction(async (tx) => {
       const [user] = await tx
@@ -70,18 +77,25 @@ export async function POST(req: Request) {
         })
         .returning()
 
-      await tx
-        .insert(criteria)
-        .values({
-          userId: user.id,
-          ...userCriteria
-        })
-        .onConflictDoUpdate({
-          target: criteria.userId,
-          set: {
-            ...userCriteria
-          }
-        })
+      if (Object.keys(criteriaValues).length > 0) {
+        await tx
+          .insert(criteria)
+          .values({
+            userId: user.id,
+            ...criteriaValues
+          })
+          .onConflictDoUpdate({
+            target: criteria.userId,
+            set: criteriaValues
+          })
+      } else {
+        // No criteria provided (e.g. user only entered a phone). Ensure a
+        // criteria row exists but don't attempt an empty UPDATE.
+        await tx
+          .insert(criteria)
+          .values({ userId: user.id })
+          .onConflictDoNothing()
+      }
 
       return user
     })
@@ -99,8 +113,20 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ success: true, userId: result.id })
   } catch (error) {
+    const err = error as { message?: string; code?: string | number; detail?: string; status?: number }
     Sentry.captureException(error)
-    logger.error({ error }, 'Failed to verify OTP')
+    logger.error(
+      {
+        verifyError: {
+          message: err?.message,
+          code: err?.code,
+          detail: err?.detail,
+          status: err?.status,
+          name: (error as Error)?.name,
+        },
+      },
+      'Failed to verify OTP'
+    )
     return NextResponse.json({ error: 'Failed to verify OTP' }, { status: 500 })
   }
 }
