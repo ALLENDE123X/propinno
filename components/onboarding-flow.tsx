@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,15 @@ export function OnboardingFlow() {
   const [code, setCode] = useState("");
   const [previewListings, setPreviewListings] = useState<PreviewListing[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
+
+  // Ticks the resend cooldown down to 0 once a second.
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
 
   const fillTemplate = (pMax: string, bMin: string, locs: string) => {
     setPriceMax(pMax);
@@ -99,11 +108,36 @@ export function OnboardingFlow() {
       if (!res.ok) throw new Error(data.error || "Failed to send OTP");
 
       toast.success("Verification code sent");
+      setResendCooldown(30);
       setStep("otp");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || resending || loading) return;
+
+    setResending(true);
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to resend code");
+
+      toast.success("New code sent");
+      setCode("");
+      setResendCooldown(30);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -365,9 +399,23 @@ export function OnboardingFlow() {
                 className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 text-center tracking-widest text-lg"
                 required
               />
-              <p className="text-xs text-zinc-500 mt-2 text-center">
-                Code sent to {phone}
-              </p>
+              <div className="text-center mt-2">
+                <p className="text-xs text-zinc-500">
+                  Code sent to {phone}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0 || resending || loading}
+                  className="text-xs text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:hover:text-zinc-600 disabled:cursor-not-allowed transition-colors mt-1"
+                >
+                  {resending
+                    ? "Sending..."
+                    : resendCooldown > 0
+                    ? `Resend code in ${resendCooldown}s`
+                    : "Resend code"}
+                </button>
+              </div>
             </div>
 
             <Button type="submit" className="w-full bg-white text-black hover:bg-zinc-200" disabled={loading}>
