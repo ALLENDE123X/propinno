@@ -23,8 +23,16 @@ type Listing = {
 }
 
 type Filters = { minPrice: string; maxPrice: string; minBeds: string; source: string }
+type CommuteOverlay = {
+  commuteMode: string | null
+  commuteMaxMinutes: number | null
+  isochrone: { polygon: GeoJSON.Polygon | GeoJSON.MultiPolygon; approximate: boolean } | null
+}
 const SF_CENTER: [number, number] = [-122.4194, 37.7749]
 const FRESH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
+const COMMUTE_SOURCE_ID = "commute-isochrone"
+const COMMUTE_FILL_LAYER_ID = "commute-isochrone-fill"
+const COMMUTE_OUTLINE_LAYER_ID = "commute-isochrone-outline"
 
 // recencyColor takes `now` explicitly (like timeAgo, imported from
 // lib/format) rather than calling Date.now() internally, since it's used
@@ -51,6 +59,7 @@ export function DashboardMap() {
   // stat stay pure during render (derived from state, not a direct Date.now()
   // call) while still updating live as the dashboard stays open.
   const [now, setNow] = useState(() => Date.now())
+  const [commute, setCommute] = useState<CommuteOverlay | null>(null)
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
   // Fetch inline (rather than via a useCallback'd helper) and set state only
@@ -85,6 +94,20 @@ export function DashboardMap() {
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000)
     return () => clearInterval(id)
+  }, [])
+
+  // AH-017: fetches the current user's already-cached commute isochrone
+  // (never recomputed here - see app/api/dashboard/commute/route.ts and
+  // lib/commute.ts). Runs once on mount, independent of the filters-driven
+  // listings fetch above, since commute criteria doesn't change from the map
+  // UI itself.
+  useEffect(() => {
+    fetch("/api/dashboard/commute")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setCommute(data))
+      .catch(() => {
+        // Non-fatal: the map still works without the overlay.
+      })
   }, [])
 
   useEffect(() => {
@@ -128,6 +151,56 @@ export function DashboardMap() {
     })
   }, [listings, now])
 
+  // AH-017: draws the cached commute isochrone as a translucent fill +
+  // outline layer. Unlike markers (which use `.addTo()` and don't care about
+  // style load state), `addSource`/`addLayer` throw if the map's style isn't
+  // loaded yet - so this waits for `isStyleLoaded()` (or a one-time 'load'
+  // event) before touching the map, then updates the existing source's data
+  // in place on later changes instead of re-adding layers.
+  useEffect(() => {
+    const mapInstance = map.current
+    if (!mapInstance) return
+
+    const apply = () => {
+      const polygon = commute?.isochrone?.polygon ?? null
+      const existingSource = mapInstance.getSource(COMMUTE_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined
+
+      if (!polygon) {
+        if (mapInstance.getLayer(COMMUTE_FILL_LAYER_ID)) mapInstance.removeLayer(COMMUTE_FILL_LAYER_ID)
+        if (mapInstance.getLayer(COMMUTE_OUTLINE_LAYER_ID)) mapInstance.removeLayer(COMMUTE_OUTLINE_LAYER_ID)
+        if (existingSource) mapInstance.removeSource(COMMUTE_SOURCE_ID)
+        return
+      }
+
+      const geojson: GeoJSON.Feature = { type: "Feature", properties: {}, geometry: polygon }
+
+      if (existingSource) {
+        existingSource.setData(geojson)
+        return
+      }
+
+      mapInstance.addSource(COMMUTE_SOURCE_ID, { type: "geojson", data: geojson })
+      mapInstance.addLayer({
+        id: COMMUTE_FILL_LAYER_ID,
+        type: "fill",
+        source: COMMUTE_SOURCE_ID,
+        paint: { "fill-color": "#3b82f6", "fill-opacity": 0.15 },
+      })
+      mapInstance.addLayer({
+        id: COMMUTE_OUTLINE_LAYER_ID,
+        type: "line",
+        source: COMMUTE_SOURCE_ID,
+        paint: { "line-color": "#3b82f6", "line-width": 2, "line-opacity": 0.6 },
+      })
+    }
+
+    if (mapInstance.isStyleLoaded()) {
+      apply()
+    } else {
+      mapInstance.once("load", apply)
+    }
+  }, [commute])
+
   const freshCount = listings.filter(
     (l) => l.postedAt && now - new Date(l.postedAt).getTime() < FRESH_WINDOW_MS
   ).length
@@ -154,8 +227,16 @@ export function DashboardMap() {
       <div ref={mapContainer} className="h-full w-full" />
 
       <div className="absolute top-4 left-4 right-4 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        <div className="pointer-events-auto bg-zinc-900/90 border border-zinc-800 rounded-full px-4 py-2 text-sm text-white backdrop-blur">
-          {loading ? "Loading listings…" : `${freshCount} fresh listings in the last 3 days`}
+        <div className="pointer-events-auto flex items-center gap-2 flex-wrap">
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-full px-4 py-2 text-sm text-white backdrop-blur">
+            {loading ? "Loading listings…" : `${freshCount} fresh listings in the last 3 days`}
+          </div>
+          {commute?.isochrone && (
+            <div className="bg-blue-950/80 border border-blue-800/60 rounded-full px-4 py-2 text-xs text-blue-200 backdrop-blur">
+              Commute zone: ≤{commute.commuteMaxMinutes} min {commute.commuteMode}
+              {commute.isochrone.approximate ? " (estimated, not real transit routing)" : ""}
+            </div>
+          )}
         </div>
         <div className="pointer-events-auto flex items-center gap-2">
           <InboxNavLink />
