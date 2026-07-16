@@ -10,10 +10,10 @@ const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_RE
  * operation, not a dependency normal operation should break on.
  *
  * This exists because of a real incident: an unbounded RentCast cron
- * (*/15 * * * *, no cap) burned $100 in 6 days with zero paying
- * subscribers. A hard per-day request ceiling, independent of and in
- * addition to whatever the cron schedule says, means a misconfigured cron
- * or an Inngest retry storm can never repeat that - worst case is one
+ * running every 15 minutes with no cap burned $100 in 6 days with zero
+ * paying subscribers. A hard per-day request ceiling, independent of and
+ * in addition to whatever the cron schedule says, means a misconfigured
+ * cron or an Inngest retry storm can never repeat that - worst case is one
  * bad day capped at maxPerDay requests, not an unbounded bleed until
  * someone happens to notice the bill.
  */
