@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createTwilioClient } from '@/lib/twilio'
+import { normalizePhoneE164 } from '@/lib/phone'
 import { limitRequest } from '@/lib/ratelimit'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
@@ -30,7 +31,10 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { phone, code, criteria: userCriteria } = verifyOtpSchema.parse(body)
+    const { phone: rawPhone, code, criteria: userCriteria } = verifyOtpSchema.parse(body)
+    // Must match the exact E.164 string send-otp texted the code to, and is
+    // also what we persist on the user record for future SMS listing alerts.
+    const phone = normalizePhoneE164(rawPhone)
 
     const twilioClient = createTwilioClient()
     const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID
