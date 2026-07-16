@@ -158,7 +158,7 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | AH-011 | #11 | Live-match preview paywall step (onboarding) | 2026-06-28 |
 | AH-013 | #36 | Landing page conversion copy overhaul | 2026-06-29 |
 | AH-015 | #39 | Dashboard with interactive listing map | 2026-07-16 |
-| AH-019 | TBD | Notification settings (quiet hours, daily cap, pause/resume) | 2026-07-16 |
+| AH-019 | #43 | Notification settings (quiet hours, daily cap, pause/resume) | 2026-07-16 |
 
 ---
 
