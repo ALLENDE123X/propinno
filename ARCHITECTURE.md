@@ -182,7 +182,7 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | AH-016 | #44 | In-app inbox (matched listings, unread badge, mark read/dismiss) | 2026-07-16 |
 | AH-019 | #43 | Notification settings (quiet hours, daily cap, pause/resume) | 2026-07-16 |
 | AH-014 | #42 | Facebook Marketplace listing source (Apify) | 2026-07-16 |
-| AH-018 | TBD | Pet and laundry filters (parsing, criteria, matching, onboarding form) | 2026-07-16 |
+| AH-018 | #45 | Pet and laundry filters (parsing, criteria, matching, onboarding form) | 2026-07-16 |
 
 ---
 
