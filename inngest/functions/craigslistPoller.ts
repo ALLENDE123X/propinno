@@ -114,42 +114,53 @@ export const craigslistPoller = inngest.createFunction(
     triggers: [{ cron: '*/15 * * * *' }]
   },
   async ({ step }) => {
-    try {
-      let totalFetched = 0
-      let totalUpserted = 0
-      const allCanonicalIds: string[] = []
+    let totalFetched = 0
+    let totalUpserted = 0
+    const allCanonicalIds: string[] = []
+    const feedErrors: string[] = []
 
-      for (const feedUrl of CL_RSS_FEEDS) {
-        const items = await step.run(`fetch-cl-${feedUrl.split('/search/')[1]?.split('/')[0] ?? 'feed'}`, () =>
-          fetchCraigslistFeed(feedUrl)
-        )
-        const result = await step.run(`upsert-cl-${feedUrl.split('/search/')[1]?.split('/')[0] ?? 'feed'}`, () =>
-          upsertCraigslistListings(items)
-        )
+    // Each region is isolated: one blocked/broken feed must not prevent the
+    // other four from being attempted. Previously a single throw here
+    // aborted the whole function immediately (always on the first feed,
+    // "sfc"), meaning zero regions - not just the failing one - ever got
+    // polled once any region started failing.
+    for (const feedUrl of CL_RSS_FEEDS) {
+      const region = feedUrl.split('/search/')[1]?.split('/')[0] ?? 'feed'
+      try {
+        const items = await step.run(`fetch-cl-${region}`, () => fetchCraigslistFeed(feedUrl))
+        const result = await step.run(`upsert-cl-${region}`, () => upsertCraigslistListings(items))
         totalFetched += items.length
         totalUpserted += result.count
         if (result.canonicalIds) {
           allCanonicalIds.push(...result.canonicalIds)
         }
+      } catch (error) {
+        feedErrors.push(`${region}: ${error instanceof Error ? error.message : String(error)}`)
+        Sentry.captureException(error)
+        logger.error({ err: error, region }, 'Craigslist feed failed, continuing to next region')
       }
-
-      if (allCanonicalIds.length > 0) {
-        await step.sendEvent('trigger-matching', {
-          name: 'app/listings.upserted',
-          data: { listingIds: allCanonicalIds }
-        })
-      }
-
-      logger.info(
-        { fetched: totalFetched, upserted: totalUpserted, feeds: CL_RSS_FEEDS.length },
-        'Craigslist poller completed successfully'
-      )
-
-      return { fetched: totalFetched, upserted: totalUpserted }
-    } catch (error) {
-      Sentry.captureException(error)
-      logger.error({ err: error }, 'Craigslist poller failed')
-      throw error
     }
+
+    if (allCanonicalIds.length > 0) {
+      await step.sendEvent('trigger-matching', {
+        name: 'app/listings.upserted',
+        data: { listingIds: allCanonicalIds }
+      })
+    }
+
+    logger.info(
+      { fetched: totalFetched, upserted: totalUpserted, feeds: CL_RSS_FEEDS.length, failedFeeds: feedErrors.length },
+      'Craigslist poller completed'
+    )
+
+    if (feedErrors.length === CL_RSS_FEEDS.length) {
+      // Every single region failed - a real, actionable problem (the whole
+      // RSS format being blocked, say) rather than one flaky feed. Surface
+      // it as a genuine failure so it's still visible, just not 5x noisier
+      // than it needs to be.
+      throw new Error(`All Craigslist feeds failed: ${feedErrors.join('; ')}`)
+    }
+
+    return { fetched: totalFetched, upserted: totalUpserted, failedFeeds: feedErrors }
   }
 )
