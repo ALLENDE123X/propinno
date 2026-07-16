@@ -8,14 +8,18 @@ const apiKeySecret = process.env.TWILIO_API_KEY_SECRET
 const fromNumber = process.env.TWILIO_FROM
 
 /**
- * Build a Twilio REST client, fresh on every call (never cached at module
- * scope), so each request/test always reads the current environment.
+ * Build a Twilio REST client, fresh on every call. Never construct or cache
+ * this at module scope - Next.js evaluates route modules at build time
+ * (page-data collection), and constructing a real Twilio client there can
+ * throw during the build itself if the options object doesn't resolve the
+ * way the SDK expects in that context. Always call this function lazily,
+ * at actual request/runtime.
  *
  * Auth precedence:
- *  1. API Key (SK... SID + secret) scoped to the account — Twilio's
+ *  1. API Key (SK... SID + secret) scoped to the account - Twilio's
  *     recommended auth method. Used when TWILIO_API_KEY_SID +
  *     TWILIO_API_KEY_SECRET are set.
- *  2. Legacy Account SID + Auth Token, as a fallback — matches prior
+ *  2. Legacy Account SID + Auth Token, as a fallback - matches original
  *     behavior exactly when no API key is configured.
  */
 export function createTwilioClient() {
@@ -24,10 +28,6 @@ export function createTwilioClient() {
   }
   return twilio(accountSid, authToken)
 }
-
-export const twilioClient = accountSid && (authToken || (apiKeySid && apiKeySecret))
-  ? createTwilioClient()
-  : null
 
 export async function sendSMS(to: string, body: string) {
   if (!accountSid || !(authToken || (apiKeySid && apiKeySecret))) {
