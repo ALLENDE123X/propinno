@@ -71,6 +71,13 @@ export const sent = pgTable('sent', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   listingId: uuid('listing_id').notNull().references(() => listings.id, { onDelete: 'cascade' }),
   sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
+  // Null = unread/not dismissed. Set to the action timestamp when the user
+  // reads or dismisses the item in the in-app inbox (AH-016). Two separate
+  // nullable timestamps (rather than booleans) so we keep a record of *when*
+  // each action happened, matching this schema's existing convention
+  // (sentAt/firstSeenAt/postedAt) of timestamp-as-event-marker over boolean flags.
+  readAt: timestamp('read_at', { withTimezone: true }),
+  dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
 }, (table) => [
   unique('sent_user_id_listing_id_unique').on(table.userId, table.listingId)
 ])
