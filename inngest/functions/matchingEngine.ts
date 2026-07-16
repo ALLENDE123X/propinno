@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm'
 import * as Sentry from '@sentry/nextjs'
 import { listings } from '@/lib/db/schema'
 import { startOfLocalDay } from '@/lib/quietHours'
+import { isPointWithinCommute, type CommuteIsochroneCache } from '@/lib/commute'
 
 export async function findMatchingUsers(listing: typeof listings.$inferSelect): Promise<{ user_id: string, max_daily_sms: number }[]> {
   const address = listing.address || ''
@@ -14,7 +15,7 @@ export async function findMatchingUsers(listing: typeof listings.$inferSelect): 
   const laundryType = listing.laundryType ?? null
 
   const matchingUsers = await db.execute(sql`
-    SELECT u.id as user_id, u.max_daily_sms as max_daily_sms
+    SELECT u.id as user_id, u.max_daily_sms as max_daily_sms, c.commute_isochrone as commute_isochrone
     FROM users u
     JOIN criteria c ON c.user_id = u.id
     LEFT JOIN sent s ON s.user_id = u.id AND s.listing_id = ${listing.id}
@@ -44,7 +45,22 @@ export async function findMatchingUsers(listing: typeof listings.$inferSelect): 
       )
   `)
 
-  return matchingUsers as unknown as { user_id: string, max_daily_sms: number }[]
+  const rows = matchingUsers as unknown as {
+    user_id: string
+    max_daily_sms: number
+    commute_isochrone: CommuteIsochroneCache | null
+  }[]
+
+  // AH-017: commute-time filtering is a point-in-polygon check against each
+  // user's cached isochrone (see lib/commute.ts) - fundamentally different
+  // from the pure-SQL comparisons above, so it's applied as a post-processing
+  // step in application code rather than another SQL clause. Deliberately NOT
+  // a live Mapbox Isochrone API call here - the isochrone was already
+  // computed once when the user set/changed their commute criteria (see
+  // app/api/auth/verify-otp/route.ts), so this is just a fast local check.
+  return rows
+    .filter((row) => isPointWithinCommute(listing.lat, listing.lng, row.commute_isochrone))
+    .map((row) => ({ user_id: row.user_id, max_daily_sms: row.max_daily_sms }))
 }
 
 /**

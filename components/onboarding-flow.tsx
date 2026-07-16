@@ -71,6 +71,9 @@ export function OnboardingFlow() {
   const [bedsMax, setBedsMax] = useState("");
   const [pets, setPets] = useState("");
   const [laundry, setLaundry] = useState("");
+  const [commuteAddress, setCommuteAddress] = useState("");
+  const [commuteMaxMinutes, setCommuteMaxMinutes] = useState("");
+  const [commuteMode, setCommuteMode] = useState("");
   const [locations, setLocations] = useState("");
   const [code, setCode] = useState("");
   const [previewListings, setPreviewListings] = useState<PreviewListing[]>([]);
@@ -165,6 +168,12 @@ export function OnboardingFlow() {
         neighborhoods: neighborhoods.length > 0 ? neighborhoods : undefined,
         pets: pets || undefined,
         laundry: laundry || undefined,
+        // AH-017. All three left empty = no commute filter. The API only
+        // computes an isochrone when all three are present together (see
+        // app/api/auth/verify-otp/route.ts), so send them as a group.
+        commuteAddress: commuteAddress || undefined,
+        commuteMaxMinutes: commuteMaxMinutes ? Number(commuteMaxMinutes) : undefined,
+        commuteMode: commuteMode || undefined,
       };
 
       const res = await fetch("/api/auth/verify-otp", {
@@ -394,6 +403,51 @@ export function OnboardingFlow() {
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1">Where do you work? (optional)</label>
+              <input
+                type="text"
+                value={commuteAddress}
+                onChange={(e) => setCommuteAddress(e.target.value)}
+                placeholder="123 Market St, San Francisco, CA"
+                className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+              />
+            </div>
+
+            {commuteAddress && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">Max commute (min)</label>
+                  <input
+                    type="number"
+                    value={commuteMaxMinutes}
+                    onChange={(e) => setCommuteMaxMinutes(e.target.value)}
+                    placeholder="30"
+                    className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">Commute mode</label>
+                  <select
+                    value={commuteMode}
+                    onChange={(e) => setCommuteMode(e.target.value)}
+                    className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-600"
+                  >
+                    <option value="">Select mode</option>
+                    <option value="drive">Driving</option>
+                    <option value="bike">Biking</option>
+                    <option value="transit">Transit (estimated)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {commuteAddress && commuteMode === "transit" && (
+              <p className="text-xs text-zinc-500 -mt-2">
+                Transit commute times are a rough estimate, not real transit routing — Mapbox (our mapping provider) doesn&apos;t offer public-transit directions, so this is approximated from walking speed. Treat it as a guide, not a guarantee.
+              </p>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-1">Neighborhoods or Zips (comma separated)</label>

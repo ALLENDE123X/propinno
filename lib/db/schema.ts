@@ -82,6 +82,23 @@ export const criteria = pgTable('criteria', {
   // laundry: 'in_unit' | 'on_site' | null.
   pets: text('pets'),
   laundry: text('laundry'),
+  // AH-017 commute-time filtering. commuteAddress/commuteMaxMinutes/commuteMode
+  // are the subscriber's raw input (all null = no commute filter set).
+  // commuteMode: 'transit' | 'bike' | 'drive'. commuteIsochrone is a CACHED
+  // result, computed once (via lib/commute.ts's computeCommuteIsochrone())
+  // whenever the three fields above are set/changed - never recomputed per
+  // match. Deliberately untyped jsonb (matches listings.raw's existing
+  // convention in this schema) rather than `.$type<...>()`; callers cast the
+  // shape explicitly, see lib/commute.ts's CommuteIsochroneCache type. Null
+  // means "no commute filter, or isochrone computation failed" - both are
+  // non-disqualifying via the same null-passthrough pattern as pets/laundry.
+  // IMPORTANT: Mapbox's Isochrone API has no transit/public-transit profile
+  // (driving/walking/cycling only) - 'transit' mode is an explicitly-labeled
+  // APPROXIMATION, not real transit routing. See lib/commute.ts header comment.
+  commuteAddress: text('commute_address'),
+  commuteMaxMinutes: integer('commute_max_minutes'),
+  commuteMode: text('commute_mode'),
+  commuteIsochrone: jsonb('commute_isochrone'),
 })
 
 export const sent = pgTable('sent', {

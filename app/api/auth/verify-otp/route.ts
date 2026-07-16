@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { db } from '@/lib/db'
 import { users, criteria } from '@/lib/db/schema'
+import { computeCommuteIsochrone } from '@/lib/commute'
 
 const verifyOtpSchema = z.object({
   phone: z.string().min(10),
@@ -24,6 +25,12 @@ const verifyOtpSchema = z.object({
     // options in components/onboarding-flow.tsx.
     pets: z.enum(['cats', 'dogs', 'cats_and_dogs']).optional(),
     laundry: z.enum(['in_unit', 'on_site']).optional(),
+    // AH-017 commute-time filtering. All three fields are one optional group
+    // in the onboarding form (components/onboarding-flow.tsx) - the isochrone
+    // is only computed below when all three are present together.
+    commuteAddress: z.string().min(1).max(200).optional(),
+    commuteMaxMinutes: z.coerce.number().int().min(1).max(180).optional(),
+    commuteMode: z.enum(['transit', 'bike', 'drive']).optional(),
   })
 })
 
@@ -62,9 +69,30 @@ export async function POST(req: Request) {
     // Only include criteria keys that were actually provided. An empty object
     // would make the ON CONFLICT DO UPDATE below a `SET` with no assignments,
     // which Postgres rejects with a syntax error.
-    const criteriaValues = Object.fromEntries(
+    const criteriaValues: Record<string, unknown> = Object.fromEntries(
       Object.entries(userCriteria).filter(([, v]) => v !== undefined)
     )
+
+    // AH-017: compute the commute isochrone once, here, at criteria-set time
+    // - not per-match in the matching engine (see lib/commute.ts's header
+    // comment for why). Only attempted when all three commute fields are
+    // present together; a Mapbox failure here is non-fatal to onboarding
+    // (computeCommuteIsochrone never throws, returns null instead) - the
+    // commute filter just won't apply until it's recomputed successfully.
+    if (userCriteria.commuteAddress && userCriteria.commuteMaxMinutes && userCriteria.commuteMode) {
+      const isochrone = await computeCommuteIsochrone({
+        address: userCriteria.commuteAddress,
+        maxMinutes: userCriteria.commuteMaxMinutes,
+        mode: userCriteria.commuteMode,
+      })
+      if (!isochrone) {
+        logger.warn(
+          { address: userCriteria.commuteAddress, mode: userCriteria.commuteMode },
+          'Commute isochrone could not be computed at onboarding time; commute filter will not apply until recomputed'
+        )
+      }
+      criteriaValues.commuteIsochrone = isochrone
+    }
 
     // Insert user and criteria inside a transaction
     const result = await db.transaction(async (tx) => {

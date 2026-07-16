@@ -259,6 +259,94 @@ describe('findMatchingUsers - AH-018 pets/laundry filter', () => {
   })
 })
 
+describe('findMatchingUsers - AH-017 commute filter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function buildListing(overrides: Partial<typeof listings.$inferSelect> = {}): typeof listings.$inferSelect {
+    return {
+      id: 'listing-1',
+      source: 'craigslist',
+      sourceId: 'src-1',
+      address: '123 Main St, San Francisco, CA',
+      lat: 37.77,
+      lng: -122.41,
+      price: 3000,
+      beds: 2,
+      baths: 1,
+      sqft: 900,
+      url: null,
+      postedAt: null,
+      firstSeenAt: new Date('2026-07-16T00:00:00Z'),
+      isCanonical: true,
+      canonicalId: null,
+      raw: null,
+      petsAllowed: null,
+      laundryType: null,
+      ...overrides
+    }
+  }
+
+  // A polygon that covers the buildListing() default coordinates (lat 37.77,
+  // lng -122.41) but not a point far outside SF.
+  const coveringIsochrone = {
+    center: { lat: 37.77, lng: -122.41 },
+    mode: 'drive',
+    maxMinutes: 30,
+    mapboxProfile: 'driving',
+    effectiveMinutes: 30,
+    computedAt: '2026-07-16T00:00:00.000Z',
+    approximate: false,
+    polygon: {
+      type: 'Polygon',
+      coordinates: [[[-123, 37], [-121, 37], [-121, 38], [-123, 38], [-123, 37]]]
+    }
+  }
+
+  const nonCoveringIsochrone = {
+    ...coveringIsochrone,
+    polygon: {
+      type: 'Polygon',
+      coordinates: [[[10, 10], [11, 10], [11, 11], [10, 11], [10, 10]]]
+    }
+  }
+
+  it('includes a user with no commute isochrone set (null passthrough)', async () => {
+    mockExecute.mockResolvedValueOnce([{ user_id: 'u1', max_daily_sms: 20, commute_isochrone: null }])
+    const result = await findMatchingUsers(buildListing())
+    expect(result).toEqual([{ user_id: 'u1', max_daily_sms: 20 }])
+  })
+
+  it('includes a user whose cached isochrone covers the listing coordinates', async () => {
+    mockExecute.mockResolvedValueOnce([{ user_id: 'u1', max_daily_sms: 20, commute_isochrone: coveringIsochrone }])
+    const result = await findMatchingUsers(buildListing({ lat: 37.77, lng: -122.41 }))
+    expect(result).toEqual([{ user_id: 'u1', max_daily_sms: 20 }])
+  })
+
+  it('excludes a user whose cached isochrone does not cover the listing coordinates', async () => {
+    mockExecute.mockResolvedValueOnce([{ user_id: 'u1', max_daily_sms: 20, commute_isochrone: nonCoveringIsochrone }])
+    const result = await findMatchingUsers(buildListing({ lat: 37.77, lng: -122.41 }))
+    expect(result).toEqual([])
+  })
+
+  it('does not exclude a user with a commute isochrone when the listing has no coordinates', async () => {
+    mockExecute.mockResolvedValueOnce([{ user_id: 'u1', max_daily_sms: 20, commute_isochrone: nonCoveringIsochrone }])
+    const result = await findMatchingUsers(buildListing({ lat: null, lng: null }))
+    expect(result).toEqual([{ user_id: 'u1', max_daily_sms: 20 }])
+  })
+
+  it('applies the commute filter independently per candidate row in the same query result', async () => {
+    mockExecute.mockResolvedValueOnce([
+      { user_id: 'in-zone', max_daily_sms: 20, commute_isochrone: coveringIsochrone },
+      { user_id: 'out-of-zone', max_daily_sms: 20, commute_isochrone: nonCoveringIsochrone },
+      { user_id: 'no-commute-filter', max_daily_sms: 20, commute_isochrone: null }
+    ])
+    const result = await findMatchingUsers(buildListing({ lat: 37.77, lng: -122.41 }))
+    expect(result.map((r) => r.user_id).sort()).toEqual(['in-zone', 'no-commute-filter'])
+  })
+})
+
 describe('getTodaysSentCount', () => {
   beforeEach(() => {
     vi.clearAllMocks()
