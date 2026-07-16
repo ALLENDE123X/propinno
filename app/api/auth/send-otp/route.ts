@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createTwilioClient } from '@/lib/twilio'
+import { normalizePhoneE164 } from '@/lib/phone'
 import { limitRequest } from '@/lib/ratelimit'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
@@ -18,7 +19,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { phone } = sendOtpSchema.parse(body)
+    const parsed = sendOtpSchema.parse(body)
+    const phone = normalizePhoneE164(parsed.phone)
 
     const twilioClient = createTwilioClient()
     const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID
@@ -36,19 +38,20 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    // Twilio RestException stores status/code/message on non-enumerable
-    // props, so a bare {error} logs as {} - pull them out explicitly so we
-    // can actually see what's failing.
     const err = error as { message?: string; status?: number; code?: number; moreInfo?: string }
-    const details = {
-      message: err?.message,
-      status: err?.status,
-      code: err?.code,
-      moreInfo: err?.moreInfo,
-      name: (error as Error)?.name,
-    }
     Sentry.captureException(error)
-    logger.error({ twilioError: details }, 'Failed to send OTP')
+    logger.error(
+      {
+        twilioError: {
+          message: err?.message,
+          status: err?.status,
+          code: err?.code,
+          moreInfo: err?.moreInfo,
+          name: (error as Error)?.name,
+        },
+      },
+      'Failed to send OTP'
+    )
     return NextResponse.json({ error: 'Failed to send OTP' }, { status: 500 })
   }
 }
