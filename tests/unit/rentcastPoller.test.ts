@@ -118,7 +118,7 @@ describe('RentCast Poller', () => {
         run: vi.fn().mockImplementation((name, fn) => {
           if (name === 'check-daily-budget') return Promise.resolve(true)
           if (name === 'fetch-rentcast') return Promise.resolve([{}])
-          if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: ['1'] })
+          if (name === 'upsert-listings-chunk-0') return Promise.resolve({ count: 1, canonicalIds: ['1'] })
           return fn()
         }),
         sendEvent: vi.fn().mockResolvedValue(undefined)
@@ -137,7 +137,7 @@ describe('RentCast Poller', () => {
         run: vi.fn().mockImplementation((name, fn) => {
           if (name === 'check-daily-budget') return Promise.resolve(true)
           if (name === 'fetch-rentcast') return Promise.resolve([{}])
-          if (name === 'upsert-listings') return Promise.resolve({ count: 1, canonicalIds: [] })
+          if (name === 'upsert-listings-chunk-0') return Promise.resolve({ count: 1, canonicalIds: [] })
           return fn()
         }),
         sendEvent: vi.fn()
