@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   parseImagesFromRentcast,
   parseImagesFromCraigslist,
-  parseImagesFromFacebook
+  parseImagesFromFacebook,
+  parseImagesFromSpareRoom
 } from '@/lib/listingImages'
 
 describe('parseImagesFromRentcast', () => {
@@ -102,5 +103,40 @@ describe('parseImagesFromFacebook', () => {
       moreDetails: { listing_photos: [{ image: {} }, null, { image: { uri: 42 } }] as unknown[] }
     }
     expect(parseImagesFromFacebook(item as Parameters<typeof parseImagesFromFacebook>[0])).toEqual([])
+  })
+})
+
+describe('parseImagesFromSpareRoom', () => {
+  it('extracts large_url from each photo object (real Apify shape, confirmed 2026-07-17)', () => {
+    const item = {
+      photos: [
+        { large_url: 'https://photos.spareroom.com/images/flatshare/listings/large/21/10/211079791.jpg', thumb_url: 'https://photos.spareroom.com/images/flatshare/listings/thumbs/21/10/211079791.jpg' },
+        { large_url: 'https://photos.spareroom.com/images/flatshare/listings/large/21/10/211079801.jpg', thumb_url: 'https://photos.spareroom.com/images/flatshare/listings/thumbs/21/10/211079801.jpg' }
+      ]
+    }
+    expect(parseImagesFromSpareRoom(item)).toEqual([
+      'https://photos.spareroom.com/images/flatshare/listings/large/21/10/211079791.jpg',
+      'https://photos.spareroom.com/images/flatshare/listings/large/21/10/211079801.jpg'
+    ])
+  })
+
+  it('returns [] (not a guess) when photos is absent', () => {
+    expect(parseImagesFromSpareRoom({})).toEqual([])
+  })
+
+  it('returns [] when photos is not an array (malformed real-world payload)', () => {
+    expect(parseImagesFromSpareRoom({ photos: 'not-an-array' })).toEqual([])
+  })
+
+  it('drops photo objects missing a usable large_url and de-dupes', () => {
+    const item = {
+      photos: [
+        { large_url: 'https://photos.spareroom.com/a.jpg' },
+        { large_url: null },
+        {},
+        { large_url: 'https://photos.spareroom.com/a.jpg' }
+      ]
+    }
+    expect(parseImagesFromSpareRoom(item)).toEqual(['https://photos.spareroom.com/a.jpg'])
   })
 })

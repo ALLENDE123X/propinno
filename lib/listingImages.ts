@@ -35,6 +35,15 @@
 //     linking Facebook's own CDN rather than re-hosting images ourselves;
 //     same "link out, don't proxy" approach this codebase already takes for
 //     `url` (the outbound listing link).
+//   - SpareRoom (memo23/spareroom-scraper Apify actor): `photos` is an array
+//     of photo objects, each with several pre-sized URL variants (`tiny_url`,
+//     `thumb_url`, `square_url`, `standard_url`, `large_url`). Confirmed via
+//     a live 5-item actor call against a real San Francisco search
+//     (2026-07-17) - every sampled listing had 2-18 photos. `large_url` is
+//     used (the biggest, non-cropped variant available) since this
+//     codebase's `ListingImage`/`ListingGallery` components size images via
+//     CSS rather than requesting a specific resolution, same as every other
+//     source's images.
 
 // Parameter kept (even though unused today) so the signature matches the
 // other two parsers and stays a real, callable extension point - see the
@@ -66,11 +75,21 @@ export function parseImagesFromFacebook(item: {
   return typeof primary === 'string' && primary.length > 0 ? [primary] : []
 }
 
+export function parseImagesFromSpareRoom(item: {
+  photos?: unknown
+}): string[] {
+  const rawPhotos = item.photos
+  if (!Array.isArray(rawPhotos)) return []
+  return normalizeUrlArray(
+    (rawPhotos as unknown[]).map((photo) => (photo as { large_url?: unknown } | null)?.large_url)
+  )
+}
+
 /**
  * Filters to non-empty strings and de-dupes while preserving order - shared
- * by the Craigslist and Facebook parsers above. Never throws on malformed
- * input (missing field, wrong type, non-string entries); anything that
- * isn't a usable URL is dropped rather than guessed at.
+ * by the Craigslist, Facebook, and SpareRoom parsers above. Never throws on
+ * malformed input (missing field, wrong type, non-string entries); anything
+ * that isn't a usable URL is dropped rather than guessed at.
  */
 function normalizeUrlArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
