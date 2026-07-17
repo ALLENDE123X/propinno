@@ -308,6 +308,12 @@ export function DashboardMap() {
             <option value="">All sources</option>
             <option value="rentcast">RentCast</option>
             <option value="craigslist">Craigslist</option>
+            <option value="facebook">Facebook Marketplace</option>
+            <option value="realtor">Realtor.com</option>
+            <option value="apartments">Apartments.com</option>
+            <option value="apartmentlist">Apartment List</option>
+            <option value="zumper">Zumper</option>
+            <option value="spareroom">SpareRoom</option>
           </select>
         </div>
       )}
