@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ListingImage } from "@/components/listing-image"
+import { ListingAttributeBadges } from "@/components/listing-attribute-badges"
 import { formatPrice, timeAgo } from "@/lib/format"
 import { ArrowLeft, ExternalLink, Heart, Loader2 } from "lucide-react"
 
@@ -17,6 +18,8 @@ type FavouriteItem = {
   url: string | null
   postedAt: string | null
   images: string[] | null
+  petsAllowed: string | null
+  laundryType: string | null
   savedAt: string
 }
 
@@ -144,6 +147,14 @@ export function FavouritesList() {
                           <span className="capitalize">{item.source}</span>
                           <span>Saved {timeAgo(item.savedAt, now)} ago</span>
                         </div>
+                        {/* AH-027: pets/laundry badges, rendered only when
+                            the listing has a real parsed value for at least
+                            one of them (see components/listing-attribute-badges.tsx). */}
+                        <ListingAttributeBadges
+                          petsAllowed={item.petsAllowed}
+                          laundryType={item.laundryType}
+                          className="mt-1.5"
+                        />
                       </div>
                     </div>
                     <Button

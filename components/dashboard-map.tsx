@@ -10,6 +10,7 @@ import { FavouriteButton } from "@/components/favourite-button"
 import { useFavourites } from "@/components/use-favourites"
 import { ListingAmenityMap } from "@/components/listing-amenity-map"
 import { ListingGallery } from "@/components/listing-image"
+import { ListingAttributeBadges } from "@/components/listing-attribute-badges"
 import { X, SlidersHorizontal, ExternalLink, Settings, Heart } from "lucide-react"
 import { formatPrice, timeAgo } from "@/lib/format"
 
@@ -25,6 +26,8 @@ type Listing = {
   url: string | null
   postedAt: string | null
   images: string[] | null
+  petsAllowed: string | null
+  laundryType: string | null
 }
 
 type Filters = { minPrice: string; maxPrice: string; minBeds: string; source: string }
@@ -343,6 +346,15 @@ export function DashboardMap() {
             <span className="capitalize">{selected.source}</span>
             <span>Posted {timeAgo(selected.postedAt, now)} ago</span>
           </div>
+          {/* AH-027: pets/laundry badges, rendered only when the listing has
+              a real parsed value for at least one of them (see
+              components/listing-attribute-badges.tsx for the null-means-
+              "couldn't parse" convention). */}
+          <ListingAttributeBadges
+            petsAllowed={selected.petsAllowed}
+            laundryType={selected.laundryType}
+            className="mb-4"
+          />
           {selected.url && (
             <a href={selected.url} target="_blank" rel="noopener noreferrer">
               <Button className="w-full bg-white text-black hover:bg-zinc-200">

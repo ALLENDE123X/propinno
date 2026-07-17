@@ -39,6 +39,8 @@ export async function GET(req: Request) {
         url: listings.url,
         postedAt: listings.postedAt,
         images: listings.images,
+        petsAllowed: listings.petsAllowed,
+        laundryType: listings.laundryType,
         savedAt: favourites.savedAt,
       })
       .from(favourites)

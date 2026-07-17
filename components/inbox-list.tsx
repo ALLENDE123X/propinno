@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { FavouriteButton } from "@/components/favourite-button"
 import { useFavourites } from "@/components/use-favourites"
 import { ListingImage } from "@/components/listing-image"
+import { ListingAttributeBadges } from "@/components/listing-attribute-badges"
 import { formatPrice, timeAgo } from "@/lib/format"
 import { ArrowLeft, ExternalLink, X, Check, Loader2, Inbox as InboxIcon } from "lucide-react"
 
@@ -19,6 +20,8 @@ type InboxItem = {
   url: string | null
   postedAt: string | null
   images: string[] | null
+  petsAllowed: string | null
+  laundryType: string | null
   sentAt: string
   readAt: string | null
 }
@@ -170,6 +173,14 @@ export function InboxList() {
                           <span className="capitalize">{item.source}</span>
                           <span>Sent {timeAgo(item.sentAt, now)} ago</span>
                         </div>
+                        {/* AH-027: pets/laundry badges, rendered only when
+                            the listing has a real parsed value for at least
+                            one of them (see components/listing-attribute-badges.tsx). */}
+                        <ListingAttributeBadges
+                          petsAllowed={item.petsAllowed}
+                          laundryType={item.laundryType}
+                          className="mt-1.5"
+                        />
                       </div>
                     </div>
                     <FavouriteButton
