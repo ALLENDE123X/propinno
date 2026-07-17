@@ -60,7 +60,18 @@ export const listings = pgTable('listings', {
   // petsAllowed: 'cats' | 'dogs' | 'cats_and_dogs' | 'yes' | 'no' | null
   // laundryType: 'in_unit' | 'hookups' | 'on_site' | null
   petsAllowed: text('pets_allowed'),
-  laundryType: text('laundry_type')
+  laundryType: text('laundry_type'),
+  // AH-023 nearby-amenity cache (grocery/gym/transit/bike-share), computed
+  // lazily the first time a listing's detail card is opened (see
+  // lib/amenities.ts's computeNearbyAmenities() and
+  // app/api/listings/[listingId]/amenities/route.ts) - never recomputed on
+  // every pageview, since a listing's address/nearby POIs don't change.
+  // Deliberately untyped jsonb (matches raw/commuteIsochrone's existing
+  // convention in this schema) - callers cast the shape explicitly via
+  // lib/amenities.ts's exported ListingAmenitiesCache type. Null means "not
+  // computed yet" (never viewed) - distinct from an empty `amenities: []`
+  // array, which means "computed successfully, nothing found nearby".
+  amenities: jsonb('amenities')
 }, (table) => [
   unique('listings_source_source_id_unique').on(table.source, table.sourceId),
   index('listings_geo_idx').on(table.lat, table.lng),

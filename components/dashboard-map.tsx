@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { InboxNavLink } from "@/components/inbox-nav-link"
 import { FavouriteButton } from "@/components/favourite-button"
 import { useFavourites } from "@/components/use-favourites"
+import { ListingAmenityMap } from "@/components/listing-amenity-map"
 import { X, SlidersHorizontal, ExternalLink, Settings, Heart } from "lucide-react"
 import { formatPrice, timeAgo } from "@/lib/format"
 
@@ -310,7 +311,7 @@ export function DashboardMap() {
       )}
 
       {selected && (
-        <div className="absolute bottom-0 md:bottom-6 left-0 md:left-6 w-full md:w-96 bg-zinc-900 border-t md:border border-zinc-800 md:rounded-xl p-5 text-white z-10">
+        <div className="absolute bottom-0 md:bottom-6 left-0 md:left-6 w-full md:w-96 max-h-[85vh] overflow-y-auto bg-zinc-900 border-t md:border border-zinc-800 md:rounded-xl p-5 text-white z-10">
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-semibold text-lg">{formatPrice(selected.price)}/mo</h3>
             <div className="flex items-center gap-1">
@@ -336,6 +337,11 @@ export function DashboardMap() {
               </Button>
             </a>
           )}
+          {/* AH-023: nearby grocery/gym/transit/bike-share mini-map + list.
+              Keyed by listing id so switching between markers without
+              closing the card remounts (and re-fetches/re-inits the small
+              map) instead of reusing stale state. */}
+          <ListingAmenityMap key={selected.id} listingId={selected.id} lat={selected.lat} lng={selected.lng} />
         </div>
       )}
     </div>
