@@ -235,12 +235,14 @@ export const upsertApifySpareRoomListings = async (
 export const spareroomPoller = inngest.createFunction(
   {
     id: 'spareroom-poller',
-    // Offset 30 minutes from craigslistPoller (:00) and 15 minutes from
-    // facebookPoller (:15) so the three Apify-backed pollers on the same
-    // every-2-hours cadence don't fire in the same minute and contend for
-    // the same DB connections (same reasoning as facebookPoller.ts's own
-    // offset from craigslistPoller).
-    triggers: [{ cron: '30 */2 * * *' }]
+    // Offset 50 minutes from craigslistPoller (:00), distinct from
+    // facebookPoller (:15), realtorPoller (:30), and apartmentsPoller (:37)
+    // so every Apify-backed poller on the every-2-hours cadence fires in its
+    // own minute and none contend for the same DB connections (same
+    // reasoning as facebookPoller.ts's own offset from craigslistPoller).
+    // Originally shipped at :30, which collided with realtorPoller.ts once
+    // both merged the same day - moved to :50 during that merge.
+    triggers: [{ cron: '50 */2 * * *' }]
   },
   async ({ step }) => {
     const withinBudget = await step.run('check-daily-budget', () =>
