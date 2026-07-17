@@ -217,7 +217,7 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | AH-018 | #45 | Pet and laundry filters (parsing, criteria, matching, onboarding form) | 2026-07-16 |
 | AH-017 | #46 | Commute-time filtering (Mapbox Isochrone, cached point-in-polygon match, dashboard overlay) | 2026-07-16 |
 | AH-020 | #32 | Natural-language search profile input (Claude tool-use extraction, onboarding auto-fill) | 2026-07-16 |
-| AH-022 | #34 (PR TBD) | Favourites/bookmark listings (favourites table, heart icon on dashboard map + inbox, /dashboard/favourites page, unsave) | 2026-07-17 |
+| AH-022 | #48 | Favourites/bookmark listings (favourites table, heart icon on dashboard map + inbox, /dashboard/favourites page, unsave) | 2026-07-17 |
 
 ---
 
