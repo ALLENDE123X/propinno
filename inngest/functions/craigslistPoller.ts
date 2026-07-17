@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parsePetsFromCraigslist, parseLaundryFromCraigslist } from '@/lib/listingAttributes'
+import { parseImagesFromCraigslist } from '@/lib/listingImages'
 
 // Craigslist's own RSS feeds (?format=rss) are confirmed blocked outright as
 // of July 16, 2026 - "Your request has been blocked" (blockID=39468) on
@@ -56,6 +57,10 @@ interface ApifyCraigslistItem {
   // have a pet/laundry tag (e.g. the poster mentioned it in prose but didn't
   // tick the corresponding Craigslist checkbox).
   post?: string | null
+  // Flat array of direct, ready-to-use image URL strings - see
+  // lib/listingImages.ts's parseImagesFromCraigslist, confirmed against a
+  // live sample run on 2026-07-17.
+  pics?: string[] | null
   [key: string]: unknown
 }
 
@@ -133,6 +138,8 @@ export const upsertApifyCraigslistListings = async (
       // AH-018 - see lib/listingAttributes.ts.
       petsAllowed: parsePetsFromCraigslist(item),
       laundryType: parseLaundryFromCraigslist(item),
+      // Listing images - see lib/listingImages.ts.
+      images: parseImagesFromCraigslist(item),
     }
   })
 

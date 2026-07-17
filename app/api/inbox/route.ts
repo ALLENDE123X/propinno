@@ -36,6 +36,7 @@ export async function GET(req: Request) {
         source: listings.source,
         url: listings.url,
         postedAt: listings.postedAt,
+        images: listings.images,
         sentAt: sent.sentAt,
         readAt: sent.readAt,
       })

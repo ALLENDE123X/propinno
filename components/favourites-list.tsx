@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { ListingImage } from "@/components/listing-image"
 import { formatPrice, timeAgo } from "@/lib/format"
 import { ArrowLeft, ExternalLink, Heart, Loader2 } from "lucide-react"
 
@@ -15,6 +16,7 @@ type FavouriteItem = {
   source: string
   url: string | null
   postedAt: string | null
+  images: string[] | null
   savedAt: string
 }
 
@@ -127,14 +129,21 @@ export function FavouritesList() {
                   className="rounded-xl border border-zinc-800 bg-zinc-900 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-white">{item.address}</p>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-400">
-                        <span>{formatPrice(item.price)}/mo</span>
-                        <span>{item.beds ?? "?"} bd</span>
-                        <span>{item.baths ?? "?"} ba</span>
-                        <span className="capitalize">{item.source}</span>
-                        <span>Saved {timeAgo(item.savedAt, now)} ago</span>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <ListingImage
+                        src={item.images?.[0]}
+                        alt={item.address}
+                        className="w-14 h-14 shrink-0 rounded-lg"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-white">{item.address}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-400">
+                          <span>{formatPrice(item.price)}/mo</span>
+                          <span>{item.beds ?? "?"} bd</span>
+                          <span>{item.baths ?? "?"} ba</span>
+                          <span className="capitalize">{item.source}</span>
+                          <span>Saved {timeAgo(item.savedAt, now)} ago</span>
+                        </div>
                       </div>
                     </div>
                     <Button

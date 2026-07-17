@@ -37,7 +37,11 @@ const SAMPLE_ITEM = {
   space: '850 sqft',
   address: { street: '123 Main St' },
   amenities: ['monthly', 'cats are OK - purrr', 'apartment', 'dogs are OK - wooof', 'w/d in unit', 'no smoking'],
-  post: 'Beautiful 2BR flat, freshly painted.'
+  post: 'Beautiful 2BR flat, freshly painted.',
+  pics: [
+    'https://images.craigslist.org/00O0O_7jErhjDdqjs_0sX0CI_600x450.jpg',
+    'https://images.craigslist.org/00i0i_86uqQ11WUAd_0t20CI_600x450.jpg'
+  ]
 }
 
 describe('fetchCraigslistViaApify', () => {
@@ -114,6 +118,26 @@ describe('upsertApifyCraigslistListings', () => {
     await upsertApifyCraigslistListings([item])
     expect(dedupeAndUpsertListings).toHaveBeenCalledWith([
       expect.objectContaining({ petsAllowed: null, laundryType: null })
+    ])
+  })
+
+  it('maps images from the pics array (real Apify shape)', async () => {
+    await upsertApifyCraigslistListings([SAMPLE_ITEM])
+    expect(dedupeAndUpsertListings).toHaveBeenCalledWith([
+      expect.objectContaining({
+        images: [
+          'https://images.craigslist.org/00O0O_7jErhjDdqjs_0sX0CI_600x450.jpg',
+          'https://images.craigslist.org/00i0i_86uqQ11WUAd_0t20CI_600x450.jpg'
+        ]
+      })
+    ])
+  })
+
+  it('leaves images as [] (not a guess) when pics is absent', async () => {
+    const item = { ...SAMPLE_ITEM, id: 'no-pics-item', pics: undefined }
+    await upsertApifyCraigslistListings([item])
+    expect(dedupeAndUpsertListings).toHaveBeenCalledWith([
+      expect.objectContaining({ images: [] })
     ])
   })
 })

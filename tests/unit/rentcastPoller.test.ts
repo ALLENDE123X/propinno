@@ -111,6 +111,28 @@ describe('RentCast Poller', () => {
       expect(mockOnConflictDoUpdate).toHaveBeenCalledTimes(1)
     })
 
+    it('maps images to [] for a real-shaped RentCast item (no image data in this endpoint - confirmed 2026-07-17 against 895 live rows + a fresh live API call)', async () => {
+      const data = [
+        {
+          id: '4',
+          formattedAddress: '264 Guerrero St',
+          city: 'San Francisco',
+          state: 'CA',
+          zipCode: '94103',
+          latitude: 37.77,
+          longitude: -122.42,
+          price: 7400,
+          bedrooms: 2,
+          bathrooms: 1,
+          squareFootage: 1464
+        }
+      ]
+
+      await upsertListings(data)
+
+      expect(mockValues).toHaveBeenCalledWith(expect.objectContaining({ images: [] }))
+    })
+
     it('AH-018: maps petsAllowed/laundryType to null for a real-shaped RentCast item (no pet/laundry data in this endpoint)', async () => {
       const data = [
         {

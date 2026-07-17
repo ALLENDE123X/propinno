@@ -9,6 +9,7 @@ import { InboxNavLink } from "@/components/inbox-nav-link"
 import { FavouriteButton } from "@/components/favourite-button"
 import { useFavourites } from "@/components/use-favourites"
 import { ListingAmenityMap } from "@/components/listing-amenity-map"
+import { ListingGallery } from "@/components/listing-image"
 import { X, SlidersHorizontal, ExternalLink, Settings, Heart } from "lucide-react"
 import { formatPrice, timeAgo } from "@/lib/format"
 
@@ -23,6 +24,7 @@ type Listing = {
   source: string
   url: string | null
   postedAt: string | null
+  images: string[] | null
 }
 
 type Filters = { minPrice: string; maxPrice: string; minBeds: string; source: string }
@@ -324,6 +326,11 @@ export function DashboardMap() {
             </div>
           </div>
           <p className="text-zinc-400 text-sm mb-3">{selected.address}</p>
+          {/* Primary photo + click-through thumbnail strip when a listing
+              has more than one image (Craigslist/Facebook only - RentCast
+              has no image data). Single-image and no-image listings render
+              a single hero image or a neutral placeholder, never a gap. */}
+          <ListingGallery images={selected.images} alt={selected.address} className="mb-4" />
           <div className="flex gap-4 text-sm text-zinc-300 mb-4">
             <span>{selected.beds ?? "?"} bd</span>
             <span>{selected.baths ?? "?"} ba</span>

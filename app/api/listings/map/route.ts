@@ -75,6 +75,7 @@ export async function GET(req: Request) {
         source: listings.source,
         url: listings.url,
         postedAt: listings.postedAt,
+        images: listings.images,
       })
       .from(listings)
       .where(whereClause)
