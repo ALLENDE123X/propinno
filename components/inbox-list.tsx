@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { FavouriteButton } from "@/components/favourite-button"
+import { useFavourites } from "@/components/use-favourites"
 import { formatPrice, timeAgo } from "@/lib/format"
 import { ArrowLeft, ExternalLink, X, Check, Loader2, Inbox as InboxIcon } from "lucide-react"
 
@@ -31,6 +33,9 @@ export function InboxList() {
   // than the whole list locking up on one action.
   const [pending, setPending] = useState<Set<string>>(new Set())
   const [now, setNow] = useState(() => Date.now())
+  // AH-022 heart/save state, shared with components/dashboard-map.tsx via
+  // the same hook so both surfaces' toggle logic stays in sync.
+  const { isSaved, isPending: isFavouritePending, toggleFavourite } = useFavourites()
 
   useEffect(() => {
     fetch("/api/inbox")
@@ -160,6 +165,11 @@ export function InboxList() {
                         </div>
                       </div>
                     </div>
+                    <FavouriteButton
+                      saved={isSaved(item.listingId)}
+                      pending={isFavouritePending(item.listingId)}
+                      onToggle={() => toggleFavourite(item.listingId)}
+                    />
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">

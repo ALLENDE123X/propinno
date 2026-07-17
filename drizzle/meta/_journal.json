@@ -36,6 +36,13 @@
       "when": 1784241703627,
       "tag": "0004_ah-017-commute-filtering",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784246937802,
+      "tag": "0005_ah-022-favourites",
+      "breakpoints": true
     }
   ]
 }
