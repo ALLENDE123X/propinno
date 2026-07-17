@@ -49,6 +49,10 @@ export async function dedupeAndUpsertListings(
     // null (matching engine treats null as "unknown, don't filter on it").
     petsAllowed?: string | null
     laundryType?: string | null
+    // Image URLs, parsed per-source (see lib/listingImages.ts). Optional for
+    // the same reason as petsAllowed/laundryType above; every real poller
+    // always passes an array (possibly []), never omits it.
+    images?: string[] | null
   }[]
 ) {
   let count = 0
@@ -104,7 +108,8 @@ export async function dedupeAndUpsertListings(
       canonicalId,
       raw: item.raw,
       petsAllowed: item.petsAllowed,
-      laundryType: item.laundryType
+      laundryType: item.laundryType,
+      images: item.images
     }).onConflictDoUpdate({
       target: [listings.source, listings.sourceId],
       set: {
@@ -115,7 +120,8 @@ export async function dedupeAndUpsertListings(
         lat: sql`EXCLUDED.lat`,
         lng: sql`EXCLUDED.lng`,
         petsAllowed: sql`EXCLUDED.pets_allowed`,
-        laundryType: sql`EXCLUDED.laundry_type`
+        laundryType: sql`EXCLUDED.laundry_type`,
+        images: sql`EXCLUDED.images`
       }
     }).returning({ id: listings.id, isCanonical: listings.isCanonical })
     

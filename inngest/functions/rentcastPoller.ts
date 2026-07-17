@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parsePetsFromRentcast, parseLaundryFromRentcast } from '@/lib/listingAttributes'
+import { parseImagesFromRentcast } from '@/lib/listingImages'
 
 interface RentCastListing {
   id: string | number
@@ -78,7 +79,12 @@ export const upsertListings = async (data: RentCastListing[]) => {
     // rental listings endpoint doesn't return pet/laundry data - confirmed
     // against live production data), but the parser is real and tested.
     petsAllowed: parsePetsFromRentcast(l),
-    laundryType: parseLaundryFromRentcast(l)
+    laundryType: parseLaundryFromRentcast(l),
+    // Listing images - see lib/listingImages.ts. Always [] today (RentCast's
+    // rental listings endpoint has no image data - confirmed against live
+    // production data and a fresh live API call), same "real extension
+    // point, not dead code" rationale as the pet/laundry parsers above.
+    images: parseImagesFromRentcast(l)
   }))
 
   return await dedupeAndUpsertListings(values)

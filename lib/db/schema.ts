@@ -71,7 +71,19 @@ export const listings = pgTable('listings', {
   // lib/amenities.ts's exported ListingAmenitiesCache type. Null means "not
   // computed yet" (never viewed) - distinct from an empty `amenities: []`
   // array, which means "computed successfully, nothing found nearby".
-  amenities: jsonb('amenities')
+  amenities: jsonb('amenities'),
+  // Listing image URLs, parsed per-source at poll time (see
+  // lib/listingImages.ts, same "check real data before writing a parser"
+  // convention as petsAllowed/laundryType above). Plain text[] rather than
+  // jsonb since the shape is uniform (a flat list of URL strings) regardless
+  // of source - matches the zips/neighborhoods array-column convention on
+  // `criteria` below rather than raw/amenities' jsonb convention. images[0]
+  // is the primary/thumbnail image by convention (parsers order the
+  // strongest single image first). Null/empty both mean "no images for this
+  // listing" (every parser returns [] rather than null when it finds
+  // nothing, but the column stays nullable for callers/tests that omit it
+  // entirely) - never a broken-image guess, just omit the <img> in the UI.
+  images: text('images').array()
 }, (table) => [
   unique('listings_source_source_id_unique').on(table.source, table.sourceId),
   index('listings_geo_idx').on(table.lat, table.lng),

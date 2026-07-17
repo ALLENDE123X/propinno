@@ -36,7 +36,16 @@ const SAMPLE_ITEM = {
   timestamp: '2026-07-16T18:25:28.000Z',
   timestampExact: '2026-07-16T18:25:28.000Z',
   listingPrice: { amount: '2000.00', formatted_amount: '$2,000' },
-  location: { latitude: 37.658386230469, longitude: -122.42614746094 }
+  location: { latitude: 37.658386230469, longitude: -122.42614746094 },
+  primary_listing_photo: {
+    photo_image_url: 'https://scontent.fhex1-1.fna.fbcdn.net/primary.jpg'
+  },
+  moreDetails: {
+    listing_photos: [
+      { image: { uri: 'https://scontent-bos5-1.xx.fbcdn.net/gallery-1.jpg' } },
+      { image: { uri: 'https://scontent-bos5-1.xx.fbcdn.net/gallery-2.jpg' } }
+    ]
+  }
 }
 
 describe('fetchFacebookViaApify', () => {
@@ -112,6 +121,37 @@ describe('upsertApifyFacebookListings', () => {
         baths: null,
         address: '452 Cherry Way, 452 Cherry Way, Hayward, CA'
       })
+    ])
+  })
+
+  it('maps images from moreDetails.listing_photos (the full gallery, real Apify shape)', async () => {
+    await upsertApifyFacebookListings([SAMPLE_ITEM])
+    expect(dedupeAndUpsertListings).toHaveBeenCalledWith([
+      expect.objectContaining({
+        images: [
+          'https://scontent-bos5-1.xx.fbcdn.net/gallery-1.jpg',
+          'https://scontent-bos5-1.xx.fbcdn.net/gallery-2.jpg'
+        ]
+      })
+    ])
+  })
+
+  it('falls back to primary_listing_photo when moreDetails is absent, and to [] when neither is present', async () => {
+    const withPrimaryOnly = {
+      ...SAMPLE_ITEM,
+      id: 'primary-only',
+      moreDetails: undefined
+    }
+    const withNeither = {
+      ...SAMPLE_ITEM,
+      id: 'no-images',
+      primary_listing_photo: undefined,
+      moreDetails: undefined
+    }
+    await upsertApifyFacebookListings([withPrimaryOnly, withNeither])
+    expect(dedupeAndUpsertListings).toHaveBeenCalledWith([
+      expect.objectContaining({ images: ['https://scontent.fhex1-1.fna.fbcdn.net/primary.jpg'] }),
+      expect.objectContaining({ images: [] })
     ])
   })
 })

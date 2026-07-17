@@ -197,6 +197,7 @@ describe('findMatchingUsers - AH-018 pets/laundry filter', () => {
       petsAllowed: null,
       laundryType: null,
       amenities: null,
+      images: null,
       ...overrides
     }
   }
@@ -286,6 +287,7 @@ describe('findMatchingUsers - AH-017 commute filter', () => {
       petsAllowed: null,
       laundryType: null,
       amenities: null,
+      images: null,
       ...overrides
     }
   }

@@ -38,6 +38,7 @@ export async function GET(req: Request) {
         source: listings.source,
         url: listings.url,
         postedAt: listings.postedAt,
+        images: listings.images,
         savedAt: favourites.savedAt,
       })
       .from(favourites)

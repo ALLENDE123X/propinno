@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { FavouriteButton } from "@/components/favourite-button"
 import { useFavourites } from "@/components/use-favourites"
+import { ListingImage } from "@/components/listing-image"
 import { formatPrice, timeAgo } from "@/lib/format"
 import { ArrowLeft, ExternalLink, X, Check, Loader2, Inbox as InboxIcon } from "lucide-react"
 
@@ -17,6 +18,7 @@ type InboxItem = {
   source: string
   url: string | null
   postedAt: string | null
+  images: string[] | null
   sentAt: string
   readAt: string | null
 }
@@ -151,6 +153,11 @@ export function InboxList() {
                           isUnread ? "bg-white" : "bg-transparent"
                         }`}
                         aria-hidden
+                      />
+                      <ListingImage
+                        src={item.images?.[0]}
+                        alt={item.address}
+                        className="w-14 h-14 shrink-0 rounded-lg"
                       />
                       <div className="min-w-0">
                         <p className={`truncate ${isUnread ? "font-semibold text-white" : "text-zinc-300"}`}>

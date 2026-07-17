@@ -3,6 +3,7 @@ import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
+import { parseImagesFromFacebook } from '@/lib/listingImages'
 
 // Facebook Marketplace listings come from an Apify actor
 // (memo23/facebook-marketplace-scraper-ppe), following the same pattern as
@@ -51,6 +52,17 @@ interface ApifyFacebookItem {
   location?: {
     latitude?: number
     longitude?: number
+  } | null
+  // Image fields - see lib/listingImages.ts's parseImagesFromFacebook,
+  // confirmed against a live sample run (includeSeller: true) on 2026-07-17.
+  // primary_listing_photo is the single cover photo; moreDetails.listing_photos
+  // (when present) is the full gallery and already includes the primary
+  // photo as its first element.
+  primary_listing_photo?: {
+    photo_image_url?: string
+  } | null
+  moreDetails?: {
+    listing_photos?: { image?: { uri?: string } }[]
   } | null
   [key: string]: unknown
 }
@@ -140,6 +152,8 @@ export const upsertApifyFacebookListings = async (
       url: item.itemUrl,
       postedAt: item.timestamp ? new Date(item.timestamp) : null,
       raw: item as unknown as Record<string, unknown>,
+      // Listing images - see lib/listingImages.ts.
+      images: parseImagesFromFacebook(item),
     }
   })
 
