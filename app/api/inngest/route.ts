@@ -3,6 +3,7 @@ import { inngest } from '@/inngest/client'
 import { rentcastPoller } from '@/inngest/functions/rentcastPoller'
 import { craigslistPoller } from '@/inngest/functions/craigslistPoller'
 import { facebookPoller } from '@/inngest/functions/facebookPoller'
+import { realtorPoller } from '@/inngest/functions/realtorPoller'
 import { apartmentsPoller } from '@/inngest/functions/apartmentsPoller'
 import { apartmentListPoller } from '@/inngest/functions/apartmentListPoller'
 import { zumperPoller } from '@/inngest/functions/zumperPoller'
@@ -23,6 +24,7 @@ export const { GET, POST, PUT } = serve({
     rentcastPoller,
     craigslistPoller,
     facebookPoller,
+    realtorPoller,
     apartmentsPoller,
     apartmentListPoller,
     zumperPoller,
