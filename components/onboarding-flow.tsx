@@ -4,8 +4,26 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { MapPin, BedDouble, Lock, Loader2, ChevronRight, Zap } from "lucide-react";
+import { MapPin, BedDouble, Lock, Loader2, ChevronRight, Zap, Sparkles } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
+
+// AH-020. Mirrors the validated shape lib/nlpCriteria.ts's parsedCriteriaSchema
+// returns from POST /api/onboarding/parse-criteria - defined locally rather
+// than imported from that lib module so this client component never pulls in
+// its server-only dependencies (the Anthropic SDK) into the client bundle.
+type ParsedCriteriaResponse = {
+  priceMin?: number;
+  priceMax?: number;
+  bedsMin?: number;
+  bedsMax?: number;
+  neighborhoods?: string[];
+  zips?: string[];
+  pets?: string;
+  laundry?: string;
+  commuteAddress?: string;
+  commuteMaxMinutes?: number;
+  commuteMode?: string;
+};
 
 type PreviewListing = {
   id: string;
@@ -75,6 +93,8 @@ export function OnboardingFlow() {
   const [commuteMaxMinutes, setCommuteMaxMinutes] = useState("");
   const [commuteMode, setCommuteMode] = useState("");
   const [locations, setLocations] = useState("");
+  const [nlpDescription, setNlpDescription] = useState("");
+  const [nlpLoading, setNlpLoading] = useState(false);
   const [code, setCode] = useState("");
   const [previewListings, setPreviewListings] = useState<PreviewListing[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -92,6 +112,76 @@ export function OnboardingFlow() {
     setPriceMax(pMax);
     setBedsMin(bMin);
     setLocations(locs);
+  };
+
+  // AH-020. Populates the structured fields below from a free-text
+  // description via Claude tool-use extraction (server-side, see
+  // app/api/onboarding/parse-criteria/route.ts + lib/nlpCriteria.ts). Never
+  // submits on the user's behalf - it only fills in form state the user
+  // still reviews/edits before tapping "Start matching", same as the
+  // quick-template pills above. A 503 with reason "not_configured" means the
+  // ANTHROPIC_API_KEY isn't set in this environment; other failures are
+  // parsing/validation misses - either way this falls back to manual entry
+  // rather than blocking the rest of onboarding.
+  const handleParseDescription = async () => {
+    if (!nlpDescription.trim()) {
+      toast.error("Describe what you're looking for first");
+      return;
+    }
+
+    setNlpLoading(true);
+    try {
+      const res = await fetch("/api/onboarding/parse-criteria", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: nlpDescription }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Couldn't parse that description");
+        return;
+      }
+
+      const c: ParsedCriteriaResponse = data.criteria || {};
+      if (c.priceMin !== undefined) setPriceMin(String(c.priceMin));
+      if (c.priceMax !== undefined) setPriceMax(String(c.priceMax));
+      if (c.bedsMin !== undefined) setBedsMin(String(c.bedsMin));
+      if (c.bedsMax !== undefined) setBedsMax(String(c.bedsMax));
+      if (c.pets) setPets(c.pets);
+      if (c.laundry) setLaundry(c.laundry);
+      if (c.commuteAddress) setCommuteAddress(c.commuteAddress);
+      if (c.commuteMaxMinutes !== undefined) setCommuteMaxMinutes(String(c.commuteMaxMinutes));
+      if (c.commuteMode) setCommuteMode(c.commuteMode);
+
+      const combinedLocations = [...(c.neighborhoods || []), ...(c.zips || [])];
+      if (combinedLocations.length > 0) setLocations(combinedLocations.join(", "));
+
+      // neighborhoods/zips are always present in the response (possibly as
+      // empty arrays - see lib/nlpCriteria.ts), so a plain Object.keys(c)
+      // check would report "found something" even when nothing meaningful
+      // was extracted. Check the actual scalar/array fields instead.
+      const foundAnything =
+        c.priceMin !== undefined ||
+        c.priceMax !== undefined ||
+        c.bedsMin !== undefined ||
+        c.bedsMax !== undefined ||
+        Boolean(c.pets) ||
+        Boolean(c.laundry) ||
+        Boolean(c.commuteAddress) ||
+        c.commuteMaxMinutes !== undefined ||
+        Boolean(c.commuteMode) ||
+        combinedLocations.length > 0;
+
+      if (foundAnything) {
+        toast.success("Parsed — review the fields below before continuing");
+      } else {
+        toast("Didn't find specific criteria in that description — fill in the fields below");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setNlpLoading(false);
+    }
   };
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -318,6 +408,40 @@ export function OnboardingFlow() {
       <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 shadow-xl shadow-black/50">
         {step === "form" ? (
           <form onSubmit={handleSendOtp} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
+                Describe what you&apos;re looking for
+              </label>
+              <textarea
+                value={nlpDescription}
+                onChange={(e) => setNlpDescription(e.target.value)}
+                placeholder="e.g. 2BR under $4500 in the Mission or Hayes Valley, dog friendly, in-unit laundry"
+                rows={2}
+                className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 resize-none"
+              />
+              <div className="flex items-center justify-between gap-2 mt-1.5">
+                <p className="text-xs text-zinc-500">
+                  Parsed automatically — review before submitting.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleParseDescription}
+                  disabled={nlpLoading}
+                  className="text-xs bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full px-3 py-1.5 transition-colors shrink-0 flex items-center gap-1"
+                >
+                  {nlpLoading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" /> Parsing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3" /> Fill in for me
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-1">Phone Number</label>
               <input
