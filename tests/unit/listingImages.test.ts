@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   parseImagesFromRentcast,
   parseImagesFromCraigslist,
-  parseImagesFromFacebook
+  parseImagesFromFacebook,
+  parseImagesFromRealtor
 } from '@/lib/listingImages'
 
 describe('parseImagesFromRentcast', () => {
@@ -102,5 +103,40 @@ describe('parseImagesFromFacebook', () => {
       moreDetails: { listing_photos: [{ image: {} }, null, { image: { uri: 42 } }] as unknown[] }
     }
     expect(parseImagesFromFacebook(item as Parameters<typeof parseImagesFromFacebook>[0])).toEqual([])
+  })
+})
+
+describe('parseImagesFromRealtor', () => {
+  it('prefers the photo_urls gallery when present (real kawsar/realtor-Search shape, confirmed 2026-07-17)', () => {
+    const item = {
+      primary_photo_url: 'https://ap.rdcpix.com/2347dc3ea468b7a1c4411b035ef576a8l-m1926513261s.jpg',
+      photo_urls: [
+        'https://ap.rdcpix.com/2347dc3ea468b7a1c4411b035ef576a8l-m1926513261s.jpg',
+        'https://ap.rdcpix.com/2347dc3ea468b7a1c4411b035ef576a8l-m2824488148s.jpg'
+      ]
+    }
+    expect(parseImagesFromRealtor(item)).toEqual([
+      'https://ap.rdcpix.com/2347dc3ea468b7a1c4411b035ef576a8l-m1926513261s.jpg',
+      'https://ap.rdcpix.com/2347dc3ea468b7a1c4411b035ef576a8l-m2824488148s.jpg'
+    ])
+  })
+
+  it('falls back to primary_photo_url when photo_urls is absent', () => {
+    const item = { primary_photo_url: 'https://ap.rdcpix.com/primary.jpg' }
+    expect(parseImagesFromRealtor(item)).toEqual(['https://ap.rdcpix.com/primary.jpg'])
+  })
+
+  it('falls back to primary_photo_url when photo_urls is an empty array', () => {
+    const item = { primary_photo_url: 'https://ap.rdcpix.com/primary.jpg', photo_urls: [] }
+    expect(parseImagesFromRealtor(item)).toEqual(['https://ap.rdcpix.com/primary.jpg'])
+  })
+
+  it('returns [] (not a guess) when neither field is present', () => {
+    expect(parseImagesFromRealtor({})).toEqual([])
+  })
+
+  it('filters out non-string entries and de-dupes in the gallery', () => {
+    const item = { photo_urls: ['https://ap.rdcpix.com/a.jpg', null, 42, 'https://ap.rdcpix.com/a.jpg', ''] }
+    expect(parseImagesFromRealtor(item)).toEqual(['https://ap.rdcpix.com/a.jpg'])
   })
 })

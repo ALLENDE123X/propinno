@@ -35,6 +35,23 @@
 //     linking Facebook's own CDN rather than re-hosting images ourselves;
 //     same "link out, don't proxy" approach this codebase already takes for
 //     `url` (the outbound listing link).
+//   - Realtor.com (kawsar/realtor-Search Apify actor): two fields, confirmed
+//     via live test calls against real SF `status=for_rent` results
+//     (2026-07-17) - `photo_urls` is already a flat array of ready-to-use
+//     direct rdcpix.com CDN URL strings (the full gallery, e.g. one live
+//     listing had 49 photos), and `primary_photo_url` is a single cover
+//     photo. Simpler than Facebook's nested gallery shape (no `.image.uri`
+//     unwrapping needed) - closer to Craigslist's flat-array shape. Gallery
+//     preferred when present (same "strict superset" reasoning as Facebook);
+//     primary_photo_url is the fallback for the rare case `photo_urls` is
+//     empty/absent. Unlike the other two Apify sources, this actor's raw
+//     `status=for_rent` results are ~80% incomplete syndicated
+//     "community"-sourced placeholder rows (`source_name` Zillow/Appfolio)
+//     with null price/beds/baths and no usable data at all, confirmed
+//     against a live 20-item sample - realtorPoller.ts filters those out
+//     before this function is ever called (see that file's header comment),
+//     so every item reaching this parser is a genuine listing and its
+//     `photo_count`/photo_urls are real.
 
 // Parameter kept (even though unused today) so the signature matches the
 // other two parsers and stays a real, callable extension point - see the
@@ -66,11 +83,22 @@ export function parseImagesFromFacebook(item: {
   return typeof primary === 'string' && primary.length > 0 ? [primary] : []
 }
 
+export function parseImagesFromRealtor(item: {
+  photo_urls?: unknown
+  primary_photo_url?: unknown
+}): string[] {
+  const gallery = normalizeUrlArray(item.photo_urls)
+  if (gallery.length > 0) return gallery
+
+  const primary = item.primary_photo_url
+  return typeof primary === 'string' && primary.length > 0 ? [primary] : []
+}
+
 /**
  * Filters to non-empty strings and de-dupes while preserving order - shared
- * by the Craigslist and Facebook parsers above. Never throws on malformed
- * input (missing field, wrong type, non-string entries); anything that
- * isn't a usable URL is dropped rather than guessed at.
+ * by the Craigslist, Facebook, and Realtor parsers above. Never throws on
+ * malformed input (missing field, wrong type, non-string entries); anything
+ * that isn't a usable URL is dropped rather than guessed at.
  */
 function normalizeUrlArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
