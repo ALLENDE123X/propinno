@@ -18,6 +18,12 @@ const verifyOtpSchema = z.object({
     priceMax: z.coerce.number().optional(),
     bedsMin: z.coerce.number().optional(),
     bedsMax: z.coerce.number().optional(),
+    // AH-024. Mirrors bedsMin/bedsMax immediately above exactly - see
+    // lib/db/schema.ts's criteria.bathsMin/bathsMax comment for why this is
+    // a plain coerced number (real column, half-baths like 1.5 are valid),
+    // not an integer-constrained schema.
+    bathsMin: z.coerce.number().optional(),
+    bathsMax: z.coerce.number().optional(),
     zips: z.array(z.string()).optional(),
     neighborhoods: z.array(z.string()).optional(),
     // AH-018. See lib/db/schema.ts's criteria.pets/criteria.laundry comment

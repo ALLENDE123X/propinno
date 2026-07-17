@@ -11,6 +11,7 @@ export async function findMatchingUsers(listing: typeof listings.$inferSelect): 
   const address = listing.address || ''
   const price = listing.price ?? null
   const beds = listing.beds ?? null
+  const baths = listing.baths ?? null
   const petsAllowed = listing.petsAllowed ?? null
   const laundryType = listing.laundryType ?? null
 
@@ -26,6 +27,8 @@ export async function findMatchingUsers(listing: typeof listings.$inferSelect): 
       AND (${price}::int IS NULL OR c.price_max IS NULL OR c.price_max >= ${price}::int)
       AND (${beds}::real IS NULL OR c.beds_min IS NULL OR c.beds_min <= ${beds}::real)
       AND (${beds}::real IS NULL OR c.beds_max IS NULL OR c.beds_max >= ${beds}::real)
+      AND (${baths}::real IS NULL OR c.baths_min IS NULL OR c.baths_min <= ${baths}::real)
+      AND (${baths}::real IS NULL OR c.baths_max IS NULL OR c.baths_max >= ${baths}::real)
       AND (
         ${petsAllowed}::text IS NULL OR c.pets IS NULL
         OR ${petsAllowed}::text IN ('cats_and_dogs', 'yes')

@@ -59,6 +59,7 @@ Call the extract_apartment_criteria tool with only the fields the text actually 
 Rules:
 - priceMin/priceMax are monthly rent in US dollars.
 - bedsMin/bedsMax: use 0 for a studio.
+- bathsMin/bathsMax: only set if the user expresses a bathroom-count preference (e.g. "2 bath", "at least 1.5 baths"). Half-baths (e.g. 1.5) are valid and common.
 - neighborhoods must be real San Francisco neighborhoods only (e.g. Mission, Marina, Hayes Valley, SoMa, Nob Hill, Castro, Pacific Heights, Sunset, Richmond, Bernal Heights, Noe Valley, North Beach). Never include neighborhoods from other cities.
 - zips must be 5-digit US zip codes explicitly mentioned in the text.
 - pets: only set if the user asks for pet-friendly housing. Use 'cats_and_dogs' if both or an unspecified pet type is mentioned.
@@ -76,6 +77,8 @@ const EXTRACT_TOOL: Anthropic.Tool = {
       priceMax: { type: 'integer', description: 'Maximum monthly rent in USD, if mentioned.' },
       bedsMin: { type: 'number', description: 'Minimum bedrooms. Use 0 for studio.' },
       bedsMax: { type: 'number', description: 'Maximum bedrooms. Use 0 for studio.' },
+      bathsMin: { type: 'number', description: 'Minimum bathrooms, only if the user expresses a bathroom preference. Half-baths (e.g. 1.5) are valid.' },
+      bathsMax: { type: 'number', description: 'Maximum bathrooms, only if the user expresses a bathroom preference. Half-baths (e.g. 1.5) are valid.' },
       neighborhoods: {
         type: 'array',
         items: { type: 'string' },
@@ -128,6 +131,8 @@ export const parsedCriteriaSchema = z
     priceMax: z.number().int().min(0).max(50000).optional(),
     bedsMin: z.number().min(0).max(10).optional(),
     bedsMax: z.number().min(0).max(10).optional(),
+    bathsMin: z.number().min(0).max(10).optional(),
+    bathsMax: z.number().min(0).max(10).optional(),
     neighborhoods: z.array(z.string().trim().min(1).max(50)).max(10).optional(),
     zips: z.array(z.string().regex(/^\d{5}$/, 'Zip must be 5 digits')).max(10).optional(),
     pets: z.enum(['cats', 'dogs', 'cats_and_dogs']).optional(),
@@ -143,6 +148,10 @@ export const parsedCriteriaSchema = z
   .refine(
     (data) => data.bedsMin === undefined || data.bedsMax === undefined || data.bedsMin <= data.bedsMax,
     { message: 'bedsMin must not exceed bedsMax', path: ['bedsMin'] }
+  )
+  .refine(
+    (data) => data.bathsMin === undefined || data.bathsMax === undefined || data.bathsMin <= data.bathsMax,
+    { message: 'bathsMin must not exceed bathsMax', path: ['bathsMin'] }
   )
 
 export type ParsedCriteria = z.infer<typeof parsedCriteriaSchema>

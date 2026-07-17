@@ -223,11 +223,13 @@ describe('findMatchingUsers - AH-018 pets/laundry filter', () => {
     const values = extractInterpolatedValues(mockExecute.mock.calls[0][0])
     // Order per the query in matchingEngine.ts: listing.id, price (x4 - the
     // min and max checks each interpolate it twice), beds (x4, same
-    // reason), petsAllowed (x3), laundryType (x3), address (x2).
+    // reason), baths (x4, AH-024, same reason - listing default baths=1),
+    // petsAllowed (x3), laundryType (x3), address (x2).
     expect(values).toEqual([
       'listing-1',
       3000, 3000, 3000, 3000,
       2, 2, 2, 2,
+      1, 1, 1, 1,
       'cats_and_dogs', 'cats_and_dogs', 'cats_and_dogs',
       'in_unit', 'in_unit', 'in_unit',
       '123 Main St, San Francisco, CA', '123 Main St, San Francisco, CA'
@@ -241,14 +243,15 @@ describe('findMatchingUsers - AH-018 pets/laundry filter', () => {
     await findMatchingUsers(listing)
 
     const values = extractInterpolatedValues(mockExecute.mock.calls[0][0])
-    // Index 9,10,11 = petsAllowed (x3); 12,13,14 = laundryType (x3) - see
-    // the index layout asserted explicitly in the previous test.
-    expect(values[9]).toBeNull()
-    expect(values[10]).toBeNull()
-    expect(values[11]).toBeNull()
-    expect(values[12]).toBeNull()
+    // Index 13,14,15 = petsAllowed (x3); 16,17,18 = laundryType (x3) - see
+    // the index layout asserted explicitly in the previous test (shifted by
+    // 4 from the AH-024 baths block inserted between beds and pets).
     expect(values[13]).toBeNull()
     expect(values[14]).toBeNull()
+    expect(values[15]).toBeNull()
+    expect(values[16]).toBeNull()
+    expect(values[17]).toBeNull()
+    expect(values[18]).toBeNull()
   })
 
   it('returns rows from db.execute unchanged regardless of pets/laundry values (filtering itself happens in Postgres, not JS)', async () => {
@@ -258,6 +261,93 @@ describe('findMatchingUsers - AH-018 pets/laundry filter', () => {
     const result = await findMatchingUsers(listing)
 
     expect(result).toEqual([{ user_id: 'u1', max_daily_sms: 20 }])
+  })
+})
+
+describe('findMatchingUsers - AH-024 baths filter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function buildListing(overrides: Partial<typeof listings.$inferSelect> = {}): typeof listings.$inferSelect {
+    return {
+      id: 'listing-1',
+      source: 'craigslist',
+      sourceId: 'src-1',
+      address: '123 Main St, San Francisco, CA',
+      lat: 37.77,
+      lng: -122.41,
+      price: 3000,
+      beds: 2,
+      baths: 1.5,
+      sqft: 900,
+      url: null,
+      postedAt: null,
+      firstSeenAt: new Date('2026-07-16T00:00:00Z'),
+      isCanonical: true,
+      canonicalId: null,
+      raw: null,
+      petsAllowed: null,
+      laundryType: null,
+      amenities: null,
+      images: null,
+      ...overrides
+    }
+  }
+
+  function extractInterpolatedValues(sqlObj: unknown): unknown[] {
+    const chunks = (sqlObj as { queryChunks: unknown[] }).queryChunks
+    return chunks.filter((c) => !(c instanceof StringChunk))
+  }
+
+  it('threads listing.baths into the query as bound params, in order, following the same pattern as price/beds', async () => {
+    mockExecute.mockResolvedValueOnce([])
+    const listing = buildListing({ baths: 1.5 })
+
+    await findMatchingUsers(listing)
+
+    const values = extractInterpolatedValues(mockExecute.mock.calls[0][0])
+    // Same position layout as the AH-018 test above: listing.id (1), price
+    // (x4), beds (x4), baths (x4) - indices 9-12.
+    expect(values[9]).toBe(1.5)
+    expect(values[10]).toBe(1.5)
+    expect(values[11]).toBe(1.5)
+    expect(values[12]).toBe(1.5)
+  })
+
+  it('threads null baths through when the listing has no parsed value (null-passthrough, never disqualifies)', async () => {
+    mockExecute.mockResolvedValueOnce([])
+    const listing = buildListing({ baths: null })
+
+    await findMatchingUsers(listing)
+
+    const values = extractInterpolatedValues(mockExecute.mock.calls[0][0])
+    expect(values[9]).toBeNull()
+    expect(values[10]).toBeNull()
+    expect(values[11]).toBeNull()
+    expect(values[12]).toBeNull()
+  })
+
+  it('returns rows from db.execute unchanged regardless of baths value (filtering happens in Postgres, not JS)', async () => {
+    mockExecute.mockResolvedValueOnce([{ user_id: 'u1', max_daily_sms: 20 }])
+    const listing = buildListing({ baths: 2 })
+
+    const result = await findMatchingUsers(listing)
+
+    expect(result).toEqual([{ user_id: 'u1', max_daily_sms: 20 }])
+  })
+
+  it('includes the baths_min/baths_max column references in the generated SQL text', async () => {
+    mockExecute.mockResolvedValueOnce([])
+    await findMatchingUsers(buildListing())
+
+    const sqlObj = mockExecute.mock.calls[0][0] as { queryChunks: unknown[] }
+    const text = sqlObj.queryChunks
+      .filter((c): c is { value: string[] } => c instanceof StringChunk)
+      .map((c) => c.value.join(''))
+      .join('?')
+    expect(text).toContain('c.baths_min')
+    expect(text).toContain('c.baths_max')
   })
 })
 
