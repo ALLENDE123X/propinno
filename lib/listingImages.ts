@@ -35,6 +35,18 @@
 //     linking Facebook's own CDN rather than re-hosting images ourselves;
 //     same "link out, don't proxy" approach this codebase already takes for
 //     `url` (the outbound listing link).
+//   - Apartment List (solidcode/apartmentlist-com-scraper Apify actor, run
+//     with includeDetails:true): two separate photo arrays, confirmed via a
+//     live 2-property SF call (2026-07-17) - the top-level `photos` field is
+//     the property's full community/building gallery (30-40 real photos
+//     observed per property), and each entry in the property's `units[]`
+//     array has its own `photos` field (observed as exactly one real
+//     floorplan/unit photo per unit). apartmentListPoller.ts explodes one
+//     property into one listing per live (priced + available) unit, so the
+//     specific unit's own photo is the most relevant image for that exact
+//     listing and is ordered first; the property's wider gallery is appended
+//     after as supplementary context. Direct, unsigned `cdn.apartmentlist.com`
+//     URLs - no expiry concern like Facebook's signed CDN links.
 
 // Parameter kept (even though unused today) so the signature matches the
 // other two parsers and stays a real, callable extension point - see the
@@ -66,11 +78,21 @@ export function parseImagesFromFacebook(item: {
   return typeof primary === 'string' && primary.length > 0 ? [primary] : []
 }
 
+export function parseImagesFromApartmentList(listing: {
+  unitPhotos?: unknown
+  propertyPhotos?: unknown
+}): string[] {
+  const unitPhotos = normalizeUrlArray(listing.unitPhotos)
+  const propertyPhotos = normalizeUrlArray(listing.propertyPhotos)
+  if (unitPhotos.length === 0) return propertyPhotos
+  return normalizeUrlArray([...unitPhotos, ...propertyPhotos])
+}
+
 /**
  * Filters to non-empty strings and de-dupes while preserving order - shared
- * by the Craigslist and Facebook parsers above. Never throws on malformed
- * input (missing field, wrong type, non-string entries); anything that
- * isn't a usable URL is dropped rather than guessed at.
+ * by the parsers above. Never throws on malformed input (missing field,
+ * wrong type, non-string entries); anything that isn't a usable URL is
+ * dropped rather than guessed at.
  */
 function normalizeUrlArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []

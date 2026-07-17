@@ -3,6 +3,7 @@ import { inngest } from '@/inngest/client'
 import { rentcastPoller } from '@/inngest/functions/rentcastPoller'
 import { craigslistPoller } from '@/inngest/functions/craigslistPoller'
 import { facebookPoller } from '@/inngest/functions/facebookPoller'
+import { apartmentListPoller } from '@/inngest/functions/apartmentListPoller'
 import { matchingEngine } from '@/inngest/functions/matchingEngine'
 import { twilioSender } from '@/inngest/functions/twilioSender'
 import { failureAlert } from '@/inngest/functions/failureAlert'
@@ -20,6 +21,7 @@ export const { GET, POST, PUT } = serve({
     rentcastPoller,
     craigslistPoller,
     facebookPoller,
+    apartmentListPoller,
     matchingEngine,
     twilioSender,
     failureAlert,
