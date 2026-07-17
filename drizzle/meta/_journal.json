@@ -57,6 +57,13 @@
       "when": 1784300523131,
       "tag": "0007_listing-images",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784313021779,
+      "tag": "0008_ah-024-bathrooms-filter",
+      "breakpoints": true
     }
   ]
 }

@@ -95,6 +95,19 @@ export const criteria = pgTable('criteria', {
   priceMax: integer('price_max'),
   bedsMin: real('beds_min'),
   bedsMax: real('beds_max'),
+  // AH-024 bathroom-count preference, mirroring bedsMin/bedsMax immediately
+  // above: same nullability (optional, no preference = no filter) and same
+  // `real` column type rather than `integer` - listings.baths itself is
+  // `real` (half-baths, e.g. 1.5, are common in SF rental listings and are
+  // already populated that way by every poller), so an integer-only criteria
+  // column would be unable to express "at least 1.5 baths" even though the
+  // listing data it's compared against can. The ticket text says "nullable
+  // int" but also says "mirror bedsMin/bedsMax exactly" - those two
+  // instructions conflict since bedsMin/bedsMax are real, not int; real wins
+  // here since it's the only type that can actually range-match every real
+  // baths value in the listings table.
+  bathsMin: real('baths_min'),
+  bathsMax: real('baths_max'),
   zips: text('zips').array(),
   neighborhoods: text('neighborhoods').array(),
   // AH-018 subscriber pet/laundry requirements, optional (null = no
