@@ -44,6 +44,20 @@
 //     codebase's `ListingImage`/`ListingGallery` components size images via
 //     CSS rather than requesting a specific resolution, same as every other
 //     source's images.
+//   - Zumper (benthepythondev/zumper-rental-scraper Apify actor): confirmed
+//     via two live search-mode calls against san-francisco-ca (2026-07-17,
+//     `includePhotos: true`) - the actor only exposes `image_ids` (a flat
+//     array of opaque numeric Zumper internal photo IDs, e.g. `761884337`),
+//     never a resolvable image URL of any kind, in either its default
+//     "search" mode or a follow-up "direct_urls" detail-page call against one
+//     of the same live listing URLs (which returned 0 dataset items,
+//     ruling out the enrichment path too). No public, documented Zumper CDN
+//     URL pattern was found to reconstruct a real URL from just an ID, and
+//     this codebase's convention (see RentCast above) is to never guess at a
+//     URL rather than link something that might not resolve.
+//     parseImagesFromZumper is a real, tested extension point in case a
+//     future actor version/mode adds real photo URLs - not dead code - but
+//     it always returns [] today, same rationale as parseImagesFromRentcast.
 
 // Parameter kept (even though unused today) so the signature matches the
 // other two parsers and stays a real, callable extension point - see the
@@ -55,6 +69,14 @@ export function parseImagesFromRentcast(raw: Record<string, unknown>): string[] 
 
 export function parseImagesFromCraigslist(item: { pics?: unknown }): string[] {
   return normalizeUrlArray(item.pics)
+}
+
+// Parameter kept (even though unused today) so the signature matches the
+// other parsers and stays a real, callable extension point - see the header
+// comment above for why Zumper's actor never has a resolvable image URL.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function parseImagesFromZumper(item: { image_ids?: unknown }): string[] {
+  return []
 }
 
 export function parseImagesFromFacebook(item: {
