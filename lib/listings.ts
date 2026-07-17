@@ -32,7 +32,7 @@ export async function geocode(address: string): Promise<{ lat: number, lng: numb
 
 export async function dedupeAndUpsertListings(
   items: {
-    source: 'rentcast' | 'craigslist' | 'facebook' | 'apartments'
+    source: 'rentcast' | 'craigslist' | 'facebook' | 'apartments' | 'zumper'
     sourceId: string
     address: string
     lat: number | null

@@ -3,7 +3,8 @@ import {
   parseImagesFromRentcast,
   parseImagesFromCraigslist,
   parseImagesFromFacebook,
-  parseImagesFromApartments
+  parseImagesFromApartments,
+  parseImagesFromZumper
 } from '@/lib/listingImages'
 
 describe('parseImagesFromRentcast', () => {
@@ -124,5 +125,16 @@ describe('parseImagesFromApartments', () => {
 
   it('does not crash when image is not a string (malformed real-world payload)', () => {
     expect(parseImagesFromApartments({ image: 42 })).toEqual([])
+  })
+})
+
+describe('parseImagesFromZumper', () => {
+  it('returns [] (not a guess) for a real Zumper shape - confirmed 2026-07-17 against two live benthepythondev/zumper-rental-scraper calls where image_ids are opaque numeric IDs with no resolvable URL anywhere in the actor output', () => {
+    const item = { image_ids: [238066372, 901314944, 895186948] }
+    expect(parseImagesFromZumper(item)).toEqual([])
+  })
+
+  it('returns [] for an empty object', () => {
+    expect(parseImagesFromZumper({})).toEqual([])
   })
 })
