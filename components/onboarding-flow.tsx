@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MapPin, BedDouble, Lock, Loader2, ChevronRight, Zap, Sparkles } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
+import { CriteriaFormFields, type CriteriaFormValues } from "@/components/criteria-form-fields";
 
 // AH-020. Mirrors the validated shape lib/nlpCriteria.ts's parsedCriteriaSchema
 // returns from POST /api/onboarding/parse-criteria - defined locally rather
@@ -116,6 +117,36 @@ export function OnboardingFlow() {
     setPriceMax(pMax);
     setBedsMin(bMin);
     setLocations(locs);
+  };
+
+  // AH-026. Bundles the criteria-field state above into the value-bag shape
+  // components/criteria-form-fields.tsx expects, so this form and
+  // components/search-profile-form.tsx (the post-signup "edit your search
+  // profile" page) can share the same field markup without either owning the
+  // other's state shape.
+  const criteriaFormValues: CriteriaFormValues = {
+    priceMin, priceMax, bedsMin, bedsMax, bathsMin, bathsMax,
+    pets, laundry, commuteAddress, commuteMaxMinutes, commuteMode, locations,
+  };
+  const CRITERIA_FIELD_SETTERS: Record<keyof CriteriaFormValues, (value: string) => void> = {
+    priceMin: setPriceMin,
+    priceMax: setPriceMax,
+    bedsMin: setBedsMin,
+    bedsMax: setBedsMax,
+    bathsMin: setBathsMin,
+    bathsMax: setBathsMax,
+    pets: setPets,
+    laundry: setLaundry,
+    commuteAddress: setCommuteAddress,
+    commuteMaxMinutes: setCommuteMaxMinutes,
+    commuteMode: setCommuteMode,
+    locations: setLocations,
+  };
+  const handleCriteriaFieldChange = (key: keyof CriteriaFormValues, value: string) => {
+    // key is constrained to keyof CriteriaFormValues by CriteriaFormFields'
+    // own onChange prop type, not arbitrary user input.
+    // eslint-disable-next-line security/detect-object-injection
+    CRITERIA_FIELD_SETTERS[key](value);
   };
 
   // AH-020. Populates the structured fields below from a free-text
@@ -464,160 +495,7 @@ export function OnboardingFlow() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Min Price</label>
-                <input
-                  type="number"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
-                  placeholder="$2,000"
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Max Price</label>
-                <input
-                  type="number"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
-                  placeholder="$4,000"
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Min Beds</label>
-                <input
-                  type="number"
-                  value={bedsMin}
-                  onChange={(e) => setBedsMin(e.target.value)}
-                  placeholder="1"
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Max Beds</label>
-                <input
-                  type="number"
-                  value={bedsMax}
-                  onChange={(e) => setBedsMax(e.target.value)}
-                  placeholder="2"
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Min Baths</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={bathsMin}
-                  onChange={(e) => setBathsMin(e.target.value)}
-                  placeholder="1"
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Max Baths</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={bathsMax}
-                  onChange={(e) => setBathsMax(e.target.value)}
-                  placeholder="2"
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Pets (optional)</label>
-                <select
-                  value={pets}
-                  onChange={(e) => setPets(e.target.value)}
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                >
-                  <option value="">No preference</option>
-                  <option value="cats">Cat-friendly</option>
-                  <option value="dogs">Dog-friendly</option>
-                  <option value="cats_and_dogs">Cats &amp; dogs</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Laundry (optional)</label>
-                <select
-                  value={laundry}
-                  onChange={(e) => setLaundry(e.target.value)}
-                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                >
-                  <option value="">No preference</option>
-                  <option value="in_unit">In-unit washer/dryer</option>
-                  <option value="on_site">On-site laundry</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">Where do you work? (optional)</label>
-              <input
-                type="text"
-                value={commuteAddress}
-                onChange={(e) => setCommuteAddress(e.target.value)}
-                placeholder="123 Market St, San Francisco, CA"
-                className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-              />
-            </div>
-
-            {commuteAddress && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Max commute (min)</label>
-                  <input
-                    type="number"
-                    value={commuteMaxMinutes}
-                    onChange={(e) => setCommuteMaxMinutes(e.target.value)}
-                    placeholder="30"
-                    className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Commute mode</label>
-                  <select
-                    value={commuteMode}
-                    onChange={(e) => setCommuteMode(e.target.value)}
-                    className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-zinc-600"
-                  >
-                    <option value="">Select mode</option>
-                    <option value="drive">Driving</option>
-                    <option value="bike">Biking</option>
-                    <option value="transit">Transit (estimated)</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {commuteAddress && commuteMode === "transit" && (
-              <p className="text-xs text-zinc-500 -mt-2">
-                Transit commute times are a rough estimate, not real transit routing — Mapbox (our mapping provider) doesn&apos;t offer public-transit directions, so this is approximated from walking speed. Treat it as a guide, not a guarantee.
-              </p>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">Neighborhoods or Zips (comma separated)</label>
-              <input
-                type="text"
-                value={locations}
-                onChange={(e) => setLocations(e.target.value)}
-                placeholder="Marina, 94123, Mission"
-                className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
-              />
-            </div>
+            <CriteriaFormFields values={criteriaFormValues} onChange={handleCriteriaFieldChange} />
 
             <p className="text-xs text-zinc-500 leading-relaxed pt-2">
               By tapping Start matching, you agree to receive automated SMS from Propinno with matching apartment listings. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe or HELP for help. See our{" "}

@@ -11,7 +11,7 @@ import { useFavourites } from "@/components/use-favourites"
 import { ListingAmenityMap } from "@/components/listing-amenity-map"
 import { ListingGallery } from "@/components/listing-image"
 import { ListingAttributeBadges } from "@/components/listing-attribute-badges"
-import { X, SlidersHorizontal, ExternalLink, Settings, Heart } from "lucide-react"
+import { X, SlidersHorizontal, ExternalLink, Settings, Heart, UserCog } from "lucide-react"
 import { formatPrice, timeAgo } from "@/lib/format"
 
 type Listing = {
@@ -266,6 +266,15 @@ export function DashboardMap() {
           >
             <SlidersHorizontal className="w-4 h-4 mr-2" /> Filters
           </Button>
+          <Link href="/dashboard/profile">
+            <Button
+              size="sm"
+              className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
+              aria-label="Search profile"
+            >
+              <UserCog className="w-4 h-4 mr-2" /> Search Profile
+            </Button>
+          </Link>
           <Link href="/dashboard/settings">
             <Button
               size="sm"
