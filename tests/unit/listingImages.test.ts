@@ -4,6 +4,7 @@ import {
   parseImagesFromCraigslist,
   parseImagesFromFacebook,
   parseImagesFromRealtor,
+  parseImagesFromApartmentList,
   parseImagesFromZumper
 } from '@/lib/listingImages'
 
@@ -139,6 +140,53 @@ describe('parseImagesFromRealtor', () => {
   it('filters out non-string entries and de-dupes in the gallery', () => {
     const item = { photo_urls: ['https://ap.rdcpix.com/a.jpg', null, 42, 'https://ap.rdcpix.com/a.jpg', ''] }
     expect(parseImagesFromRealtor(item)).toEqual(['https://ap.rdcpix.com/a.jpg'])
+  })
+})
+
+describe('parseImagesFromApartmentList', () => {
+  it('orders the specific unit photo first, followed by the property gallery (real Apify shape, confirmed 2026-07-17)', () => {
+    const listing = {
+      unitPhotos: ['https://cdn.apartmentlist.com/image/upload/unit-1.jpg'],
+      propertyPhotos: [
+        'https://cdn.apartmentlist.com/image/upload/gallery-1.jpg',
+        'https://cdn.apartmentlist.com/image/upload/gallery-2.jpg'
+      ]
+    }
+    expect(parseImagesFromApartmentList(listing)).toEqual([
+      'https://cdn.apartmentlist.com/image/upload/unit-1.jpg',
+      'https://cdn.apartmentlist.com/image/upload/gallery-1.jpg',
+      'https://cdn.apartmentlist.com/image/upload/gallery-2.jpg'
+    ])
+  })
+
+  it('falls back to the property gallery when the unit has no photo of its own', () => {
+    const listing = {
+      unitPhotos: undefined,
+      propertyPhotos: ['https://cdn.apartmentlist.com/image/upload/gallery-1.jpg']
+    }
+    expect(parseImagesFromApartmentList(listing)).toEqual([
+      'https://cdn.apartmentlist.com/image/upload/gallery-1.jpg'
+    ])
+  })
+
+  it('de-dupes when the unit photo also appears in the property gallery', () => {
+    const listing = {
+      unitPhotos: ['https://cdn.apartmentlist.com/image/upload/shared.jpg'],
+      propertyPhotos: ['https://cdn.apartmentlist.com/image/upload/shared.jpg']
+    }
+    expect(parseImagesFromApartmentList(listing)).toEqual([
+      'https://cdn.apartmentlist.com/image/upload/shared.jpg'
+    ])
+  })
+
+  it('returns [] (not a guess) when neither field is present', () => {
+    expect(parseImagesFromApartmentList({})).toEqual([])
+  })
+
+  it('does not crash when photo fields are malformed', () => {
+    expect(
+      parseImagesFromApartmentList({ unitPhotos: 'not-an-array', propertyPhotos: null })
+    ).toEqual([])
   })
 })
 
