@@ -199,7 +199,7 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 
 **Inngest** must be connected to the Vercel deployment for cron jobs to fire. Check at app.inngest.com.
 
-**Twilio A2P 10DLC** — Brand registered, campaign NOT YET submitted (step 3 incomplete). Until the campaign is approved and the number is linked, US carrier delivery is blocked. Test SMS to your own number works regardless.
+**Twilio A2P 10DLC** — Campaign `CMbd88fe6faade4e8e04ab159e85081043` status **Verified** (confirmed live in Twilio console 2026-07-17), Sole Proprietor use case, connected brand `BNd9973f46ff7585031bf66e477ac090f6`. Real US carrier SMS delivery is NOT blocked. Current throughput cap under the Sole Proprietor package is ~3,000 segments/day — fine at current scale, but would need an upgrade to the Standard package (requires more business verification) if subscriber volume grows enough to approach that ceiling.
 
 ---
 
