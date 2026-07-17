@@ -35,6 +35,21 @@
 //     linking Facebook's own CDN rather than re-hosting images ourselves;
 //     same "link out, don't proxy" approach this codebase already takes for
 //     `url` (the outbound listing link).
+//   - Apartments.com (epctex/apartments-scraper-api Apify actor): confirmed
+//     via a live 5-item actor call against "San Francisco, CA" (2026-07-17).
+//     apartmentsPoller.ts flattens each scraped *property* (an apartment
+//     community with many floor plans) into one listing row per currently
+//     available *unit* (`property.rentals[]` - see that poller's header
+//     comment for why), and each unit sub-object carries its own `image`
+//     field: a single real floor-plan photo URL (images1.apartments.com
+//     CDN). This is the free default shape - a fuller interior/exterior
+//     gallery exists behind the actor's paid `includeVisuals` option, not
+//     enabled here (not needed for a real photo per unit, and keeps cost
+//     down - see apartmentsPoller.ts's cost-math comment). `image` is
+//     present on most but not all rentals within a live property response
+//     (confirmed live - several units on one real "100 Van Ness" test
+//     result had no `image` field at all), so this always degrades to `[]`
+//     rather than guessing.
 
 // Parameter kept (even though unused today) so the signature matches the
 // other two parsers and stays a real, callable extension point - see the
@@ -66,11 +81,16 @@ export function parseImagesFromFacebook(item: {
   return typeof primary === 'string' && primary.length > 0 ? [primary] : []
 }
 
+export function parseImagesFromApartments(rental: { image?: unknown }): string[] {
+  return normalizeUrlArray([rental.image])
+}
+
 /**
  * Filters to non-empty strings and de-dupes while preserving order - shared
- * by the Craigslist and Facebook parsers above. Never throws on malformed
- * input (missing field, wrong type, non-string entries); anything that
- * isn't a usable URL is dropped rather than guessed at.
+ * by the Craigslist, Facebook, and Apartments.com parsers above. Never
+ * throws on malformed input (missing field, wrong type, non-string
+ * entries); anything that isn't a usable URL is dropped rather than
+ * guessed at.
  */
 function normalizeUrlArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
