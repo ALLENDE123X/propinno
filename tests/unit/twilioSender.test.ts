@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { twilioSender, getTwilioClient } from '@/inngest/functions/twilioSender'
+import { twilioSender, getTwilioClient, buildListingSmsBody } from '@/inngest/functions/twilioSender'
 import * as Sentry from '@sentry/nextjs'
 import { logger } from '@/lib/logger'
 import { sent } from '@/lib/db/schema'
@@ -110,6 +110,32 @@ describe('Twilio Sender Engine', () => {
     vi.useRealTimers()
   })
 
+  it('AH-028: threads listing baths/pets/laundry through into the actual Twilio call body', async () => {
+    mockSentFindFirst.mockResolvedValueOnce(null)
+    mockUserFindFirst.mockResolvedValueOnce(ACTIVE_USER)
+    mockListingFindFirst.mockResolvedValueOnce({
+      ...LISTING,
+      baths: 1.5,
+      petsAllowed: 'cats_and_dogs',
+      laundryType: 'in_unit',
+    })
+
+    const mockStep = makeMockStep()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-16T20:00:00Z'))
+
+    const result = await twilioSender['fn']({ event: { data: { userId: 'u1', listingId: 'l1' } }, step: mockStep })
+
+    expect(result).toEqual({ sent: true })
+    expect(mockTwilioCreate).toHaveBeenCalledWith({
+      body: '123 Fake St · $2500 · 1 bd\n1.5 ba · Cats+dogs OK · in-unit laundry\nhttp://example.com',
+      from: '+1234567890',
+      to: '+1987654321'
+    })
+
+    vi.useRealTimers()
+  })
+
   it('skips immediately without sleeping if notifications are paused', async () => {
     mockSentFindFirst.mockResolvedValueOnce(null)
     mockUserFindFirst.mockResolvedValueOnce({ ...ACTIVE_USER, notificationsPaused: true })
@@ -183,5 +209,68 @@ describe('Twilio Sender Engine', () => {
 describe('getTwilioClient', () => {
   it('returns a client with a messages.create method', () => {
     expect(typeof getTwilioClient().messages.create).toBe('function')
+  })
+})
+
+// AH-028: baths/pets/laundry summary line. Tested as a pure function
+// directly (no DB/Twilio mocking needed) covering every present/absent
+// combination the ticket asked for, plus the null-passthrough convention
+// (omit rather than show "unknown") this codebase uses everywhere else for
+// these same fields (matchingEngine.ts's pets/laundry filters, AH-018).
+describe('buildListingSmsBody', () => {
+  const BASE = {
+    address: '123 Fake St',
+    price: 2500,
+    beds: 1,
+    baths: null,
+    petsAllowed: null,
+    laundryType: null,
+    url: 'http://example.com',
+  }
+
+  it('omits the details line entirely when baths/pets/laundry are all absent', () => {
+    expect(buildListingSmsBody(BASE)).toBe('123 Fake St · $2500 · 1 bd\nhttp://example.com')
+  })
+
+  it('adds a details line with just baths when only baths is present', () => {
+    expect(buildListingSmsBody({ ...BASE, baths: 1.5 })).toBe(
+      '123 Fake St · $2500 · 1 bd\n1.5 ba\nhttp://example.com'
+    )
+  })
+
+  it('adds a details line with just a pets summary when only pets is present', () => {
+    expect(buildListingSmsBody({ ...BASE, petsAllowed: 'cats_and_dogs' })).toBe(
+      '123 Fake St · $2500 · 1 bd\nCats+dogs OK\nhttp://example.com'
+    )
+  })
+
+  it('adds a details line with just a laundry summary when only laundry is present', () => {
+    expect(buildListingSmsBody({ ...BASE, laundryType: 'in_unit' })).toBe(
+      '123 Fake St · $2500 · 1 bd\nin-unit laundry\nhttp://example.com'
+    )
+  })
+
+  it('combines baths + pets + laundry into a single compact line when all are present', () => {
+    expect(
+      buildListingSmsBody({ ...BASE, baths: 2, petsAllowed: 'dogs', laundryType: 'on_site' })
+    ).toBe('123 Fake St · $2500 · 1 bd\n2 ba · Dogs OK · on-site laundry\nhttp://example.com')
+  })
+
+  it('renders a genuine 0 baths (falsy but real) rather than treating it as absent', () => {
+    expect(buildListingSmsBody({ ...BASE, baths: 0 })).toBe(
+      '123 Fake St · $2500 · 1 bd\n0 ba\nhttp://example.com'
+    )
+  })
+
+  it('renders "No pets" when the listing explicitly has no pets allowed (a real value, not null)', () => {
+    expect(buildListingSmsBody({ ...BASE, petsAllowed: 'no' })).toBe(
+      '123 Fake St · $2500 · 1 bd\nNo pets\nhttp://example.com'
+    )
+  })
+
+  it('renders laundry hookups distinctly from in-unit/on-site laundry', () => {
+    expect(buildListingSmsBody({ ...BASE, laundryType: 'hookups' })).toBe(
+      '123 Fake St · $2500 · 1 bd\nlaundry hookups\nhttp://example.com'
+    )
   })
 })
