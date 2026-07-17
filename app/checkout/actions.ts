@@ -45,6 +45,7 @@ export async function getUserStatus() {
     
     return user || null
   } catch (err) {
+    logger.error({ err }, 'getUserStatus failed')
     Sentry.captureException(err, { extra: { action: 'getUserStatus' } })
     return null
   }
@@ -63,6 +64,7 @@ export async function markFoundPlace() {
     logger.info({ userId: validId, action: 'found_place_marked_done' })
     return { success: true }
   } catch (err) {
+    logger.error({ err }, 'markFoundPlace failed')
     Sentry.captureException(err, { extra: { action: 'markFoundPlace' } })
     throw new Error("Failed to update status. Please try again later.")
   }
@@ -98,6 +100,7 @@ export async function createCheckoutSession(plan: 'pass_30' | 'pass_90') {
     
     return { url: session.url }
   } catch (err) {
+    logger.error({ err, plan }, 'createCheckoutSession failed')
     Sentry.captureException(err, { extra: { action: 'createCheckoutSession', plan } })
     throw new Error("Failed to start checkout process. Please check your internet connection or try again.")
   }
