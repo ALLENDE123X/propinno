@@ -115,3 +115,17 @@ export const sent = pgTable('sent', {
 }, (table) => [
   unique('sent_user_id_listing_id_unique').on(table.userId, table.listingId)
 ])
+
+// AH-022 saved/bookmarked listings, deliberately the same shape/conventions
+// as `sent` above: userId + listingId (both FK ON DELETE CASCADE) + a single
+// event-marker timestamp, unique(userId, listingId) so re-saving an
+// already-saved listing is idempotent at the DB level (callers use
+// onConflictDoNothing() on insert, same pattern twilioSender.ts already uses
+// for `sent`) rather than needing a SELECT-then-INSERT race-prone check.
+export const favourites = pgTable('favourites', {
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  listingId: uuid('listing_id').notNull().references(() => listings.id, { onDelete: 'cascade' }),
+  savedAt: timestamp('saved_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  unique('favourites_user_id_listing_id_unique').on(table.userId, table.listingId)
+])

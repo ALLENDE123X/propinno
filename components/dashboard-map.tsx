@@ -6,7 +6,9 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { Button } from "@/components/ui/button"
 import { InboxNavLink } from "@/components/inbox-nav-link"
-import { X, SlidersHorizontal, ExternalLink, Settings } from "lucide-react"
+import { FavouriteButton } from "@/components/favourite-button"
+import { useFavourites } from "@/components/use-favourites"
+import { X, SlidersHorizontal, ExternalLink, Settings, Heart } from "lucide-react"
 import { formatPrice, timeAgo } from "@/lib/format"
 
 type Listing = {
@@ -61,6 +63,9 @@ export function DashboardMap() {
   const [now, setNow] = useState(() => Date.now())
   const [commute, setCommute] = useState<CommuteOverlay | null>(null)
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  // AH-022 heart/save state, shared with components/inbox-list.tsx via the
+  // same hook so both surfaces' toggle logic stays in sync.
+  const { isSaved, isPending, toggleFavourite } = useFavourites()
 
   // Fetch inline (rather than via a useCallback'd helper) and set state only
   // inside the .then()/.catch()/.finally() callbacks: React's hooks lint
@@ -240,6 +245,14 @@ export function DashboardMap() {
         </div>
         <div className="pointer-events-auto flex items-center gap-2">
           <InboxNavLink />
+          <Link href="/dashboard/favourites">
+            <Button
+              size="sm"
+              className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
+            >
+              <Heart className="w-4 h-4 mr-2" /> Favourites
+            </Button>
+          </Link>
           <Button
             size="sm"
             className="bg-zinc-900/90 border border-zinc-800 text-white hover:bg-zinc-800"
@@ -300,7 +313,14 @@ export function DashboardMap() {
         <div className="absolute bottom-0 md:bottom-6 left-0 md:left-6 w-full md:w-96 bg-zinc-900 border-t md:border border-zinc-800 md:rounded-xl p-5 text-white z-10">
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-semibold text-lg">{formatPrice(selected.price)}/mo</h3>
-            <button onClick={() => setSelected(null)}><X className="w-4 h-4" /></button>
+            <div className="flex items-center gap-1">
+              <FavouriteButton
+                saved={isSaved(selected.id)}
+                pending={isPending(selected.id)}
+                onToggle={() => toggleFavourite(selected.id)}
+              />
+              <button onClick={() => setSelected(null)}><X className="w-4 h-4" /></button>
+            </div>
           </div>
           <p className="text-zinc-400 text-sm mb-3">{selected.address}</p>
           <div className="flex gap-4 text-sm text-zinc-300 mb-4">
