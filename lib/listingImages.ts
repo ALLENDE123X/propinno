@@ -44,6 +44,33 @@
 //     codebase's `ListingImage`/`ListingGallery` components size images via
 //     CSS rather than requesting a specific resolution, same as every other
 //     source's images.
+//   - Apartments.com (epctex/apartments-scraper-api Apify actor): confirmed
+//     via a live 5-item actor call against "San Francisco, CA" (2026-07-17).
+//     apartmentsPoller.ts flattens each scraped *property* (an apartment
+//     community with many floor plans) into one listing row per currently
+//     available *unit* (`property.rentals[]` - see that poller's header
+//     comment for why), and each unit sub-object carries its own `image`
+//     field: a single real floor-plan photo URL (images1.apartments.com
+//     CDN). This is the free default shape - a fuller interior/exterior
+//     gallery exists behind the actor's paid `includeVisuals` option, not
+//     enabled here (not needed for a real photo per unit, and keeps cost
+//     down - see apartmentsPoller.ts's cost-math comment). `image` is
+//     present on most but not all rentals within a live property response
+//     (confirmed live - several units on one real "100 Van Ness" test
+//     result had no `image` field at all), so this always degrades to `[]`
+//     rather than guessing.
+//   - Apartment List (solidcode/apartmentlist-com-scraper Apify actor, run
+//     with includeDetails:true): two separate photo arrays, confirmed via a
+//     live 2-property SF call (2026-07-17) - the top-level `photos` field is
+//     the property's full community/building gallery (30-40 real photos
+//     observed per property), and each entry in the property's `units[]`
+//     array has its own `photos` field (observed as exactly one real
+//     floorplan/unit photo per unit). apartmentListPoller.ts explodes one
+//     property into one listing per live (priced + available) unit, so the
+//     specific unit's own photo is the most relevant image for that exact
+//     listing and is ordered first; the property's wider gallery is appended
+//     after as supplementary context. Direct, unsigned `cdn.apartmentlist.com`
+//     URLs - no expiry concern like Facebook's signed CDN links.
 //   - Zumper (benthepythondev/zumper-rental-scraper Apify actor): confirmed
 //     via two live search-mode calls against san-francisco-ca (2026-07-17,
 //     `includePhotos: true`) - the actor only exposes `image_ids` (a flat
@@ -107,11 +134,26 @@ export function parseImagesFromSpareRoom(item: {
   )
 }
 
+export function parseImagesFromApartments(rental: { image?: unknown }): string[] {
+  return normalizeUrlArray([rental.image])
+}
+
+export function parseImagesFromApartmentList(listing: {
+  unitPhotos?: unknown
+  propertyPhotos?: unknown
+}): string[] {
+  const unitPhotos = normalizeUrlArray(listing.unitPhotos)
+  const propertyPhotos = normalizeUrlArray(listing.propertyPhotos)
+  if (unitPhotos.length === 0) return propertyPhotos
+  return normalizeUrlArray([...unitPhotos, ...propertyPhotos])
+}
+
 /**
  * Filters to non-empty strings and de-dupes while preserving order - shared
- * by the Craigslist, Facebook, and SpareRoom parsers above. Never throws on
- * malformed input (missing field, wrong type, non-string entries); anything
- * that isn't a usable URL is dropped rather than guessed at.
+ * by the Craigslist, Facebook, SpareRoom, Apartments.com, and Apartment List
+ * parsers above. Never throws on malformed input (missing field, wrong type,
+ * non-string entries); anything that isn't a usable URL is dropped rather
+ * than guessed at.
  */
 function normalizeUrlArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
