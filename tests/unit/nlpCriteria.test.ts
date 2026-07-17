@@ -36,6 +36,8 @@ describe('parsedCriteriaSchema', () => {
       priceMax: 4500,
       bedsMin: 1,
       bedsMax: 2,
+      bathsMin: 1,
+      bathsMax: 2,
       neighborhoods: ['Mission', 'Hayes Valley'],
       zips: ['94110'],
       pets: 'dogs',
@@ -74,6 +76,22 @@ describe('parsedCriteriaSchema', () => {
 
   it('accepts studio as bedsMin/bedsMax of 0', () => {
     expect(parsedCriteriaSchema.safeParse({ bedsMin: 0, bedsMax: 0 }).success).toBe(true)
+  })
+
+  it('accepts a half-bath value for bathsMin/bathsMax', () => {
+    expect(parsedCriteriaSchema.safeParse({ bathsMin: 1.5, bathsMax: 2.5 }).success).toBe(true)
+  })
+
+  it('rejects an unreasonable baths count', () => {
+    expect(parsedCriteriaSchema.safeParse({ bathsMax: 50 }).success).toBe(false)
+  })
+
+  it('rejects a negative baths count', () => {
+    expect(parsedCriteriaSchema.safeParse({ bathsMin: -1 }).success).toBe(false)
+  })
+
+  it('rejects bathsMin greater than bathsMax', () => {
+    expect(parsedCriteriaSchema.safeParse({ bathsMin: 3, bathsMax: 1 }).success).toBe(false)
   })
 
   it('rejects a pets value outside the DB value domain', () => {
@@ -154,6 +172,49 @@ describe('parseCriteriaFromText', () => {
     const callArgs = mockCreate.mock.calls[0][0]
     expect(callArgs.tool_choice).toEqual({ type: 'tool', name: 'extract_apartment_criteria' })
     expect(callArgs.model).toBe('claude-opus-4-8')
+  })
+
+  it('parses a bathroom preference (AH-024), including a half-bath value, alongside beds/price', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    mockCreate.mockResolvedValueOnce(
+      toolUseResponse({
+        priceMax: 5000,
+        bedsMin: 2,
+        bathsMin: 1.5,
+        bathsMax: 2,
+        neighborhoods: [],
+        zips: [],
+      })
+    )
+
+    const result = await parseCriteriaFromText('2BR with at least 1.5 baths under $5000')
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.bathsMin).toBe(1.5)
+      expect(result.data.bathsMax).toBe(2)
+    }
+
+    // extract_apartment_criteria's input_schema exposes bathsMin/bathsMax
+    // for consistency with beds/price, per AH-024's scope.
+    const callArgs = mockCreate.mock.calls[0][0]
+    const tool = callArgs.tools[0]
+    expect(tool.input_schema.properties).toHaveProperty('bathsMin')
+    expect(tool.input_schema.properties).toHaveProperty('bathsMax')
+  })
+
+  it('does not set a baths preference when the text has no bathroom signal', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    mockCreate.mockResolvedValueOnce(
+      toolUseResponse({ priceMax: 3000, neighborhoods: [], zips: [] })
+    )
+
+    const result = await parseCriteriaFromText('under $3000')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.bathsMin).toBeUndefined()
+      expect(result.data.bathsMax).toBeUndefined()
+    }
   })
 
   it('treats null/empty-string fields from the model as absent rather than failing validation', async () => {

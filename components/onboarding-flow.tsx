@@ -16,6 +16,8 @@ type ParsedCriteriaResponse = {
   priceMax?: number;
   bedsMin?: number;
   bedsMax?: number;
+  bathsMin?: number;
+  bathsMax?: number;
   neighborhoods?: string[];
   zips?: string[];
   pets?: string;
@@ -87,6 +89,8 @@ export function OnboardingFlow() {
   const [priceMax, setPriceMax] = useState("");
   const [bedsMin, setBedsMin] = useState("");
   const [bedsMax, setBedsMax] = useState("");
+  const [bathsMin, setBathsMin] = useState("");
+  const [bathsMax, setBathsMax] = useState("");
   const [pets, setPets] = useState("");
   const [laundry, setLaundry] = useState("");
   const [commuteAddress, setCommuteAddress] = useState("");
@@ -147,6 +151,8 @@ export function OnboardingFlow() {
       if (c.priceMax !== undefined) setPriceMax(String(c.priceMax));
       if (c.bedsMin !== undefined) setBedsMin(String(c.bedsMin));
       if (c.bedsMax !== undefined) setBedsMax(String(c.bedsMax));
+      if (c.bathsMin !== undefined) setBathsMin(String(c.bathsMin));
+      if (c.bathsMax !== undefined) setBathsMax(String(c.bathsMax));
       if (c.pets) setPets(c.pets);
       if (c.laundry) setLaundry(c.laundry);
       if (c.commuteAddress) setCommuteAddress(c.commuteAddress);
@@ -165,6 +171,8 @@ export function OnboardingFlow() {
         c.priceMax !== undefined ||
         c.bedsMin !== undefined ||
         c.bedsMax !== undefined ||
+        c.bathsMin !== undefined ||
+        c.bathsMax !== undefined ||
         Boolean(c.pets) ||
         Boolean(c.laundry) ||
         Boolean(c.commuteAddress) ||
@@ -254,6 +262,8 @@ export function OnboardingFlow() {
         priceMax: priceMax ? Number(priceMax) : undefined,
         bedsMin: bedsMin ? Number(bedsMin) : undefined,
         bedsMax: bedsMax ? Number(bedsMax) : undefined,
+        bathsMin: bathsMin ? Number(bathsMin) : undefined,
+        bathsMax: bathsMax ? Number(bathsMax) : undefined,
         zips: zips.length > 0 ? zips : undefined,
         neighborhoods: neighborhoods.length > 0 ? neighborhoods : undefined,
         pets: pets || undefined,
@@ -494,6 +504,31 @@ export function OnboardingFlow() {
                   type="number"
                   value={bedsMax}
                   onChange={(e) => setBedsMax(e.target.value)}
+                  placeholder="2"
+                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-1">Min Baths</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={bathsMin}
+                  onChange={(e) => setBathsMin(e.target.value)}
+                  placeholder="1"
+                  className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-1">Max Baths</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={bathsMax}
+                  onChange={(e) => setBathsMax(e.target.value)}
                   placeholder="2"
                   className="w-full bg-black border border-zinc-700 rounded-md px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600"
                 />
