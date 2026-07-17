@@ -9,6 +9,62 @@ import { isWithinQuietHours, nextQuietHoursEnd } from '@/lib/quietHours'
 
 export const getTwilioClient = () => createTwilioClient()
 
+// AH-028: short human labels for the enum values `lib/db/schema.ts` documents
+// on `listings.petsAllowed`/`listings.laundryType` (see that file's header
+// comment for the full domain). Deliberately terse - this is going into a
+// single extra SMS line alongside baths, not a UI card (that's AH-027,
+// unstarted as of this ticket, and free to use fuller wording of its own).
+const PETS_SMS_LABELS: Record<string, string> = {
+  cats: 'Cats OK',
+  dogs: 'Dogs OK',
+  cats_and_dogs: 'Cats+dogs OK',
+  yes: 'Pets OK',
+  no: 'No pets',
+}
+
+const LAUNDRY_SMS_LABELS: Record<string, string> = {
+  in_unit: 'in-unit laundry',
+  hookups: 'laundry hookups',
+  on_site: 'on-site laundry',
+}
+
+export type SmsListingFields = {
+  address: string | null
+  price: number | null
+  beds: number | null
+  baths: number | null
+  petsAllowed: string | null
+  laundryType: string | null
+  url: string | null
+}
+
+// Pure and exported so tests/unit/twilioSender.test.ts can assert on every
+// present/absent-field combination directly, without mocking Twilio/DB for
+// each case. Null-passthrough throughout, same convention as
+// matchingEngine.ts's pets/laundry filters and lib/format.ts's formatters:
+// a field the pollers couldn't parse is omitted from the message entirely,
+// never rendered as "unknown"/"N/A". Baths uses `!= null` (not truthiness)
+// so a genuine `0` wouldn't be swallowed, matching components/onboarding-flow.tsx's
+// existing `listing.baths !== null` convention rather than components that
+// use `??`.
+export function buildListingSmsBody(listing: SmsListingFields): string {
+  const priceText = listing.price ? `$${listing.price}` : 'Price unlisted'
+  const bedsText = listing.beds ? `${listing.beds} bd` : 'Studio/Unlisted'
+  const addressText = listing.address || 'Address unlisted'
+  const link = listing.url || ''
+
+  const bathsText = listing.baths != null ? `${listing.baths} ba` : null
+  const petsText = listing.petsAllowed ? PETS_SMS_LABELS[listing.petsAllowed] ?? null : null
+  const laundryText = listing.laundryType ? LAUNDRY_SMS_LABELS[listing.laundryType] ?? null : null
+
+  // Single compact extra line - per the ticket, this should stay a
+  // scannable SMS, not grow into one line per field.
+  const detailParts = [bathsText, petsText, laundryText].filter((p): p is string => Boolean(p))
+  const detailLine = detailParts.length > 0 ? `\n${detailParts.join(' · ')}` : ''
+
+  return `${addressText} · ${priceText} · ${bedsText}${detailLine}\n${link}`
+}
+
 export const twilioSender = inngest.createFunction(
   { id: 'twilio-sender', triggers: [{ event: 'app/notification.send' }] },
   async ({ event, step }) => {
@@ -83,12 +139,15 @@ export const twilioSender = inngest.createFunction(
 
       // Step 4: Send SMS
       await step.run('send-sms', async () => {
-        const priceText = data.listing?.price ? `$${data.listing.price}` : 'Price unlisted'
-        const bedsText = data.listing?.beds ? `${data.listing.beds} bd` : 'Studio/Unlisted'
-        const addressText = data.listing?.address || 'Address unlisted'
-        const link = data.listing?.url || ''
-        
-        const body = `${addressText} · ${priceText} · ${bedsText}\n${link}`
+        const body = buildListingSmsBody({
+          address: data.listing?.address ?? null,
+          price: data.listing?.price ?? null,
+          beds: data.listing?.beds ?? null,
+          baths: data.listing?.baths ?? null,
+          petsAllowed: data.listing?.petsAllowed ?? null,
+          laundryType: data.listing?.laundryType ?? null,
+          url: data.listing?.url ?? null,
+        })
 
         const client = getTwilioClient()
         await client.messages.create({
