@@ -3,6 +3,7 @@ import {
   parseImagesFromRentcast,
   parseImagesFromCraigslist,
   parseImagesFromFacebook,
+  parseImagesFromApartments,
   parseImagesFromApartmentList,
   parseImagesFromZumper
 } from '@/lib/listingImages'
@@ -104,6 +105,27 @@ describe('parseImagesFromFacebook', () => {
       moreDetails: { listing_photos: [{ image: {} }, null, { image: { uri: 42 } }] as unknown[] }
     }
     expect(parseImagesFromFacebook(item as Parameters<typeof parseImagesFromFacebook>[0])).toEqual([])
+  })
+})
+
+describe('parseImagesFromApartments', () => {
+  it('returns the per-unit floor-plan photo as a single-element array (real Apify shape, confirmed 2026-07-17)', () => {
+    const rental = { image: 'https://images1.apartments.com/i2/V-VbAsRDOYIofVoqaxWdzmPNpOpV6DxcHBRYZMO3aqk/105/image.jpg' }
+    expect(parseImagesFromApartments(rental)).toEqual([
+      'https://images1.apartments.com/i2/V-VbAsRDOYIofVoqaxWdzmPNpOpV6DxcHBRYZMO3aqk/105/image.jpg'
+    ])
+  })
+
+  it('returns [] (not a guess) when image is absent - confirmed real on some live units', () => {
+    expect(parseImagesFromApartments({})).toEqual([])
+  })
+
+  it('returns [] when image is null', () => {
+    expect(parseImagesFromApartments({ image: null })).toEqual([])
+  })
+
+  it('does not crash when image is not a string (malformed real-world payload)', () => {
+    expect(parseImagesFromApartments({ image: 42 })).toEqual([])
   })
 })
 
