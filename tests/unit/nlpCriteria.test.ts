@@ -6,10 +6,11 @@ const mockCreate = vi.fn()
 
 // Mirrors tests/unit/twilioSender.test.ts's pattern for mocking a
 // class-based SDK client: the module's default export is a constructor;
-// `new Anthropic(...)` must return an object exposing `.messages.create`.
-vi.mock('@anthropic-ai/sdk', () => ({
-  default: class MockAnthropic {
-    messages = { create: mockCreate }
+// `new OpenAI(...)` must return an object exposing
+// `.chat.completions.create`.
+vi.mock('openai', () => ({
+  default: class MockOpenAI {
+    chat = { completions: { create: mockCreate } }
   },
 }))
 
@@ -19,13 +20,25 @@ vi.mock('@/lib/logger', () => ({
 }))
 
 // Imported after the mocks above so the module under test picks up the
-// mocked @anthropic-ai/sdk constructor.
+// mocked openai constructor.
 import { parseCriteriaFromText, parsedCriteriaSchema } from '@/lib/nlpCriteria'
 
-function toolUseResponse(input: Record<string, unknown>) {
+function toolCallResponse(input: Record<string, unknown>) {
   return {
-    stop_reason: 'tool_use',
-    content: [{ type: 'tool_use', id: 'toolu_1', name: 'extract_apartment_criteria', input }],
+    choices: [
+      {
+        finish_reason: 'tool_calls',
+        message: {
+          tool_calls: [
+            {
+              id: 'call_1',
+              type: 'function',
+              function: { name: 'extract_apartment_criteria', arguments: JSON.stringify(input) },
+            },
+          ],
+        },
+      },
+    ],
   }
 }
 
@@ -122,15 +135,15 @@ describe('parsedCriteriaSchema', () => {
 })
 
 describe('parseCriteriaFromText', () => {
-  const ORIGINAL_ENV = process.env.ANTHROPIC_API_KEY
+  const ORIGINAL_ENV = process.env.OPENAI_API_KEY
 
   beforeEach(() => {
     vi.clearAllMocks()
-    process.env.ANTHROPIC_API_KEY = ORIGINAL_ENV
+    process.env.OPENAI_API_KEY = ORIGINAL_ENV
   })
 
-  it('fails gracefully with reason "not_configured" when ANTHROPIC_API_KEY is unset', async () => {
-    delete process.env.ANTHROPIC_API_KEY
+  it('fails gracefully with reason "not_configured" when OPENAI_API_KEY is unset', async () => {
+    delete process.env.OPENAI_API_KEY
     const result = await parseCriteriaFromText('2BR under $4000 in the Mission')
 
     expect(result.success).toBe(false)
@@ -142,9 +155,9 @@ describe('parseCriteriaFromText', () => {
   })
 
   it('parses a realistic description into validated criteria', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.OPENAI_API_KEY = 'test-key'
     mockCreate.mockResolvedValueOnce(
-      toolUseResponse({
+      toolCallResponse({
         priceMax: 4500,
         bedsMin: 2,
         bedsMax: 2,
@@ -170,14 +183,14 @@ describe('parseCriteriaFromText', () => {
 
     // Forced tool-use, not free-text parsing.
     const callArgs = mockCreate.mock.calls[0][0]
-    expect(callArgs.tool_choice).toEqual({ type: 'tool', name: 'extract_apartment_criteria' })
-    expect(callArgs.model).toBe('claude-opus-4-8')
+    expect(callArgs.tool_choice).toEqual({ type: 'function', function: { name: 'extract_apartment_criteria' } })
+    expect(callArgs.model).toBe('gpt-4o-mini')
   })
 
   it('parses a bathroom preference (AH-024), including a half-bath value, alongside beds/price', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.OPENAI_API_KEY = 'test-key'
     mockCreate.mockResolvedValueOnce(
-      toolUseResponse({
+      toolCallResponse({
         priceMax: 5000,
         bedsMin: 2,
         bathsMin: 1.5,
@@ -195,18 +208,18 @@ describe('parseCriteriaFromText', () => {
       expect(result.data.bathsMax).toBe(2)
     }
 
-    // extract_apartment_criteria's input_schema exposes bathsMin/bathsMax
-    // for consistency with beds/price, per AH-024's scope.
+    // extract_apartment_criteria's parameters schema exposes
+    // bathsMin/bathsMax for consistency with beds/price, per AH-024's scope.
     const callArgs = mockCreate.mock.calls[0][0]
     const tool = callArgs.tools[0]
-    expect(tool.input_schema.properties).toHaveProperty('bathsMin')
-    expect(tool.input_schema.properties).toHaveProperty('bathsMax')
+    expect(tool.function.parameters.properties).toHaveProperty('bathsMin')
+    expect(tool.function.parameters.properties).toHaveProperty('bathsMax')
   })
 
   it('does not set a baths preference when the text has no bathroom signal', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.OPENAI_API_KEY = 'test-key'
     mockCreate.mockResolvedValueOnce(
-      toolUseResponse({ priceMax: 3000, neighborhoods: [], zips: [] })
+      toolCallResponse({ priceMax: 3000, neighborhoods: [], zips: [] })
     )
 
     const result = await parseCriteriaFromText('under $3000')
@@ -218,9 +231,9 @@ describe('parseCriteriaFromText', () => {
   })
 
   it('treats null/empty-string fields from the model as absent rather than failing validation', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.OPENAI_API_KEY = 'test-key'
     mockCreate.mockResolvedValueOnce(
-      toolUseResponse({
+      toolCallResponse({
         priceMin: null,
         priceMax: 3000,
         neighborhoods: [],
@@ -239,9 +252,9 @@ describe('parseCriteriaFromText', () => {
   })
 
   it('fails gracefully when the model returns an out-of-range value', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.OPENAI_API_KEY = 'test-key'
     mockCreate.mockResolvedValueOnce(
-      toolUseResponse({ priceMin: -500, neighborhoods: [], zips: [] })
+      toolCallResponse({ priceMin: -500, neighborhoods: [], zips: [] })
     )
 
     const result = await parseCriteriaFromText('a weird description')
@@ -249,9 +262,31 @@ describe('parseCriteriaFromText', () => {
     if (!result.success) expect(result.reason).toBe('invalid_response')
   })
 
-  it('fails gracefully when Claude does not return a tool_use block', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
-    mockCreate.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'huh?' }] })
+  it('fails gracefully when OpenAI does not return a tool call', async () => {
+    process.env.OPENAI_API_KEY = 'test-key'
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ finish_reason: 'stop', message: { content: 'huh?', tool_calls: undefined } }],
+    })
+
+    const result = await parseCriteriaFromText('gibberish')
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.reason).toBe('invalid_response')
+  })
+
+  it('fails gracefully when the tool call arguments are not valid JSON', async () => {
+    process.env.OPENAI_API_KEY = 'test-key'
+    mockCreate.mockResolvedValueOnce({
+      choices: [
+        {
+          finish_reason: 'tool_calls',
+          message: {
+            tool_calls: [
+              { id: 'call_1', type: 'function', function: { name: 'extract_apartment_criteria', arguments: '{not valid json' } },
+            ],
+          },
+        },
+      ],
+    })
 
     const result = await parseCriteriaFromText('gibberish')
     expect(result.success).toBe(false)
@@ -259,7 +294,7 @@ describe('parseCriteriaFromText', () => {
   })
 
   it('fails gracefully and reports to Sentry on an API/network error, without crashing', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.OPENAI_API_KEY = 'test-key'
     mockCreate.mockRejectedValueOnce(new Error('network down'))
 
     const result = await parseCriteriaFromText('2BR in SoMa')
@@ -269,7 +304,7 @@ describe('parseCriteriaFromText', () => {
   })
 
   it('never logs or forwards the raw user description text', async () => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.OPENAI_API_KEY = 'test-key'
     const secretDescription = 'my very private search description, do not log me'
     mockCreate.mockRejectedValueOnce(new Error('boom'))
 
