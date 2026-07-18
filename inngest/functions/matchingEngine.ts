@@ -91,43 +91,73 @@ export const matchingEngine = inngest.createFunction(
         return { matched: 0 }
       }
 
-      const matchedNotifications = await step.run('find-matches', async () => {
-        const foundListings = await db.query.listings.findMany({
-          where: (listings, { inArray }) => inArray(listings.id, listingIds)
+      // Chunked the same way as the pollers' own upsert step (issue #40, PR
+      // #41): a single `app/listings.upserted` event can carry hundreds of
+      // listingIds (e.g. RentCast's up-to-500-item runs collect every
+      // canonical id into one event) - running findMatchingUsers() +
+      // getTodaysSentCount() sequentially for every one of them inside a
+      // single unchunked step reliably exceeded the route's 60s maxDuration
+      // in production, confirmed via repeated real HTTP 504s on this exact
+      // function roughly every 6h - matching RentCast's cron cadence (see
+      // issue #67 and ARCHITECTURE.md for the incident writeup). The
+      // per-user daily-cap tally has to survive across chunk boundaries so a
+      // user matching listings in different chunks still gets capped
+      // correctly within one run - carried as a plain
+      // `Record<string, number>` returned from each chunk's step (a step
+      // result must be independently serializable/memoizable, so the
+      // in-progress tally can't just live in a shared outer-scope Map the
+      // way the original unchunked version did).
+      const MATCH_CHUNK_SIZE = 50
+      let sentTodayByUser: Record<string, number> = {}
+      const matchedNotifications: { userId: string, listingId: string }[] = []
+
+      for (let i = 0; i < listingIds.length; i += MATCH_CHUNK_SIZE) {
+        const chunk = listingIds.slice(i, i + MATCH_CHUNK_SIZE)
+        const carriedTally = sentTodayByUser
+
+        const chunkResult = await step.run(`find-matches-chunk-${i / MATCH_CHUNK_SIZE}`, async () => {
+          const foundListings = await db.query.listings.findMany({
+            where: (listings, { inArray }) => inArray(listings.id, chunk)
+          })
+
+          const notifications: { userId: string, listingId: string }[] = []
+          // Tracks sends already counted (recorded today + tentatively
+          // dispatched earlier in this same run) per user, so a single run
+          // that matches one user against many listings can't blow past
+          // their daily cap just because `sent` hasn't been written yet for
+          // in-flight dispatches from this same batch. Seeded from the
+          // previous chunk's tally so the cap is enforced across the whole
+          // run, not just within one chunk.
+          const tally: Record<string, number> = { ...carriedTally }
+
+          for (const listing of foundListings) {
+            const matchingUsers = await findMatchingUsers(listing)
+            for (const row of matchingUsers) {
+              let sentToday = tally[row.user_id]
+              if (sentToday === undefined) {
+                sentToday = await getTodaysSentCount(row.user_id)
+              }
+
+              if (sentToday >= row.max_daily_sms) {
+                logger.info(
+                  { userId: row.user_id, listingId: listing.id, sentToday, maxDailySms: row.max_daily_sms },
+                  'Daily SMS cap reached, skipping dispatch'
+                )
+                tally[row.user_id] = sentToday
+                continue
+              }
+
+              notifications.push({ userId: row.user_id, listingId: listing.id })
+              tally[row.user_id] = sentToday + 1
+            }
+          }
+
+          return { notifications, tally }
         })
 
-        const notifications: { userId: string, listingId: string }[] = []
-        // Tracks sends already counted (recorded today + tentatively
-        // dispatched earlier in this same run) per user, so a single run
-        // that matches one user against many listings can't blow past their
-        // daily cap just because `sent` hasn't been written yet for
-        // in-flight dispatches from this same batch.
-        const sentTodayByUser = new Map<string, number>()
-
-        for (const listing of foundListings) {
-          const matchingUsers = await findMatchingUsers(listing)
-          for (const row of matchingUsers) {
-            let sentToday = sentTodayByUser.get(row.user_id)
-            if (sentToday === undefined) {
-              sentToday = await getTodaysSentCount(row.user_id)
-            }
-
-            if (sentToday >= row.max_daily_sms) {
-              logger.info(
-                { userId: row.user_id, listingId: listing.id, sentToday, maxDailySms: row.max_daily_sms },
-                'Daily SMS cap reached, skipping dispatch'
-              )
-              sentTodayByUser.set(row.user_id, sentToday)
-              continue
-            }
-
-            notifications.push({ userId: row.user_id, listingId: listing.id })
-            sentTodayByUser.set(row.user_id, sentToday + 1)
-          }
-        }
-
-        return notifications
-      })
+        matchedNotifications.push(...chunkResult.notifications)
+        sentTodayByUser = chunkResult.tally
+      }
 
       if (matchedNotifications.length > 0) {
         await step.sendEvent('enqueue-notifications', matchedNotifications.map(n => ({
