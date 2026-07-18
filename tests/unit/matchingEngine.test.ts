@@ -169,6 +169,74 @@ describe('Matching Engine', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(error)
     expect(logger.error).toHaveBeenCalledWith({ err: error, listingIds: ['123'] }, 'Matching engine failed')
   })
+
+  // Regression coverage for issue #67: a single event's listingIds must be
+  // chunked (50/chunk, same convention as the pollers' own upsert step,
+  // issue #40) rather than processed in one unchunked step - a real
+  // production incident confirmed this function timing out (HTTP 504) on
+  // RentCast's up-to-500-item batches, and totalSent staying at 0 as a
+  // result.
+  it('chunks large listingIds arrays across multiple step.run calls instead of one unchunked step', async () => {
+    const manyIds = Array.from({ length: 51 }, (_, i) => `listing-${i}`)
+    mockFindMany.mockResolvedValueOnce([]).mockResolvedValueOnce([])
+
+    const stepRunNames: string[] = []
+    const mockStep = {
+      run: vi.fn((name, fn) => { stepRunNames.push(name); return fn() }),
+      sendEvent: vi.fn()
+    }
+
+    const result = await matchingEngine['fn']({
+      event: { data: { listingIds: manyIds } },
+      step: mockStep
+    })
+
+    expect(result).toEqual({ matched: 0 })
+    // 51 ids at 50/chunk = 2 chunks, so findMany (which only ever gets
+    // called from inside a chunk's step) must be called exactly twice, and
+    // each chunk must get its own distinctly-named step.
+    expect(mockFindMany).toHaveBeenCalledTimes(2)
+    expect(stepRunNames).toEqual(['find-matches-chunk-0', 'find-matches-chunk-1'])
+  })
+
+  it('carries the per-user daily-cap tally across chunk boundaries so a user cannot exceed their cap even when their matches land in different chunks', async () => {
+    const userId = 'user-1'
+    const manyIds = Array.from({ length: 51 }, (_, i) => `listing-${i}`)
+
+    // Chunk 0 (the first 50 ids): only listing-0 exists/matches.
+    mockFindMany.mockResolvedValueOnce([{ id: 'listing-0', price: 3000, beds: 2 }])
+    // Chunk 1 (the 51st id): only listing-50 exists/matches.
+    mockFindMany.mockResolvedValueOnce([{ id: 'listing-50', price: 3000, beds: 2 }])
+
+    // findMatchingUsers for listing-0 (chunk 0).
+    mockExecute.mockResolvedValueOnce([{ user_id: userId, max_daily_sms: 1 }])
+    // getTodaysSentCount for userId, seen for the first time in chunk 0 -
+    // nothing sent yet today.
+    mockExecute.mockResolvedValueOnce([{ count: 0 }])
+    // findMatchingUsers for listing-50 (chunk 1) - the same user matches
+    // again.
+    mockExecute.mockResolvedValueOnce([{ user_id: userId, max_daily_sms: 1 }])
+
+    const mockStep = {
+      run: vi.fn((name, fn) => fn()),
+      sendEvent: vi.fn().mockResolvedValue(undefined)
+    }
+
+    const result = await matchingEngine['fn']({
+      event: { data: { listingIds: manyIds } },
+      step: mockStep
+    })
+
+    // Cap is 1: the chunk-0 match uses it up, so chunk-1's match for the
+    // same user must be skipped WITHOUT a second getTodaysSentCount call -
+    // proving the tally carried over from chunk 0's step result rather than
+    // resetting per chunk.
+    expect(result).toEqual({ matched: 1 })
+    expect(mockExecute).toHaveBeenCalledTimes(3)
+    expect(mockStep.sendEvent).toHaveBeenCalledWith('enqueue-notifications', [
+      { name: 'app/notification.send', data: { userId, listingId: 'listing-0' } }
+    ])
+  })
 })
 
 describe('findMatchingUsers - AH-018 pets/laundry filter', () => {
