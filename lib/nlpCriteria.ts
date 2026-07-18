@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
@@ -7,20 +7,28 @@ import * as Sentry from '@sentry/nextjs'
 //
 // Parses a subscriber's free-text apartment description ("2BR under $4500 in
 // the Mission or Hayes Valley, dog friendly, in-unit laundry") into the
-// structured fields the onboarding criteria form already collects. This is
-// the first Claude/Anthropic API integration in this codebase.
+// structured fields the onboarding criteria form already collects.
+//
+// Migrated from Anthropic/Claude to OpenAI (2026-07-18): the original
+// implementation called Claude via ANTHROPIC_API_KEY, but only
+// OPENAI_API_KEY was ever provisioned in Vercel Production - the feature had
+// been silently non-functional in production since it shipped (confirmed via
+// `vercel env ls production` showing no ANTHROPIC_API_KEY at all). Rather
+// than ask for a new Anthropic key, this module was rewritten to call OpenAI
+// instead, matching the key that's actually deployed.
 //
 // ── Design ──
-// Uses forced tool-use (structured extraction), not free-text parsing: the
-// Claude call is constrained to a single tool (`tool_choice`) whose
-// input_schema matches the fields we want, so the model returns a parsed
-// object rather than prose we'd have to regex/JSON.parse. The result is then
-// re-validated with zod before it's ever handed back to the client or
-// written anywhere - the tool_use input is untrusted model output derived
-// from untrusted user input, and gets treated that way. Value domains here
-// intentionally mirror lib/db/schema.ts's `criteria` table (see its own
-// comment) and app/api/auth/verify-otp/route.ts's zod schema for
-// pets/laundry/commuteMode, rather than inventing a parallel domain.
+// Uses forced tool-use (structured extraction via OpenAI's function-calling
+// API), not free-text parsing: the call is constrained to a single tool
+// (`tool_choice`) whose `parameters` schema matches the fields we want, so
+// the model returns a parsed object rather than prose we'd have to
+// regex/JSON.parse from freeform text. The result is then re-validated with
+// zod before it's ever handed back to the client or written anywhere - the
+// tool-call arguments are untrusted model output derived from untrusted user
+// input, and get treated that way. Value domains here intentionally mirror
+// lib/db/schema.ts's `criteria` table (see its own comment) and
+// app/api/auth/verify-otp/route.ts's zod schema for pets/laundry/commuteMode,
+// rather than inventing a parallel domain.
 //
 // ── What this does NOT do ──
 // It does not geocode the commute address or compute a commute isochrone -
@@ -37,17 +45,19 @@ import * as Sentry from '@sentry/nextjs'
 //
 // ── Fails closed, never crashes onboarding ──
 // Three distinct non-throwing failure modes, all returned as
-// `{ success: false, reason, message }`: 'not_configured' (ANTHROPIC_API_KEY
+// `{ success: false, reason, message }`: 'not_configured' (OPENAI_API_KEY
 // unset - same "clear unavailable state, not a broken feature" pattern as
 // NEXT_PUBLIC_MAPBOX_TOKEN in components/dashboard-map.tsx, adapted for a
-// secret that can only be checked server-side), 'invalid_response' (Claude's
-// output didn't parse/validate), and 'api_error' (network/API failure). The
-// caller (app/api/onboarding/parse-criteria/route.ts) maps these to HTTP
-// statuses; the onboarding form falls back to manual entry either way - it
-// never auto-submits on the user's behalf regardless of outcome.
+// secret that can only be checked server-side), 'invalid_response' (the
+// model's output didn't parse/validate, returned no tool call at all, or the
+// tool-call arguments weren't valid JSON), and 'api_error' (network/API
+// failure). The caller (app/api/onboarding/parse-criteria/route.ts) maps
+// these to HTTP statuses; the onboarding form falls back to manual entry
+// either way - it never auto-submits on the user's behalf regardless of
+// outcome.
 //
 // ── Privacy ──
-// The user's raw description text is sent to exactly one place (the Claude
+// The user's raw description text is sent to exactly one place (the OpenAI
 // API call below) and is never logged, never attached to Sentry context, and
 // never persisted - only the validated structured output is used, by the
 // caller, to populate the review form.
@@ -66,54 +76,63 @@ Rules:
 - laundry: only set if the user mentions a laundry preference.
 - commuteAddress/commuteMaxMinutes/commuteMode: only set if the user describes an actual commute constraint (a workplace, a destination, or an explicit "X minute commute"). Do not set these for a general location preference that's already captured by neighborhoods/zips.`
 
-const EXTRACT_TOOL: Anthropic.Tool = {
-  name: 'extract_apartment_criteria',
-  description:
-    "Report the structured SF apartment search criteria extracted from the user's description.",
-  input_schema: {
-    type: 'object',
-    properties: {
-      priceMin: { type: 'integer', description: 'Minimum monthly rent in USD, if mentioned.' },
-      priceMax: { type: 'integer', description: 'Maximum monthly rent in USD, if mentioned.' },
-      bedsMin: { type: 'number', description: 'Minimum bedrooms. Use 0 for studio.' },
-      bedsMax: { type: 'number', description: 'Maximum bedrooms. Use 0 for studio.' },
-      bathsMin: { type: 'number', description: 'Minimum bathrooms, only if the user expresses a bathroom preference. Half-baths (e.g. 1.5) are valid.' },
-      bathsMax: { type: 'number', description: 'Maximum bathrooms, only if the user expresses a bathroom preference. Half-baths (e.g. 1.5) are valid.' },
-      neighborhoods: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Real San Francisco neighborhood names mentioned. Empty array if none.',
+const EXTRACT_TOOL_NAME = 'extract_apartment_criteria'
+
+// OpenAI's Chat Completions function-calling shape wraps the schema in
+// `{type: 'function', function: {name, description, parameters}}` - unlike
+// Anthropic's flatter `{name, description, input_schema}`. `parameters` here
+// is otherwise the same JSON Schema shape the original Anthropic tool used.
+const EXTRACT_TOOL: OpenAI.Chat.Completions.ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: EXTRACT_TOOL_NAME,
+    description:
+      "Report the structured SF apartment search criteria extracted from the user's description.",
+    parameters: {
+      type: 'object',
+      properties: {
+        priceMin: { type: 'integer', description: 'Minimum monthly rent in USD, if mentioned.' },
+        priceMax: { type: 'integer', description: 'Maximum monthly rent in USD, if mentioned.' },
+        bedsMin: { type: 'number', description: 'Minimum bedrooms. Use 0 for studio.' },
+        bedsMax: { type: 'number', description: 'Maximum bedrooms. Use 0 for studio.' },
+        bathsMin: { type: 'number', description: 'Minimum bathrooms, only if the user expresses a bathroom preference. Half-baths (e.g. 1.5) are valid.' },
+        bathsMax: { type: 'number', description: 'Maximum bathrooms, only if the user expresses a bathroom preference. Half-baths (e.g. 1.5) are valid.' },
+        neighborhoods: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Real San Francisco neighborhood names mentioned. Empty array if none.',
+        },
+        zips: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '5-digit zip codes explicitly mentioned. Empty array if none.',
+        },
+        pets: {
+          type: 'string',
+          enum: ['cats', 'dogs', 'cats_and_dogs'],
+          description: 'Pet requirement, only if the user asks for pet-friendly housing.',
+        },
+        laundry: {
+          type: 'string',
+          enum: ['in_unit', 'on_site'],
+          description: 'Laundry requirement, only if the user mentions a laundry preference.',
+        },
+        commuteAddress: {
+          type: 'string',
+          description: 'Workplace or commute destination, only if the user describes a commute constraint.',
+        },
+        commuteMaxMinutes: {
+          type: 'integer',
+          description: 'Maximum acceptable commute time in minutes, only if the user specifies one.',
+        },
+        commuteMode: {
+          type: 'string',
+          enum: ['transit', 'bike', 'drive'],
+          description: 'Commute mode the user mentions.',
+        },
       },
-      zips: {
-        type: 'array',
-        items: { type: 'string' },
-        description: '5-digit zip codes explicitly mentioned. Empty array if none.',
-      },
-      pets: {
-        type: 'string',
-        enum: ['cats', 'dogs', 'cats_and_dogs'],
-        description: 'Pet requirement, only if the user asks for pet-friendly housing.',
-      },
-      laundry: {
-        type: 'string',
-        enum: ['in_unit', 'on_site'],
-        description: 'Laundry requirement, only if the user mentions a laundry preference.',
-      },
-      commuteAddress: {
-        type: 'string',
-        description: 'Workplace or commute destination, only if the user describes a commute constraint.',
-      },
-      commuteMaxMinutes: {
-        type: 'integer',
-        description: 'Maximum acceptable commute time in minutes, only if the user specifies one.',
-      },
-      commuteMode: {
-        type: 'string',
-        enum: ['transit', 'bike', 'drive'],
-        description: 'Commute mode the user mentions.',
-      },
+      required: ['neighborhoods', 'zips'],
     },
-    required: ['neighborhoods', 'zips'],
   },
 }
 
@@ -162,7 +181,7 @@ export type ParseCriteriaResult =
 
 const FALLBACK_MESSAGE = 'Please fill in the fields below manually.'
 
-// Claude may omit a field entirely (fine - zod treats it as undefined via
+// The model may omit a field entirely (fine - zod treats it as undefined via
 // .optional()) or, less commonly, send back null or an empty string for a
 // field it considered but had no data for. Normalize both to "absent" before
 // validation so those don't fail range/enum checks that only apply when a
@@ -172,9 +191,9 @@ function stripEmptyValues(raw: unknown): unknown {
   const cleaned: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
     if (value === null || value === '') continue
-    // key comes from Object.entries() over the model's own tool_use.input,
-    // not user-controlled property access - the schema (below) still fully
-    // validates every value before it's trusted anywhere.
+    // key comes from Object.entries() over the model's own tool-call
+    // arguments, not user-controlled property access - the schema (below)
+    // still fully validates every value before it's trusted anywhere.
     // eslint-disable-next-line security/detect-object-injection
     cleaned[key] = value
   }
@@ -183,13 +202,13 @@ function stripEmptyValues(raw: unknown): unknown {
 
 /**
  * Parses `description` (raw user free text) into structured onboarding
- * criteria via Claude tool-use, validates the result with zod, and never
+ * criteria via OpenAI tool-use, validates the result with zod, and never
  * throws - every failure mode returns a typed, user-safe result instead.
  */
 export async function parseCriteriaFromText(description: string): Promise<ParseCriteriaResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
-    logger.warn('NLP criteria parsing requested but ANTHROPIC_API_KEY is not configured')
+    logger.warn('NLP criteria parsing requested but OPENAI_API_KEY is not configured')
     return {
       success: false,
       reason: 'not_configured',
@@ -198,24 +217,32 @@ export async function parseCriteriaFromText(description: string): Promise<ParseC
   }
 
   try {
-    const client = new Anthropic({ apiKey })
-    const message = await client.messages.create({
-      model: 'claude-opus-4-8',
-      max_tokens: 1024,
-      // Simple, well-scoped structured extraction - not the kind of
-      // long-horizon reasoning adaptive thinking is for.
-      output_config: { effort: 'low' },
-      system: SYSTEM_PROMPT,
+    const client = new OpenAI({ apiKey })
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      // Simple, well-scoped structured extraction - a fast/cheap model is
+      // the right fit, same reasoning as the original Claude call's
+      // low-effort setting.
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: description },
+      ],
       tools: [EXTRACT_TOOL],
-      tool_choice: { type: 'tool', name: EXTRACT_TOOL.name },
-      messages: [{ role: 'user', content: description }],
+      tool_choice: { type: 'function', function: { name: EXTRACT_TOOL_NAME } },
     })
 
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
-    )
-    if (!toolUse) {
-      logger.warn({ stopReason: message.stop_reason }, 'NLP criteria parsing: no tool_use block in Claude response')
+    const toolCall = completion.choices[0]?.message?.tool_calls?.[0]
+    // The SDK's ChatCompletionMessageToolCall type is a union of a
+    // function-tool-call shape (with `.function.arguments`) and a "custom
+    // tool" shape (no `.function`). We only ever declare a `type: 'function'`
+    // tool above and force it via `tool_choice`, so a real response can only
+    // ever come back as the function variant - this check narrows the type
+    // accordingly rather than assuming it at the type level.
+    if (!toolCall || toolCall.type !== 'function') {
+      logger.warn(
+        { finishReason: completion.choices[0]?.finish_reason },
+        'NLP criteria parsing: no tool call in OpenAI response'
+      )
       return {
         success: false,
         reason: 'invalid_response',
@@ -223,7 +250,22 @@ export async function parseCriteriaFromText(description: string): Promise<ParseC
       }
     }
 
-    const parsed = parsedCriteriaSchema.safeParse(stripEmptyValues(toolUse.input))
+    // Unlike Anthropic's tool_use.input (already a parsed object), OpenAI
+    // returns function-call arguments as a raw JSON string - a real, if
+    // rare, extra failure mode if the model ever emits malformed JSON.
+    let rawInput: unknown
+    try {
+      rawInput = JSON.parse(toolCall.function.arguments)
+    } catch (parseErr) {
+      logger.warn({ err: parseErr }, 'NLP criteria parsing: tool call arguments were not valid JSON')
+      return {
+        success: false,
+        reason: 'invalid_response',
+        message: `Couldn't extract valid criteria from that description. ${FALLBACK_MESSAGE}`,
+      }
+    }
+
+    const parsed = parsedCriteriaSchema.safeParse(stripEmptyValues(rawInput))
     if (!parsed.success) {
       logger.warn(
         { issues: parsed.error.issues.map((issue) => ({ path: issue.path, message: issue.message })) },
