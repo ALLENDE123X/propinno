@@ -29,6 +29,9 @@ vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() }
 }))
+vi.mock('@/lib/pollerBudget', () => ({
+  claimDailyBudget: vi.fn().mockResolvedValue(true)
+}))
 
 const mockTwilioCreate = vi.fn().mockResolvedValue({})
 vi.mock('twilio', () => ({
@@ -41,11 +44,17 @@ vi.mock('twilio', () => ({
 
 // A step.run mock that also records step.sleepUntil calls, matching how
 // tests/unit/rentcastPoller.test.ts switches step.run behavior by name -
-// here every step.run just executes its callback since twilioSender's step
-// names aren't branched on by the caller, but sleepUntil needs its own spy.
-function makeMockStep() {
+// every step.run just executes its callback (so the real claimDailyBudget
+// mock above decides the budget-check result), except when a test overrides
+// the daily-budget step to simulate it being exhausted.
+function makeMockStep(overrides: { smsBudget?: boolean } = {}) {
   return {
-    run: vi.fn((_name: string, fn: () => unknown) => fn()),
+    run: vi.fn((name: string, fn: () => unknown) => {
+      if (name === 'check-sms-daily-budget' && overrides.smsBudget !== undefined) {
+        return Promise.resolve(overrides.smsBudget)
+      }
+      return fn()
+    }),
     sleepUntil: vi.fn().mockResolvedValue(undefined)
   }
 }
@@ -100,7 +109,7 @@ describe('Twilio Sender Engine', () => {
     expect(result).toEqual({ sent: true })
     expect(mockStep.sleepUntil).not.toHaveBeenCalled()
     expect(mockTwilioCreate).toHaveBeenCalledWith({
-      body: '123 Fake St · $2500 · 1 bd\nhttp://example.com',
+      body: '123 Fake St - $2500 - 1 bd\nhttp://example.com',
       from: '+1234567890',
       to: '+1987654321'
     })
@@ -128,7 +137,7 @@ describe('Twilio Sender Engine', () => {
 
     expect(result).toEqual({ sent: true })
     expect(mockTwilioCreate).toHaveBeenCalledWith({
-      body: '123 Fake St · $2500 · 1 bd\n1.5 ba · Cats+dogs OK · in-unit laundry\nhttp://example.com',
+      body: '123 Fake St - $2500 - 1 bd\n1.5 ba - Cats+dogs OK - in-unit laundry\nhttp://example.com',
       from: '+1234567890',
       to: '+1987654321'
     })
@@ -204,6 +213,26 @@ describe('Twilio Sender Engine', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(error)
     expect(logger.error).toHaveBeenCalledWith({ err: error, data: { userId: 'u1', listingId: 'l1' } }, 'Twilio sender failed')
   })
+
+  it('skips sending and does not record to sent when the daily SMS budget is exceeded', async () => {
+    mockSentFindFirst.mockResolvedValueOnce(null)
+    mockUserFindFirst.mockResolvedValueOnce(ACTIVE_USER)
+    mockListingFindFirst.mockResolvedValueOnce(LISTING)
+
+    const mockStep = makeMockStep({ smsBudget: false })
+    // 2026-07-16T20:00:00Z = 13:00 PDT, outside quiet hours - isolates the
+    // budget check from the quiet-hours path.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-16T20:00:00Z'))
+
+    const result = await twilioSender['fn']({ event: { data: { userId: 'u1', listingId: 'l1' } }, step: mockStep })
+
+    expect(result).toEqual({ sent: false, reason: 'daily_budget_exceeded' })
+    expect(mockTwilioCreate).not.toHaveBeenCalled()
+    expect(mockInsert).not.toHaveBeenCalled()
+
+    vi.useRealTimers()
+  })
 })
 
 describe('getTwilioClient', () => {
@@ -229,48 +258,48 @@ describe('buildListingSmsBody', () => {
   }
 
   it('omits the details line entirely when baths/pets/laundry are all absent', () => {
-    expect(buildListingSmsBody(BASE)).toBe('123 Fake St · $2500 · 1 bd\nhttp://example.com')
+    expect(buildListingSmsBody(BASE)).toBe('123 Fake St - $2500 - 1 bd\nhttp://example.com')
   })
 
   it('adds a details line with just baths when only baths is present', () => {
     expect(buildListingSmsBody({ ...BASE, baths: 1.5 })).toBe(
-      '123 Fake St · $2500 · 1 bd\n1.5 ba\nhttp://example.com'
+      '123 Fake St - $2500 - 1 bd\n1.5 ba\nhttp://example.com'
     )
   })
 
   it('adds a details line with just a pets summary when only pets is present', () => {
     expect(buildListingSmsBody({ ...BASE, petsAllowed: 'cats_and_dogs' })).toBe(
-      '123 Fake St · $2500 · 1 bd\nCats+dogs OK\nhttp://example.com'
+      '123 Fake St - $2500 - 1 bd\nCats+dogs OK\nhttp://example.com'
     )
   })
 
   it('adds a details line with just a laundry summary when only laundry is present', () => {
     expect(buildListingSmsBody({ ...BASE, laundryType: 'in_unit' })).toBe(
-      '123 Fake St · $2500 · 1 bd\nin-unit laundry\nhttp://example.com'
+      '123 Fake St - $2500 - 1 bd\nin-unit laundry\nhttp://example.com'
     )
   })
 
   it('combines baths + pets + laundry into a single compact line when all are present', () => {
     expect(
       buildListingSmsBody({ ...BASE, baths: 2, petsAllowed: 'dogs', laundryType: 'on_site' })
-    ).toBe('123 Fake St · $2500 · 1 bd\n2 ba · Dogs OK · on-site laundry\nhttp://example.com')
+    ).toBe('123 Fake St - $2500 - 1 bd\n2 ba - Dogs OK - on-site laundry\nhttp://example.com')
   })
 
   it('renders a genuine 0 baths (falsy but real) rather than treating it as absent', () => {
     expect(buildListingSmsBody({ ...BASE, baths: 0 })).toBe(
-      '123 Fake St · $2500 · 1 bd\n0 ba\nhttp://example.com'
+      '123 Fake St - $2500 - 1 bd\n0 ba\nhttp://example.com'
     )
   })
 
   it('renders "No pets" when the listing explicitly has no pets allowed (a real value, not null)', () => {
     expect(buildListingSmsBody({ ...BASE, petsAllowed: 'no' })).toBe(
-      '123 Fake St · $2500 · 1 bd\nNo pets\nhttp://example.com'
+      '123 Fake St - $2500 - 1 bd\nNo pets\nhttp://example.com'
     )
   })
 
   it('renders laundry hookups distinctly from in-unit/on-site laundry', () => {
     expect(buildListingSmsBody({ ...BASE, laundryType: 'hookups' })).toBe(
-      '123 Fake St · $2500 · 1 bd\nlaundry hookups\nhttp://example.com'
+      '123 Fake St - $2500 - 1 bd\nlaundry hookups\nhttp://example.com'
     )
   })
 })

@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { sent, users } from '@/lib/db/schema'
 import { createTwilioClient } from '@/lib/twilio'
 import { isWithinQuietHours, nextQuietHoursEnd } from '@/lib/quietHours'
+import { claimDailyBudget } from '@/lib/pollerBudget'
 
 export const getTwilioClient = () => createTwilioClient()
 
@@ -47,6 +48,15 @@ export type SmsListingFields = {
 // so a genuine `0` wouldn't be swallowed, matching components/onboarding-flow.tsx's
 // existing `listing.baths !== null` convention rather than components that
 // use `??`.
+//
+// Separator is a plain hyphen, not a middle-dot ("·") - the middle dot isn't
+// in the GSM-7 default character set, so its presence anywhere in the body
+// forces the whole message into UCS-2 encoding (70 chars/segment instead of
+// 160), roughly doubling the real segment cost of every text for a purely
+// cosmetic choice. That matters a lot here: the A2P 10DLC campaign is
+// registered as a Sole Proprietor brand, capped at 1,000 segments/day to
+// T-Mobile - doubling segment cost per message halves how many subscribers
+// can actually be notified before hitting that ceiling.
 export function buildListingSmsBody(listing: SmsListingFields): string {
   const priceText = listing.price ? `$${listing.price}` : 'Price unlisted'
   const bedsText = listing.beds ? `${listing.beds} bd` : 'Studio/Unlisted'
@@ -60,9 +70,9 @@ export function buildListingSmsBody(listing: SmsListingFields): string {
   // Single compact extra line - per the ticket, this should stay a
   // scannable SMS, not grow into one line per field.
   const detailParts = [bathsText, petsText, laundryText].filter((p): p is string => Boolean(p))
-  const detailLine = detailParts.length > 0 ? `\n${detailParts.join(' · ')}` : ''
+  const detailLine = detailParts.length > 0 ? `\n${detailParts.join(' - ')}` : ''
 
-  return `${addressText} · ${priceText} · ${bedsText}${detailLine}\n${link}`
+  return `${addressText} - ${priceText} - ${bedsText}${detailLine}\n${link}`
 }
 
 export const twilioSender = inngest.createFunction(
@@ -135,6 +145,32 @@ export const twilioSender = inngest.createFunction(
           logger.info({ userId, listingId }, 'Notifications paused during quiet-hours wait, skipping')
           return { sent: false, reason: 'paused' }
         }
+      }
+
+      // Step 3.5: Daily SMS spend/throughput circuit breaker. Unlike the
+      // pollers (RentCast/Mapbox amenities, both capped via this same
+      // claimDailyBudget helper), SMS sends had no cap at all - a burst of
+      // new signups with broad-matching criteria could spend real Twilio
+      // balance with nothing to stop it, and could also blow past the A2P
+      // Sole Proprietor brand's ~1,000 segments/day-to-T-Mobile ceiling
+      // unnoticed (T-Mobile subscribers would just silently stop receiving
+      // messages for the rest of the day). 300/day is a conservative
+      // starting cap, well under that regulatory ceiling (leaves headroom
+      // for Verify OTP sends too) and cheap even at a low account balance -
+      // same "safety net, not a business limit" philosophy as the poller
+      // budgets, checked here (not before the quiet-hours wait) so it
+      // reflects the actual calendar day the message is really being sent,
+      // not the day the match was found.
+      const withinSmsBudget = await step.run('check-sms-daily-budget', () =>
+        claimDailyBudget('twilio-sms', 300)
+      )
+
+      if (!withinSmsBudget) {
+        logger.warn(
+          { userId, listingId },
+          'Daily SMS budget (300) exceeded, skipping send - will retry on a future match'
+        )
+        return { sent: false, reason: 'daily_budget_exceeded' }
       }
 
       // Step 4: Send SMS
