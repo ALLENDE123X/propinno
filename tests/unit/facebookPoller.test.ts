@@ -48,6 +48,18 @@ const SAMPLE_ITEM = {
   }
 }
 
+// A step.run/step.sleep mock that just executes the callback / resolves
+// immediately - runApifyActorAsync's own poll-loop mechanics are covered
+// exhaustively in tests/unit/apifyAsync.test.ts; this file only needs to
+// confirm fetchFacebookViaApify wires the right actor ID + input body into
+// that shared helper.
+function makePassthroughStep() {
+  return {
+    run: vi.fn((_name: string, fn: () => unknown) => Promise.resolve(fn())),
+    sleep: vi.fn().mockResolvedValue(undefined)
+  }
+}
+
 describe('fetchFacebookViaApify', () => {
   const ORIGINAL_ENV = process.env.APIFY_API_TOKEN
 
@@ -62,18 +74,31 @@ describe('fetchFacebookViaApify', () => {
 
   it('throws if APIFY_API_TOKEN is not set', async () => {
     delete process.env.APIFY_API_TOKEN
-    await expect(fetchFacebookViaApify()).rejects.toThrow('APIFY_API_TOKEN')
+    await expect(fetchFacebookViaApify(makePassthroughStep())).rejects.toThrow('APIFY_API_TOKEN')
   })
 
-  it('throws on non-ok response', async () => {
+  it('throws when starting the Apify run returns a non-ok response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: vi.fn().mockResolvedValue('Server error') })
-    await expect(fetchFacebookViaApify()).rejects.toThrow('Apify Facebook actor returned 500')
+    await expect(fetchFacebookViaApify(makePassthroughStep())).rejects.toThrow(
+      'Apify start-run for memo23~facebook-marketplace-scraper-ppe returned 500'
+    )
   })
 
-  it('returns parsed items from a successful run', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue([SAMPLE_ITEM]) })
-    const items = await fetchFacebookViaApify()
+  it('starts the run with the expected actor input, then returns the dataset items once SUCCEEDED', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ data: { id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' } })
+      })
+      .mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue([SAMPLE_ITEM]) })
+
+    const items = await fetchFacebookViaApify(makePassthroughStep())
     expect(items).toEqual([SAMPLE_ITEM])
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.apify.com/v2/acts/memo23~facebook-marketplace-scraper-ppe/runs?token=test-token',
+      expect.objectContaining({ method: 'POST' })
+    )
   })
 })
 
@@ -162,15 +187,22 @@ describe('facebookPoller handler', () => {
     vi.mocked(claimDailyBudget).mockResolvedValue(true)
   })
 
+  // fetchFacebookViaApify(step) now makes its own step.run calls internally
+  // (start-apify-run -> [poll] -> fetch-apify-dataset) rather than being
+  // wrapped in a single outer 'fetch-facebook-apify' step - mock the run
+  // already terminal (SUCCEEDED) so these handler-level tests don't need to
+  // exercise the poll loop itself (see tests/unit/apifyAsync.test.ts).
   function runStep(overrides: { budget?: boolean; canonicalIds?: string[]; items?: unknown[] } = {}) {
     const items = overrides.items ?? [SAMPLE_ITEM]
     const step = {
       run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
         if (name === 'check-daily-budget') return Promise.resolve(overrides.budget ?? true)
-        if (name === 'fetch-facebook-apify') return Promise.resolve(items)
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve(items)
         if (name === 'upsert-listings-chunk-0') return Promise.resolve({ count: items.length, canonicalIds: overrides.canonicalIds ?? ['1'] })
         return fn()
       }),
+      sleep: vi.fn().mockResolvedValue(undefined),
       sendEvent: vi.fn().mockResolvedValue(undefined)
     }
     return step
@@ -203,9 +235,11 @@ describe('facebookPoller handler', () => {
     const step = {
       run: vi.fn().mockImplementation((name: string) => {
         if (name === 'check-daily-budget') return Promise.resolve(true)
-        if (name === 'fetch-facebook-apify') return Promise.resolve([])
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve([])
         throw new Error(`unexpected step.run call: ${name}`)
       }),
+      sleep: vi.fn().mockResolvedValue(undefined),
       sendEvent: vi.fn()
     }
 
@@ -222,7 +256,8 @@ describe('facebookPoller handler', () => {
     const step = {
       run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
         if (name === 'check-daily-budget') return Promise.resolve(true)
-        if (name === 'fetch-facebook-apify') return Promise.resolve(items)
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve(items)
         if (/^upsert-listings-chunk-\d+$/.test(name)) {
           chunkCalls.push(name)
           const chunkIndex = chunkCalls.length - 1
@@ -230,6 +265,7 @@ describe('facebookPoller handler', () => {
         }
         return fn()
       }),
+      sleep: vi.fn().mockResolvedValue(undefined),
       sendEvent: vi.fn().mockResolvedValue(undefined)
     }
 
@@ -249,7 +285,8 @@ describe('facebookPoller handler', () => {
       run: vi.fn().mockImplementation((name: string) => {
         if (name === 'check-daily-budget') return Promise.resolve(true)
         return Promise.reject(error)
-      })
+      }),
+      sleep: vi.fn().mockResolvedValue(undefined)
     }
     await expect(facebookPoller['fn']({ step })).rejects.toThrow('Test error')
     expect(Sentry.captureException).toHaveBeenCalledWith(error)

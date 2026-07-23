@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parseImagesFromFacebook } from '@/lib/listingImages'
+import { runApifyActorAsync, type ApifyStepTools } from '@/lib/apifyAsync'
 
 // Facebook Marketplace listings come from an Apify actor
 // (memo23/facebook-marketplace-scraper-ppe), following the same pattern as
@@ -93,40 +94,28 @@ function parseBaths(text: string): number | null {
   return m ? parseFloat(m[1]) : null
 }
 
-export const fetchFacebookViaApify = async (): Promise<ApifyFacebookItem[]> => {
-  const apifyToken = process.env.APIFY_API_TOKEN
-  if (!apifyToken) {
-    throw new Error('APIFY_API_TOKEN is not set')
-  }
-
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        marketplaceLocation: 'sfbay',
-        categories: ['propertyrentals'],
-        latitude: 37.7749,
-        longitude: -122.4194,
-        radiusKm: 40,
-        // Mirrors Craigslist's postedToday:true - only fetch listings from
-        // the last day so repeat runs bill for new items, not the same
-        // still-live listings over and over.
-        daysSinceListed: '1',
-        sortBy: 'creation_time_descend',
-        includeSeller: true,
-        maxItems: MAX_ITEMS_PER_RUN,
-      }),
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(`Apify Facebook actor returned ${res.status}: ${await res.text()}`)
-  }
-
-  return (await res.json()) as ApifyFacebookItem[]
-}
+// Async run+poll+dataset-fetch via lib/apifyAsync.ts, not the old blocking
+// run-sync-get-dataset-items endpoint - see that file's header comment for
+// why (this poller hit the real production 504 timeout that motivated the
+// fix, on 2026-07-22). `step` must be the calling Inngest function's own
+// step object - the helper makes its own step.run/step.sleep calls
+// internally, so this can't be called from inside another step.run()
+// (Inngest doesn't support nesting steps).
+export const fetchFacebookViaApify = (step: ApifyStepTools): Promise<ApifyFacebookItem[]> =>
+  runApifyActorAsync<ApifyFacebookItem>(step, APIFY_ACTOR, {
+    marketplaceLocation: 'sfbay',
+    categories: ['propertyrentals'],
+    latitude: 37.7749,
+    longitude: -122.4194,
+    radiusKm: 40,
+    // Mirrors Craigslist's postedToday:true - only fetch listings from
+    // the last day so repeat runs bill for new items, not the same
+    // still-live listings over and over.
+    daysSinceListed: '1',
+    sortBy: 'creation_time_descend',
+    includeSeller: true,
+    maxItems: MAX_ITEMS_PER_RUN,
+  })
 
 export const upsertApifyFacebookListings = async (
   items: ApifyFacebookItem[]
@@ -178,7 +167,7 @@ export const facebookPoller = inngest.createFunction(
     }
 
     try {
-      const items = await step.run('fetch-facebook-apify', fetchFacebookViaApify)
+      const items = await fetchFacebookViaApify(step)
 
       let upserted = 0
       const canonicalIds: string[] = []

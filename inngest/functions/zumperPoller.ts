@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parseImagesFromZumper } from '@/lib/listingImages'
+import { runApifyActorAsync, type ApifyStepTools } from '@/lib/apifyAsync'
 
 // Zumper listings come from an Apify actor
 // (benthepythondev/zumper-rental-scraper), chosen after live-testing two
@@ -102,34 +103,21 @@ function parseNumeric(value: number | null | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
-export const fetchZumperViaApify = async (): Promise<ApifyZumperItem[]> => {
-  const apifyToken = process.env.APIFY_API_TOKEN
-  if (!apifyToken) {
-    throw new Error('APIFY_API_TOKEN is not set')
-  }
-
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode: 'search',
-        location: 'san-francisco-ca',
-        propertyType: 'apartments-for-rent',
-        maxListings: MAX_ITEMS_PER_RUN,
-        includePhotos: true,
-        useApifyProxy: true,
-      }),
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(`Apify Zumper actor returned ${res.status}: ${await res.text()}`)
-  }
-
-  return (await res.json()) as ApifyZumperItem[]
-}
+// Async run+poll+dataset-fetch via lib/apifyAsync.ts, not the old blocking
+// run-sync-get-dataset-items endpoint - see that file's header comment for
+// why. `step` must be the calling Inngest function's own step object - the
+// helper makes its own step.run/step.sleep calls internally, so this can't
+// be called from inside another step.run() (Inngest doesn't support
+// nesting steps).
+export const fetchZumperViaApify = (step: ApifyStepTools): Promise<ApifyZumperItem[]> =>
+  runApifyActorAsync<ApifyZumperItem>(step, APIFY_ACTOR, {
+    mode: 'search',
+    location: 'san-francisco-ca',
+    propertyType: 'apartments-for-rent',
+    maxListings: MAX_ITEMS_PER_RUN,
+    includePhotos: true,
+    useApifyProxy: true,
+  })
 
 export const upsertApifyZumperListings = async (
   items: ApifyZumperItem[]
@@ -201,7 +189,7 @@ export const zumperPoller = inngest.createFunction(
     }
 
     try {
-      const items = await step.run('fetch-zumper-apify', fetchZumperViaApify)
+      const items = await fetchZumperViaApify(step)
 
       let upserted = 0
       const canonicalIds: string[] = []

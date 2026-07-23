@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parseImagesFromRealtor } from '@/lib/listingImages'
+import { runApifyActorAsync, type ApifyStepTools } from '@/lib/apifyAsync'
 
 // Realtor.com listings come from an Apify actor (kawsar/realtor-Search),
 // chosen after live-testing three real candidates against real SF
@@ -120,32 +121,19 @@ function buildFallbackAddress(item: {
   return withZip || 'San Francisco, CA'
 }
 
-export const fetchRealtorViaApify = async (): Promise<ApifyRealtorItem[]> => {
-  const apifyToken = process.env.APIFY_API_TOKEN
-  if (!apifyToken) {
-    throw new Error('APIFY_API_TOKEN is not set')
-  }
-
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: ['for_rent'],
-        city: 'San Francisco',
-        state_code: 'CA',
-        maxItems: MAX_ITEMS_PER_RUN,
-      }),
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(`Apify Realtor actor returned ${res.status}: ${await res.text()}`)
-  }
-
-  return (await res.json()) as ApifyRealtorItem[]
-}
+// Async run+poll+dataset-fetch via lib/apifyAsync.ts, not the old blocking
+// run-sync-get-dataset-items endpoint - see that file's header comment for
+// why. `step` must be the calling Inngest function's own step object - the
+// helper makes its own step.run/step.sleep calls internally, so this can't
+// be called from inside another step.run() (Inngest doesn't support
+// nesting steps).
+export const fetchRealtorViaApify = (step: ApifyStepTools): Promise<ApifyRealtorItem[]> =>
+  runApifyActorAsync<ApifyRealtorItem>(step, APIFY_ACTOR, {
+    status: ['for_rent'],
+    city: 'San Francisco',
+    state_code: 'CA',
+    maxItems: MAX_ITEMS_PER_RUN,
+  })
 
 export const upsertApifyRealtorListings = async (
   items: ApifyRealtorItem[]
@@ -213,7 +201,7 @@ export const realtorPoller = inngest.createFunction(
     }
 
     try {
-      const items = await step.run('fetch-realtor-apify', fetchRealtorViaApify)
+      const items = await fetchRealtorViaApify(step)
 
       let upserted = 0
       const canonicalIds: string[] = []

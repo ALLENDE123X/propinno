@@ -69,6 +69,18 @@ const SAMPLE_PROPERTY = {
   ]
 }
 
+// A step.run/step.sleep mock that just executes the callback / resolves
+// immediately - runApifyActorAsync's own poll-loop mechanics are covered
+// exhaustively in tests/unit/apifyAsync.test.ts; this file only needs to
+// confirm fetchApartmentsViaApify wires the right actor ID + input body
+// into that shared helper.
+function makePassthroughStep() {
+  return {
+    run: vi.fn((_name: string, fn: () => unknown) => Promise.resolve(fn())),
+    sleep: vi.fn().mockResolvedValue(undefined)
+  }
+}
+
 describe('fetchApartmentsViaApify', () => {
   const ORIGINAL_ENV = process.env.APIFY_API_TOKEN
 
@@ -83,18 +95,31 @@ describe('fetchApartmentsViaApify', () => {
 
   it('throws if APIFY_API_TOKEN is not set', async () => {
     delete process.env.APIFY_API_TOKEN
-    await expect(fetchApartmentsViaApify()).rejects.toThrow('APIFY_API_TOKEN')
+    await expect(fetchApartmentsViaApify(makePassthroughStep())).rejects.toThrow('APIFY_API_TOKEN')
   })
 
-  it('throws on non-ok response', async () => {
+  it('throws when starting the Apify run returns a non-ok response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: vi.fn().mockResolvedValue('Server error') })
-    await expect(fetchApartmentsViaApify()).rejects.toThrow('Apify Apartments.com actor returned 500')
+    await expect(fetchApartmentsViaApify(makePassthroughStep())).rejects.toThrow(
+      'Apify start-run for epctex~apartments-scraper-api returned 500'
+    )
   })
 
-  it('returns parsed items from a successful run', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue([SAMPLE_PROPERTY]) })
-    const items = await fetchApartmentsViaApify()
+  it('starts the run with the expected actor input, then returns the dataset items once SUCCEEDED', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ data: { id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' } })
+      })
+      .mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue([SAMPLE_PROPERTY]) })
+
+    const items = await fetchApartmentsViaApify(makePassthroughStep())
     expect(items).toEqual([SAMPLE_PROPERTY])
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.apify.com/v2/acts/epctex~apartments-scraper-api/runs?token=test-token',
+      expect.objectContaining({ method: 'POST' })
+    )
   })
 })
 
@@ -228,12 +253,19 @@ describe('apartmentsPoller handler', () => {
     vi.mocked(claimDailyBudget).mockResolvedValue(true)
   })
 
+  // fetchApartmentsViaApify(step) now makes its own step.run calls
+  // internally (start-apify-run -> [poll] -> fetch-apify-dataset) rather
+  // than being wrapped in a single outer 'fetch-apartments-apify' step -
+  // mock the run already terminal (SUCCEEDED) so these handler-level tests
+  // don't need to exercise the poll loop itself (see
+  // tests/unit/apifyAsync.test.ts).
   function runStep(overrides: { budget?: boolean; canonicalIds?: string[]; properties?: unknown[] } = {}) {
     const properties = overrides.properties ?? [SAMPLE_PROPERTY]
     const step = {
       run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
         if (name === 'check-daily-budget') return Promise.resolve(overrides.budget ?? true)
-        if (name === 'fetch-apartments-apify') return Promise.resolve(properties)
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve(properties)
         if (name === 'upsert-listings-chunk-0') {
           return Promise.resolve({
             count: (properties[0] as typeof SAMPLE_PROPERTY)?.rentals?.length ?? 0,
@@ -242,6 +274,7 @@ describe('apartmentsPoller handler', () => {
         }
         return fn()
       }),
+      sleep: vi.fn().mockResolvedValue(undefined),
       sendEvent: vi.fn().mockResolvedValue(undefined)
     }
     return step
@@ -274,9 +307,11 @@ describe('apartmentsPoller handler', () => {
     const step = {
       run: vi.fn().mockImplementation((name: string) => {
         if (name === 'check-daily-budget') return Promise.resolve(true)
-        if (name === 'fetch-apartments-apify') return Promise.resolve([])
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve([])
         throw new Error(`unexpected step.run call: ${name}`)
       }),
+      sleep: vi.fn().mockResolvedValue(undefined),
       sendEvent: vi.fn()
     }
 
@@ -289,9 +324,11 @@ describe('apartmentsPoller handler', () => {
     const step = {
       run: vi.fn().mockImplementation((name: string) => {
         if (name === 'check-daily-budget') return Promise.resolve(true)
-        if (name === 'fetch-apartments-apify') return Promise.resolve([{ ...SAMPLE_PROPERTY, rentals: [] }])
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve([{ ...SAMPLE_PROPERTY, rentals: [] }])
         throw new Error(`unexpected step.run call: ${name}`)
       }),
+      sleep: vi.fn().mockResolvedValue(undefined),
       sendEvent: vi.fn()
     }
 
@@ -312,7 +349,8 @@ describe('apartmentsPoller handler', () => {
     const step = {
       run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
         if (name === 'check-daily-budget') return Promise.resolve(true)
-        if (name === 'fetch-apartments-apify') return Promise.resolve(properties)
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve(properties)
         if (/^upsert-listings-chunk-\d+$/.test(name)) {
           chunkCalls.push(name)
           const chunkIndex = chunkCalls.length - 1
@@ -320,6 +358,7 @@ describe('apartmentsPoller handler', () => {
         }
         return fn()
       }),
+      sleep: vi.fn().mockResolvedValue(undefined),
       sendEvent: vi.fn().mockResolvedValue(undefined)
     }
 
@@ -339,7 +378,8 @@ describe('apartmentsPoller handler', () => {
       run: vi.fn().mockImplementation((name: string) => {
         if (name === 'check-daily-budget') return Promise.resolve(true)
         return Promise.reject(error)
-      })
+      }),
+      sleep: vi.fn().mockResolvedValue(undefined)
     }
     await expect(apartmentsPoller['fn']({ step })).rejects.toThrow('Test error')
     expect(Sentry.captureException).toHaveBeenCalledWith(error)
