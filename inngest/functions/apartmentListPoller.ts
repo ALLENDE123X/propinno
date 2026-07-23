@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parseImagesFromApartmentList } from '@/lib/listingImages'
+import { runApifyActorAsync, type ApifyStepTools } from '@/lib/apifyAsync'
 
 // Apartment List listings come from an Apify actor
 // (solidcode/apartmentlist-com-scraper), following the same
@@ -99,32 +100,20 @@ function isLiveUnit(unit: ApifyApartmentListUnit): boolean {
   return unit.availability === 'available' && typeof unit.price === 'number' && Number.isFinite(unit.price)
 }
 
-export const fetchApartmentListViaApify = async (): Promise<ApifyApartmentListItem[]> => {
-  const apifyToken = process.env.APIFY_API_TOKEN
-  if (!apifyToken) {
-    throw new Error('APIFY_API_TOKEN is not set')
-  }
-
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: ['San Francisco, CA'],
-        maxResults: MAX_ITEMS_PER_RUN,
-        includeDetails: true,
-        petPolicy: 'any',
-      }),
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(`Apify Apartment List actor returned ${res.status}: ${await res.text()}`)
-  }
-
-  return (await res.json()) as ApifyApartmentListItem[]
-}
+// Async run+poll+dataset-fetch via lib/apifyAsync.ts, not the old blocking
+// run-sync-get-dataset-items endpoint - see that file's header comment for
+// why (this poller hit the real production 504 timeout that motivated the
+// fix, on 2026-07-22). `step` must be the calling Inngest function's own
+// step object - the helper makes its own step.run/step.sleep calls
+// internally, so this can't be called from inside another step.run()
+// (Inngest doesn't support nesting steps).
+export const fetchApartmentListViaApify = (step: ApifyStepTools): Promise<ApifyApartmentListItem[]> =>
+  runApifyActorAsync<ApifyApartmentListItem>(step, APIFY_ACTOR, {
+    location: ['San Francisco, CA'],
+    maxResults: MAX_ITEMS_PER_RUN,
+    includeDetails: true,
+    petPolicy: 'any',
+  })
 
 export const upsertApifyApartmentListListings = async (
   items: ApifyApartmentListItem[]
@@ -203,7 +192,7 @@ export const apartmentListPoller = inngest.createFunction(
     }
 
     try {
-      const items = await step.run('fetch-apartmentlist-apify', fetchApartmentListViaApify)
+      const items = await fetchApartmentListViaApify(step)
 
       let upserted = 0
       const canonicalIds: string[] = []

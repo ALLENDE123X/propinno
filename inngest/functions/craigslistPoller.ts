@@ -5,6 +5,7 @@ import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parsePetsFromCraigslist, parseLaundryFromCraigslist } from '@/lib/listingAttributes'
 import { parseImagesFromCraigslist } from '@/lib/listingImages'
+import { runApifyActorAsync, type ApifyStepTools } from '@/lib/apifyAsync'
 
 // Craigslist's own RSS feeds (?format=rss) are confirmed blocked outright as
 // of July 16, 2026 - "Your request has been blocked" (blockID=39468) on
@@ -82,33 +83,23 @@ function parseNumeric(value: string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-export const fetchCraigslistViaApify = async (): Promise<ApifyCraigslistItem[]> => {
-  const apifyToken = process.env.APIFY_API_TOKEN
-  if (!apifyToken) {
-    throw new Error('APIFY_API_TOKEN is not set')
-  }
-
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        subdomain: 'sfbay',
-        category: 'apa',
-        postedToday: true,
-        hideDuplicates: true,
-        maxItems: MAX_ITEMS_PER_RUN,
-      }),
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(`Apify Craigslist actor returned ${res.status}: ${await res.text()}`)
-  }
-
-  return (await res.json()) as ApifyCraigslistItem[]
-}
+// Async run+poll+dataset-fetch via lib/apifyAsync.ts, not the old blocking
+// run-sync-get-dataset-items endpoint - see that file's header comment for
+// why (a slow actor run could exceed Vercel's 60s route maxDuration and
+// get killed with a 504 regardless of whether it would have succeeded;
+// this happened for real in production, craigslist-poller on 2026-07-20).
+// `step` must be the calling Inngest function's own step object - the
+// helper makes its own step.run/step.sleep calls internally, so this
+// can't be called from inside another step.run() (Inngest doesn't support
+// nesting steps).
+export const fetchCraigslistViaApify = (step: ApifyStepTools): Promise<ApifyCraigslistItem[]> =>
+  runApifyActorAsync<ApifyCraigslistItem>(step, APIFY_ACTOR, {
+    subdomain: 'sfbay',
+    category: 'apa',
+    postedToday: true,
+    hideDuplicates: true,
+    maxItems: MAX_ITEMS_PER_RUN,
+  })
 
 export const upsertApifyCraigslistListings = async (
   items: ApifyCraigslistItem[]
@@ -161,7 +152,7 @@ export const craigslistPoller = inngest.createFunction(
     }
 
     try {
-      const items = await step.run('fetch-craigslist-apify', fetchCraigslistViaApify)
+      const items = await fetchCraigslistViaApify(step)
 
       let upserted = 0
       const canonicalIds: string[] = []

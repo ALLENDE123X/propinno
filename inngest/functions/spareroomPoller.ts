@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parseImagesFromSpareRoom } from '@/lib/listingImages'
+import { runApifyActorAsync, type ApifyStepTools } from '@/lib/apifyAsync'
 
 // SpareRoom is a room-share/roommate-matching site - a listing here is an ad
 // for ONE ROOM within a shared house/apartment (or occasionally a whole
@@ -180,32 +181,19 @@ function parsePostedAt(item: ApifySpareRoomItem): Date | null {
   return new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000)
 }
 
-export const fetchSpareRoomViaApify = async (): Promise<ApifySpareRoomItem[]> => {
-  const apifyToken = process.env.APIFY_API_TOKEN
-  if (!apifyToken) {
-    throw new Error('APIFY_API_TOKEN is not set')
-  }
-
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        startUrls: [SF_SEARCH_URL],
-        maxItems: MAX_ITEMS_PER_RUN,
-        monitoringMode: false,
-        enrichEmails: false,
-      }),
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(`Apify SpareRoom actor returned ${res.status}: ${await res.text()}`)
-  }
-
-  return (await res.json()) as ApifySpareRoomItem[]
-}
+// Async run+poll+dataset-fetch via lib/apifyAsync.ts, not the old blocking
+// run-sync-get-dataset-items endpoint - see that file's header comment for
+// why. `step` must be the calling Inngest function's own step object - the
+// helper makes its own step.run/step.sleep calls internally, so this can't
+// be called from inside another step.run() (Inngest doesn't support
+// nesting steps).
+export const fetchSpareRoomViaApify = (step: ApifyStepTools): Promise<ApifySpareRoomItem[]> =>
+  runApifyActorAsync<ApifySpareRoomItem>(step, APIFY_ACTOR, {
+    startUrls: [SF_SEARCH_URL],
+    maxItems: MAX_ITEMS_PER_RUN,
+    monitoringMode: false,
+    enrichEmails: false,
+  })
 
 export const upsertApifySpareRoomListings = async (
   items: ApifySpareRoomItem[]
@@ -262,7 +250,7 @@ export const spareroomPoller = inngest.createFunction(
     }
 
     try {
-      const items = await step.run('fetch-spareroom-apify', fetchSpareRoomViaApify)
+      const items = await fetchSpareRoomViaApify(step)
 
       let upserted = 0
       const canonicalIds: string[] = []

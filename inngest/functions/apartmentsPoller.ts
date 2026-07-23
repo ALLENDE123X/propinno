@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { dedupeAndUpsertListings } from '@/lib/listings'
 import { claimDailyBudget } from '@/lib/pollerBudget'
 import { parseImagesFromApartments } from '@/lib/listingImages'
+import { runApifyActorAsync, type ApifyStepTools } from '@/lib/apifyAsync'
 
 // Apartments.com listings come from an Apify actor
 // (epctex/apartments-scraper-api), following the same "research + live-test
@@ -199,30 +200,17 @@ function parseRelativeUpdatedAt(lastUpdated: string | null | undefined, now: num
   return new Date(now - amount * ms)
 }
 
-export const fetchApartmentsViaApify = async (): Promise<ApifyApartmentsProperty[]> => {
-  const apifyToken = process.env.APIFY_API_TOKEN
-  if (!apifyToken) {
-    throw new Error('APIFY_API_TOKEN is not set')
-  }
-
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${apifyToken}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        search: 'San Francisco, CA',
-        maxItems: MAX_PROPERTIES_PER_RUN
-      })
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(`Apify Apartments.com actor returned ${res.status}: ${await res.text()}`)
-  }
-
-  return (await res.json()) as ApifyApartmentsProperty[]
-}
+// Async run+poll+dataset-fetch via lib/apifyAsync.ts, not the old blocking
+// run-sync-get-dataset-items endpoint - see that file's header comment for
+// why. `step` must be the calling Inngest function's own step object - the
+// helper makes its own step.run/step.sleep calls internally, so this can't
+// be called from inside another step.run() (Inngest doesn't support
+// nesting steps).
+export const fetchApartmentsViaApify = (step: ApifyStepTools): Promise<ApifyApartmentsProperty[]> =>
+  runApifyActorAsync<ApifyApartmentsProperty>(step, APIFY_ACTOR, {
+    search: 'San Francisco, CA',
+    maxItems: MAX_PROPERTIES_PER_RUN
+  })
 
 // Pure, synchronous fan-out (one property -> N unit rows) - not wrapped in
 // its own step.run since it does no I/O and is cheap/deterministic, same
@@ -304,7 +292,7 @@ export const apartmentsPoller = inngest.createFunction(
     }
 
     try {
-      const properties = await step.run('fetch-apartments-apify', fetchApartmentsViaApify)
+      const properties = await fetchApartmentsViaApify(step)
       const units = flattenApartmentsUnits(properties)
 
       let upserted = 0
