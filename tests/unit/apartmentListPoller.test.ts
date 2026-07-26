@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   fetchApartmentListViaApify,
+  flattenApartmentListUnits,
   upsertApifyApartmentListListings,
   apartmentListPoller
 } from '@/inngest/functions/apartmentListPoller'
@@ -120,6 +121,45 @@ describe('fetchApartmentListViaApify', () => {
   })
 })
 
+describe('flattenApartmentListUnits', () => {
+  it('produces one row per live unit, pairing it with its parent property, skipping unpriced floorplan templates', () => {
+    const units = flattenApartmentListUnits([SAMPLE_ITEM])
+    expect(units).toHaveLength(1)
+    expect(units[0].property.id).toBe('p1140681')
+    expect(units[0].unit.unitName).toBe('507')
+  })
+
+  it('produces zero rows for a property whose only units are unpriced templates', () => {
+    const item = { ...SAMPLE_ITEM, units: [SAMPLE_ITEM.units[0]] }
+    expect(flattenApartmentListUnits([item])).toEqual([])
+  })
+
+  it('produces zero rows when units is missing entirely', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { units: _units, ...withoutUnits } = SAMPLE_ITEM
+    expect(flattenApartmentListUnits([withoutUnits as typeof SAMPLE_ITEM])).toEqual([])
+  })
+
+  it('returns [] for non-array input', () => {
+    expect(flattenApartmentListUnits(null as unknown as never[])).toEqual([])
+  })
+
+  // This is the regression guard for the production 504 (issue #76): the
+  // handler must chunk on flattened units, so a property that fans out to
+  // many units contributes all of them to the flat count rather than
+  // hiding them behind a single "item".
+  it('fans a multi-unit property out to one row per live unit (the real production shape)', () => {
+    const item = {
+      ...SAMPLE_ITEM,
+      units: Array.from({ length: 45 }, (_, i) => ({
+        ...SAMPLE_ITEM.units[1],
+        unitName: `unit-${i}`
+      }))
+    }
+    expect(flattenApartmentListUnits([item])).toHaveLength(45)
+  })
+})
+
 describe('upsertApifyApartmentListListings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -130,8 +170,8 @@ describe('upsertApifyApartmentListListings', () => {
     expect(dedupeAndUpsertListings).not.toHaveBeenCalled()
   })
 
-  it('explodes a property into one listing per live (available + priced) unit, skipping unpriced floorplan templates', async () => {
-    const result = await upsertApifyApartmentListListings([SAMPLE_ITEM])
+  it('maps a flattened live unit onto the shared listing shape', async () => {
+    const result = await upsertApifyApartmentListListings(flattenApartmentListUnits([SAMPLE_ITEM]))
     expect(result).toEqual({ count: 1, canonicalIds: ['1'] })
     expect(dedupeAndUpsertListings).toHaveBeenCalledTimes(1)
     const values = vi.mocked(dedupeAndUpsertListings).mock.calls[0][0]
@@ -153,19 +193,31 @@ describe('upsertApifyApartmentListListings', () => {
 
   it('returns { count: 0, canonicalIds: [] } and skips dedupe when a property has no live units', async () => {
     const item = { ...SAMPLE_ITEM, id: 'no-live-units', units: [SAMPLE_ITEM.units[0]] }
-    expect(await upsertApifyApartmentListListings([item])).toEqual({ count: 0, canonicalIds: [] })
+    expect(await upsertApifyApartmentListListings(flattenApartmentListUnits([item]))).toEqual({
+      count: 0,
+      canonicalIds: []
+    })
     expect(dedupeAndUpsertListings).not.toHaveBeenCalled()
   })
 
   it('falls back to a generic SF address when formattedAddress is absent', async () => {
     const item = { ...SAMPLE_ITEM, id: 'no-address', formattedAddress: undefined }
-    await upsertApifyApartmentListListings([item])
+    await upsertApifyApartmentListListings(flattenApartmentListUnits([item]))
     const values = vi.mocked(dedupeAndUpsertListings).mock.calls[0][0]
     expect(values[0].address).toBe('San Francisco, CA')
   })
 
+  it('strips the sibling units array out of raw but keeps this row\'s specific unit', async () => {
+    await upsertApifyApartmentListListings(flattenApartmentListUnits([SAMPLE_ITEM]))
+    const values = vi.mocked(dedupeAndUpsertListings).mock.calls[0][0]
+    const raw = values[0].raw as { property: Record<string, unknown>; unit: Record<string, unknown> }
+    expect(raw.property).not.toHaveProperty('units')
+    expect(raw.property.propertyName).toBe('The Martin')
+    expect(raw.unit).toMatchObject({ unitName: '507', price: 3805 })
+  })
+
   it('maps images with the specific unit photo first, followed by the property gallery (real Apify shape)', async () => {
-    await upsertApifyApartmentListListings([SAMPLE_ITEM])
+    await upsertApifyApartmentListListings(flattenApartmentListUnits([SAMPLE_ITEM]))
     const values = vi.mocked(dedupeAndUpsertListings).mock.calls[0][0]
     expect(values[0].images).toEqual([
       'https://cdn.apartmentlist.com/image/upload/f_auto,q_auto/7ee2f85f6a5a3c613023dcfb145550c2.jpg',
@@ -180,7 +232,7 @@ describe('upsertApifyApartmentListListings', () => {
       id: 'no-unit-photo',
       units: [{ ...SAMPLE_ITEM.units[1], photos: undefined }]
     }
-    await upsertApifyApartmentListListings([item])
+    await upsertApifyApartmentListListings(flattenApartmentListUnits([item]))
     const values = vi.mocked(dedupeAndUpsertListings).mock.calls[0][0]
     expect(values[0].images).toEqual(SAMPLE_ITEM.photos)
   })
@@ -194,7 +246,7 @@ describe('upsertApifyApartmentListListings', () => {
         { ...SAMPLE_ITEM.units[1], unitName: '308', price: 4032, availability: 'available' }
       ]
     }
-    await upsertApifyApartmentListListings([item])
+    await upsertApifyApartmentListListings(flattenApartmentListUnits([item]))
     const values = vi.mocked(dedupeAndUpsertListings).mock.calls[0][0]
     expect(values.map((v: { sourceId: string }) => v.sourceId)).toEqual(['multi-unit-507', 'multi-unit-308'])
   })
@@ -268,8 +320,49 @@ describe('apartmentListPoller handler', () => {
     expect(step.sendEvent).not.toHaveBeenCalled()
   })
 
+  // Regression guard for the production 504 (issue #76). Before the fix the
+  // handler chunked on *properties*, so these 2 properties were a single
+  // chunk containing 90 listings - ~180 sequential DB round-trips in one
+  // 60s Vercel invocation. Chunking on flattened units splits it into 50+40.
+  it('chunks on flattened units, not properties, when few properties fan out to many units', async () => {
+    const manyUnits = Array.from({ length: 45 }, (_, i) => ({
+      ...SAMPLE_ITEM.units[1],
+      unitName: `unit-${i}`
+    }))
+    const items = [
+      { ...SAMPLE_ITEM, id: 'prop-a', units: manyUnits },
+      { ...SAMPLE_ITEM, id: 'prop-b', units: manyUnits }
+    ]
+    const chunkSizes: number[] = []
+
+    const step = {
+      run: vi.fn().mockImplementation((name: string, fn: () => unknown) => {
+        if (name === 'check-daily-budget') return Promise.resolve(true)
+        if (name === 'start-apify-run') return Promise.resolve({ id: 'run-1', status: 'SUCCEEDED', defaultDatasetId: 'ds-1' })
+        if (name === 'fetch-apify-dataset') return Promise.resolve(items)
+        if (/^upsert-listings-chunk-\d+$/.test(name)) {
+          // Run the real upsert so we can observe the true per-chunk listing count.
+          return Promise.resolve(fn()).then(() => {
+            const call = vi.mocked(dedupeAndUpsertListings).mock.calls.at(-1)
+            chunkSizes.push(call ? call[0].length : 0)
+            return { count: 0, canonicalIds: [] }
+          })
+        }
+        return fn()
+      }),
+      sleep: vi.fn().mockResolvedValue(undefined),
+      sendEvent: vi.fn().mockResolvedValue(undefined)
+    }
+
+    const result = await apartmentListPoller['fn']({ step })
+
+    expect(chunkSizes).toEqual([50, 40])
+    expect(chunkSizes.every((n) => n <= 50)).toBe(true)
+    expect(result).toEqual({ fetched: 90, upserted: 0 })
+  })
+
   it('chunks results into multiple step.run calls when above the chunk size', async () => {
-    // 120 properties at a 50-item chunk size should produce 3 chunks: 50, 50, 20.
+    // 120 single-live-unit properties => 120 units => 3 chunks: 50, 50, 20.
     const items = Array.from({ length: 120 }, (_, i) => ({ ...SAMPLE_ITEM, id: `item-${i}` }))
     const chunkCalls: string[] = []
 
