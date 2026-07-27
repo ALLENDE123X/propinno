@@ -66,6 +66,16 @@ const APIFY_ACTOR = 'solidcode~apartmentlist-com-scraper'
 // rather than the 2h Craigslist/Facebook cadence - see the cron below.
 // MAX_ITEMS_PER_RUN counts properties (Apify's billed "result" unit), not
 // the exploded per-unit listings that come out of upsert.
+//
+// Run-time note (issue #78, 2026-07-27): this is the one actor in the fleet
+// with a pathological tail. Its 11 observed runs are 17.7-92.3s except a
+// single 923.0s outlier - and that outlier returned the same 80 items on
+// 300KB of payload against the fast runs' 1.58MB, i.e. it degraded and
+// retried rather than scraping more. Duration is uncorrelated with item
+// count here, so lowering MAX_ITEMS_PER_RUN would not tame it, and
+// includeDetails (the actor's dominant speed lever) is what produces the
+// units[] pricing this whole mapping depends on. The fix lives in
+// lib/apifyAsync.ts's wait budget instead - see its header comment.
 const MAX_ITEMS_PER_RUN = 80
 // Counts *flattened units* (= one Propinno listing each), NOT properties.
 // This distinction is load-bearing and was the cause of a real production

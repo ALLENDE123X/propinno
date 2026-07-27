@@ -61,6 +61,76 @@
 // steps (`upsert-listings-chunk-${i}`) - safe here too since each poller
 // invocation only ever calls this helper once, so there's no cross-call
 // name collision to guard against with a source-specific prefix.
+//
+// ---------------------------------------------------------------------
+// 2026-07-27 (issue #78) - two-phase wait budget + non-retriable failures
+// ---------------------------------------------------------------------
+// The original budget was a flat 30 polls x 10s (~5 min), justified at the
+// time as "a real actor run is usually done well within that". It was, for
+// six of the seven actors. It wasn't for apartment-list, and the poller
+// paged the admin at 06:30 UTC on 2026-07-27 with "did not finish within
+// 30 polls (~5.0min) - last status RUNNING".
+//
+// The run we gave up on had SUCCEEDED. Apify run 8NAHaL2NsPHaREOCe:
+// startedAt 06:30:03.902Z, finishedAt 06:45:26.896Z = 922.99s, exitCode 0,
+// "Done! 80 results from 1 items.", $0.185 billed. We paid for it, alerted
+// on it, and threw the 80 properties away 10 minutes before they landed.
+//
+// Sizing the new budget off real run-time history rather than a guess -
+// all 11 runs of solidcode~apartmentlist-com-scraper on this account:
+//   17.7 20.7 23.6 28.2 28.4 35.0 44.3 57.6 61.5 92.3 | 923.0 seconds
+//   min 17.7 / median 35.0 / p90 92.3 / max 923.0, zero non-SUCCEEDED.
+// That is a 10x gap between p90 and max with nothing in between: ten
+// healthy runs in a tight 17-92s band, one 15-minute stall. The stall is a
+// degradation, not extra work - the 923s run returned the same 80 items as
+// the fast ones but only 300KB of payload against their 1.58MB (sparser
+// photos/units.photos), i.e. it spent 15 minutes retrying, not scraping
+// more. Item count is constant across every run, so this is NOT a scope
+// problem and lowering MAX_ITEMS_PER_RUN would not have prevented it.
+// Across 165 scheduled poller runs (2026-07-23..27) the worst run belonging
+// to any *other* actor is 197.0s, so this is apartment-list-specific rather
+// than a fleet-wide default being wrong.
+//
+// So the budget is two-phase rather than simply "a bigger number":
+//   - the first FAST_POLL_WINDOW_SECONDS (300s) is byte-identical to the
+//     old behaviour - 10s polls - because every one of those 165 healthy
+//     runs finishes inside it. Normal-case data latency does not regress.
+//   - past that the run is already pathological by definition, so polling
+//     at 10s resolution buys nothing; back off to 60s out to a 22-minute
+//     ceiling. Fixed 10s polling to 22 minutes would cost ~264 Inngest
+//     steps; two-phase costs ~96 for the same ceiling.
+// Waiting longer is close to free here: since PR #75 the wait is
+// step.sleep, so each poll is its own sub-second Vercel invocation and the
+// route's 60s maxDuration is not involved at all. The only cost of a longer
+// ceiling is Inngest steps, and the cost of too short a ceiling is a
+// paid-for run discarded plus a false-alarm page.
+//
+// Both function-body throws below are NonRetriableError, and that is
+// load-bearing rather than cosmetic. Inngest memoizes step results
+// (inngest/types.d.ts: "The ID to use to memoize the result of this step,
+// ensuring it is run only once"), and these two errors are thrown in the
+// function body, outside any step.run. On an Inngest retry every completed
+// step - start-apify-run and all N check-apify-run-status-N - replays from
+// state, so the loop re-derives the same stale status and re-throws
+// instantly. All four default retries are provably no-ops. Confirmed in
+// production: the Apify run list shows no second apartment-list run after
+// the 06:30 failure, so the retries never re-started the actor (no
+// duplicate billing - but no recovery either). NB this is a real behaviour
+// change PR #75 introduced without noticing: before it, the fetch lived
+// inside a single step.run, so Inngest's *step-level* retry re-ran the
+// whole fetch, and apartment-list-poller is recorded recovering exactly
+// that way on 2026-07-22. Errors thrown *inside* the step.run helpers below
+// (non-ok HTTP responses) deliberately stay retryable - that is the layer
+// where a retry genuinely helps.
+//
+// Residual risk accepted deliberately: a run that outlives even the
+// 22-minute ceiling is still orphaned (it keeps executing on Apify and we
+// never read its dataset). Not worth guarding further - the actors are
+// billed per result against a MAX_ITEMS_PER_RUN cap, so an orphaned run's
+// cost is bounded at that run's normal price no matter how long it lasts,
+// and the next scheduled tick re-fetches the same inventory anyway.
+
+import { NonRetriableError } from 'inngest'
 
 export type ApifyRunStatus =
   | 'READY'
@@ -100,14 +170,20 @@ export interface ApifyStepTools {
 }
 
 export interface RunApifyActorAsyncOptions {
-  /** Seconds to wait between poll attempts. Default 10s. */
+  /** Seconds between polls while the run is still inside the fast window. Default 10s. */
   pollIntervalSeconds?: number
-  /** Max poll attempts before failing closed. Default 30 (~5 minutes at the default 10s interval) - a real actor run is usually done well within that, see each poller's own live-tested run-time notes. */
-  maxPolls?: number
+  /** How long to keep polling at `pollIntervalSeconds` before backing off. Default 300s - every healthy run of every actor observed in production finishes inside this. */
+  fastPollWindowSeconds?: number
+  /** Seconds between polls once the run has outlived the fast window and is pathological by definition. Default 60s. */
+  slowPollIntervalSeconds?: number
+  /** Total wall-clock seconds to wait for a terminal status before failing closed. Default 1320s (22 min) - see this file's header for the run-time history this is sized against. */
+  maxWaitSeconds?: number
 }
 
 const DEFAULT_POLL_INTERVAL_SECONDS = 10
-const DEFAULT_MAX_POLLS = 30
+const DEFAULT_FAST_POLL_WINDOW_SECONDS = 300
+const DEFAULT_SLOW_POLL_INTERVAL_SECONDS = 60
+const DEFAULT_MAX_WAIT_SECONDS = 1320
 
 async function startApifyRun(actorId: string, input: Record<string, unknown>, token: string): Promise<ApifyRun> {
   const res = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${token}`, {
@@ -158,14 +234,23 @@ export async function runApifyActorAsync<T>(
   }
 
   const pollIntervalSeconds = opts.pollIntervalSeconds ?? DEFAULT_POLL_INTERVAL_SECONDS
-  const maxPolls = opts.maxPolls ?? DEFAULT_MAX_POLLS
+  const fastPollWindowSeconds = opts.fastPollWindowSeconds ?? DEFAULT_FAST_POLL_WINDOW_SECONDS
+  const slowPollIntervalSeconds = opts.slowPollIntervalSeconds ?? DEFAULT_SLOW_POLL_INTERVAL_SECONDS
+  const maxWaitSeconds = opts.maxWaitSeconds ?? DEFAULT_MAX_WAIT_SECONDS
 
   const run = (await step.run('start-apify-run', () => startApifyRun(actorId, input, apifyToken))) as ApifyRun
 
   let status = run.status
   let attempt = 0
-  while (!TERMINAL_STATUSES.includes(status) && attempt < maxPolls) {
-    await step.sleep(`wait-for-apify-run-${attempt}`, `${pollIntervalSeconds}s`)
+  let waitedSeconds = 0
+  while (!TERMINAL_STATUSES.includes(status) && waitedSeconds < maxWaitSeconds) {
+    // Two-phase: poll at the fast interval until the run has clearly stopped
+    // behaving normally, then back off - see this file's header for the
+    // real run-time distribution these two phases are sized against.
+    const intervalSeconds =
+      waitedSeconds < fastPollWindowSeconds ? pollIntervalSeconds : slowPollIntervalSeconds
+    await step.sleep(`wait-for-apify-run-${attempt}`, `${intervalSeconds}s`)
+    waitedSeconds += intervalSeconds
     const polled = (await step.run(`check-apify-run-status-${attempt}`, () =>
       getApifyRunStatus(run.id, apifyToken)
     )) as ApifyRun
@@ -173,15 +258,20 @@ export async function runApifyActorAsync<T>(
     attempt += 1
   }
 
+  // NonRetriableError, not Error: every completed step above is memoized, so
+  // an Inngest retry replays them and re-derives this exact same status
+  // instantly. Retrying is a guaranteed no-op - see this file's header.
   if (!TERMINAL_STATUSES.includes(status)) {
-    const waitedMinutes = ((maxPolls * pollIntervalSeconds) / 60).toFixed(1)
-    throw new Error(
-      `Apify run ${run.id} for ${actorId} did not finish within ${maxPolls} polls (~${waitedMinutes}min) - last status ${status}`
+    const waitedMinutes = (waitedSeconds / 60).toFixed(1)
+    throw new NonRetriableError(
+      `Apify run ${run.id} for ${actorId} did not finish within ${attempt} polls (~${waitedMinutes}min) - last status ${status}. The run may still be executing on Apify; the next scheduled tick will re-fetch this source.`
     )
   }
 
   if (status !== 'SUCCEEDED') {
-    throw new Error(`Apify run ${run.id} for ${actorId} finished with status ${status}, not SUCCEEDED`)
+    throw new NonRetriableError(
+      `Apify run ${run.id} for ${actorId} finished with status ${status}, not SUCCEEDED`
+    )
   }
 
   return (await step.run('fetch-apify-dataset', () => getApifyRunDatasetItems<T>(run.id, apifyToken))) as T[]
