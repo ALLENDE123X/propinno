@@ -170,8 +170,8 @@ export default async function Home() {
       {/* 6. Pricing */}
       <section className="py-24 px-6 max-w-5xl mx-auto border-t border-zinc-800">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Simple, one-time pricing</h2>
-          <p className="text-zinc-400">No subscriptions. No auto-renewals. Pay once, find a place, and you&apos;re done.</p>
+          <h2 className="text-3xl font-bold mb-4">Simple, cancel-anytime pricing</h2>
+          <p className="text-zinc-400">Your plan renews automatically until you cancel. Found a place? Hit &ldquo;I found a place&rdquo; in your account and billing stops immediately.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
@@ -179,13 +179,13 @@ export default async function Home() {
             <h3 className="text-xl font-semibold mb-2">30-Day Pass</h3>
             <p className="text-zinc-400 text-sm mb-8">Perfect for quick moves.</p>
             <div className="mb-8">
-              <span className="text-5xl font-bold text-white">$39</span>
-              <span className="text-zinc-500 ml-2 font-medium">one-time</span>
+              <span className="text-5xl font-bold text-white">$9</span>
+              <span className="text-zinc-500 ml-2 font-medium">/month</span>
             </div>
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-zinc-500" /> Real-time SMS alerts</li>
               <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-zinc-500" /> All sources watched</li>
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-zinc-500" /> 30 days of access</li>
+              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-zinc-500" /> Renews monthly · cancel anytime</li>
             </ul>
           </div>
 
@@ -196,13 +196,13 @@ export default async function Home() {
             <h3 className="text-xl font-semibold mb-2">90-Day Pass</h3>
             <p className="text-zinc-400 text-sm mb-8">For the serious apartment hunter.</p>
             <div className="mb-8">
-              <span className="text-5xl font-bold text-white">$69</span>
-              <span className="text-zinc-500 ml-2 font-medium">one-time</span>
+              <span className="text-5xl font-bold text-white">$19</span>
+              <span className="text-zinc-500 ml-2 font-medium">/3 months</span>
             </div>
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-white" /> Real-time SMS alerts</li>
               <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-white" /> All sources watched</li>
-              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-white" /> 90 days of access</li>
+              <li className="flex items-center text-sm text-zinc-300"><CheckCircle2 className="w-5 h-5 mr-3 text-white" /> Renews every 3 months · cancel anytime</li>
             </ul>
           </div>
         </div>

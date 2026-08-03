@@ -27,21 +27,27 @@ export default function TermsPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-white">4. Pricing and Payment</h2>
-          <p>Propinno offers two one-time access passes:</p>
+          <h2 className="text-2xl font-semibold text-white">4. Pricing, Automatic Renewal, and Cancellation</h2>
+          <p>Propinno offers two recurring, automatically renewing subscription plans:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong className="text-white">30-Day Pass:</strong> $39 (one-time payment)</li>
-            <li><strong className="text-white">90-Day Pass:</strong> $69 (one-time payment)</li>
+            <li><strong className="text-white">30-Day Pass:</strong> $9 USD, charged every month until cancelled</li>
+            <li><strong className="text-white">90-Day Pass:</strong> $19 USD, charged every 3 months until cancelled</li>
           </ul>
           <p>
-            There are no recurring subscriptions or automatic renewals. Your pass expires at the end of the purchased period. Payments are processed securely by Stripe.
+            <strong className="text-white">These are auto-renewing subscriptions.</strong> When you subscribe, you authorize Propinno to charge your payment method the amount above at the start of each billing period, automatically, on an ongoing basis, until you cancel. Your access continues for as long as your subscription is active. Prices are in US dollars and exclude any applicable taxes.
+          </p>
+          <p>
+            <strong className="text-white">How to cancel:</strong> Sign in and press the <strong className="text-white">&ldquo;I found a place (Cancel &amp; stop texts)&rdquo;</strong> button on your account page. That single action cancels your subscription immediately — no future charges will be made, and your listing alerts stop. You can cancel at any time, for any reason, without contacting us. If you would rather cancel by email, write to propinno.app@gmail.com from the address or phone number on your account and we will cancel it for you.
+          </p>
+          <p>
+            Cancellation stops all future charges. Because cancellation takes effect immediately, charges already made for the current billing period are not automatically prorated or refunded — see the Refund Policy section below. Payments are processed securely by Stripe; Propinno does not store your card details.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-white">5. SMS Messaging Terms</h2>
           <p>
-            By verifying your phone number and purchasing an access pass on Propinno, you expressly consent to receive automated SMS text messages from Propinno at the phone number you provided. These messages will contain apartment listing alerts matching your search criteria.
+            By verifying your phone number and subscribing to Propinno, you expressly consent to receive automated SMS text messages from Propinno at the phone number you provided. These messages will contain apartment listing alerts matching your search criteria.
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong className="text-white">Program name:</strong> Propinno Apartment Alerts</li>
@@ -51,7 +57,7 @@ export default function TermsPage() {
             <li><strong className="text-white">To get help:</strong> Text HELP to any Propinno message for support, or email propinno.app@gmail.com.</li>
           </ul>
           <p>
-            Consent to receive SMS messages is not required as a condition of purchasing any goods or services, though an active access pass is required for listing alerts to be delivered.
+            Consent to receive SMS messages is not required as a condition of purchasing any goods or services, though an active subscription is required for listing alerts to be delivered.
           </p>
           <p>
             Carriers are not liable for delayed or undelivered messages.
@@ -68,7 +74,7 @@ export default function TermsPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-white">7. Refund Policy</h2>
           <p>
-            Access passes are non-refundable once purchased. If you experience a technical issue that prevents the service from functioning, contact us at propinno.app@gmail.com and we will work to resolve the issue or provide a credit at our discretion.
+            Subscription charges are non-refundable once made, and cancelling part-way through a billing period does not automatically refund or prorate that period. If you experience a technical issue that prevents the service from functioning, contact us at propinno.app@gmail.com and we will work to resolve the issue or provide a refund or credit at our discretion.
           </p>
         </section>
 

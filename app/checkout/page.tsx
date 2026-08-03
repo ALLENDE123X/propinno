@@ -24,9 +24,9 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
     try {
       await markFoundPlace()
       onFoundPlace()
-      toast.success("Congratulations! We've stopped your texts.")
-    } catch {
-      toast.error("Failed to update status")
+      toast.success("Congratulations! Your subscription is cancelled and your texts have stopped.")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update status")
     }
     setLoading(false)
   }
@@ -39,7 +39,7 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">Your pass is active</h1>
         <p className="text-zinc-400 mb-8">
-          We are scanning for listings and will text you as soon as matches drop.
+          We are scanning for listings and will text you as soon as matches drop. Your plan renews automatically until you cancel.
         </p>
         <Link href="/dashboard" className="block mb-6">
           <Button className="w-full bg-white text-black hover:bg-zinc-200">
@@ -48,13 +48,16 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
         </Link>
         <div className="space-y-4 border-t border-zinc-800 pt-6">
           <h3 className="text-white font-medium">No longer looking?</h3>
-          <Button 
+          <p className="text-zinc-400 text-sm">
+            This cancels your subscription immediately — no further charges — and stops your texts. The rest of the period you&apos;ve already paid for isn&apos;t refunded.
+          </p>
+          <Button
             onClick={handleFoundPlace}
             disabled={loading}
             className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
           >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            I found a place (Stop texts)
+            I found a place (Cancel & stop texts)
           </Button>
         </div>
       </div>
@@ -68,7 +71,7 @@ function FoundPlaceView({ onNeedToHunt }: { onNeedToHunt: () => void }) {
       <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
         <h1 className="text-2xl font-bold text-white mb-2">Congratulations! 🎉</h1>
         <p className="text-zinc-400 mb-8">
-          We&apos;re glad you found a place. Your texts have been paused.
+          We&apos;re glad you found a place. Your subscription is cancelled — you won&apos;t be charged again — and your texts have stopped.
         </p>
         <Button 
           onClick={onNeedToHunt}
@@ -84,6 +87,7 @@ function FoundPlaceView({ onNeedToHunt }: { onNeedToHunt: () => void }) {
 function PassCard({
   title,
   price,
+  period,
   features,
   buttonText,
   popular,
@@ -92,6 +96,7 @@ function PassCard({
 }: {
   title: string
   price: string
+  period: string
   features: string[]
   buttonText: string
   popular?: boolean
@@ -109,7 +114,7 @@ function PassCard({
         <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
         <div className="flex items-baseline gap-2">
           <span className="text-4xl font-bold text-white">${price}</span>
-          <span className="text-zinc-400">one-time</span>
+          <span className="text-zinc-400">{period}</span>
         </div>
       </div>
       <ul className="space-y-4 mb-8 flex-1">
@@ -152,31 +157,37 @@ function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
             {isExpired ? "Extend your access" : "Choose your access pass"}
           </h1>
-          <p className="text-zinc-400 text-lg">One-time payment. No recurring subscription. No auto-renew.</p>
+          <p className="text-zinc-400 text-lg">
+            Renews automatically until you cancel. Cancel anytime in one click with &ldquo;I found a place&rdquo;.
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           <PassCard
             title="30-Day Pass"
-            price="39"
+            price="9"
+            period="/month"
             features={[
               "Real-time SMS alerts for new listings",
               "Exact match to your criteria",
-              "Deduplicated across sources"
+              "Deduplicated across sources",
+              "Renews monthly · cancel anytime"
             ]}
-            buttonText="Get 30-Day Pass"
+            buttonText="Subscribe — $9/month"
             loading={loading === "pass_30"}
             onCheckout={() => handleCheckout("pass_30")}
           />
           <PassCard
             title="90-Day Pass"
-            price="69"
+            price="19"
+            period="/3 months"
             features={[
               "Everything in 30-Day Pass",
-              "Extra 60 days of coverage",
-              "Recommended: most apartment hunts take 4-8 weeks"
+              "Best value: works out to ~$6.33/month",
+              "Recommended: most apartment hunts take 4-8 weeks",
+              "Renews every 3 months · cancel anytime"
             ]}
-            buttonText="Get 90-Day Pass"
+            buttonText="Subscribe — $19/3 months"
             popular={true}
             loading={loading === "pass_90"}
             onCheckout={() => handleCheckout("pass_90")}

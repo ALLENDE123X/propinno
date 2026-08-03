@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             <li>To verify your identity via phone number OTP</li>
             <li>To match apartment listings against your search criteria</li>
             <li>To send you SMS notifications when matching listings are found</li>
-            <li>To process your one-time access pass payment</li>
+            <li>To process your subscription payments, including automatic renewals</li>
           </ul>
           <p>
             We do not sell, rent, or share your personal information with third parties for marketing purposes. We do not send promotional or marketing messages. All SMS messages are transactional listing alerts that you opted into.

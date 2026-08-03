@@ -33,7 +33,23 @@ export const users = pgTable('users', {
   quietEnd: time('quiet_end').notNull().default('08:00:00'),
   maxDailySms: integer('max_daily_sms').notNull().default(20),
   notificationsPaused: boolean('notifications_paused').notNull().default(false),
-})
+  // Recurring-subscription billing (2026-08-02). Both nullable: a user exists
+  // from OTP verification onward, well before any Stripe object does, and both
+  // are cleared again when a subscription ends. `stripeCustomerId` is reused on
+  // re-subscribe so one phone number never accumulates duplicate Stripe
+  // customers; `stripeSubscriptionId` is the handle `markFoundPlace()` needs to
+  // actually CANCEL future charges (see lib/billing.ts) and the key the
+  // renewal/cancellation webhooks look a user up by. Indexed (non-unique)
+  // because both are webhook lookup keys, not application-enforced identities —
+  // a user who cancels and re-subscribes legitimately moves through several
+  // subscription ids over time, and a unique constraint would turn any Stripe
+  // replay/edge case into a hard 500 in the webhook rather than a no-op.
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+}, (table) => [
+  index('users_stripe_customer_id_idx').on(table.stripeCustomerId),
+  index('users_stripe_subscription_id_idx').on(table.stripeSubscriptionId),
+])
 
 export const listings = pgTable('listings', {
   id: uuid('id').defaultRandom().primaryKey(),
