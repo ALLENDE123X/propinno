@@ -149,6 +149,17 @@ const billingUserColumns = {
  * customer id second — the customer is the durable identifier that survives a
  * subscription being replaced, so it rescues events that arrive after we've
  * already nulled out a subscription id.
+ *
+ * The customer fallback is deliberately NOT unconditional. A Stripe customer
+ * outlives any individual subscription, and Stripe guarantees neither ordering
+ * nor exactly-once webhook delivery — so a late or redelivered event for an
+ * OLD subscription can arrive after the same person has already re-subscribed.
+ * Trusting the customer match blindly there would resolve to a user holding a
+ * DIFFERENT, live, paid subscription and then (in `handleSubscriptionDeleted`)
+ * revoke their access and null out the very id `markFoundPlace()` needs to
+ * cancel it — locking them out of the product while still charging them, with
+ * the cancel button silently doing nothing. So the fallback is only trusted
+ * when it does not contradict a different subscription already on the row.
  */
 async function findUserForSubscription(
   subscriptionId: string | null,
@@ -162,7 +173,18 @@ async function findUserForSubscription(
   if (customerId) {
     const [byCustomer] = await db.select(billingUserColumns).from(users)
       .where(eq(users.stripeCustomerId, customerId)).limit(1)
-    if (byCustomer) return byCustomer as BillingUser
+    if (byCustomer && (!byCustomer.stripeSubscriptionId || byCustomer.stripeSubscriptionId === subscriptionId)) {
+      return byCustomer as BillingUser
+    }
+    if (byCustomer) {
+      logger.error({
+        customerId,
+        eventSubscriptionId: subscriptionId,
+        storedSubscriptionId: byCustomer.stripeSubscriptionId,
+        userId: byCustomer.id,
+        action: 'stripe_stale_event_for_replaced_subscription',
+      })
+    }
   }
   return null
 }
@@ -277,6 +299,11 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
  * The one status that is NEVER overwritten is 'done': markFoundPlace() cancels
  * the subscription itself, and Stripe's resulting deleted event must not stomp
  * that terminal "congratulations, you found a place" state back to 'expired'.
+ *
+ * This is the ONLY code path that revokes access, so it is guarded twice
+ * against acting on a stale event: once in `findUserForSubscription()`, and
+ * again here against the resolved row. Revoking on a subscription the user no
+ * longer holds would lock a paying subscriber out of the product.
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
   const customerId = toId(subscription.customer)
@@ -284,6 +311,16 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Pro
 
   if (!user) {
     logger.error({ subscriptionId: subscription.id, customerId, action: 'stripe_deleted_sub_user_not_found' })
+    return
+  }
+
+  if (user.stripeSubscriptionId && user.stripeSubscriptionId !== subscription.id) {
+    logger.error({
+      userId: user.id,
+      eventSubscriptionId: subscription.id,
+      storedSubscriptionId: user.stripeSubscriptionId,
+      action: 'stripe_deleted_sub_superseded_ignored',
+    })
     return
   }
 

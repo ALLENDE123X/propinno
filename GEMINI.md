@@ -43,5 +43,5 @@ After the PR is open and CI is green, before reporting completion:
 ## Key refs
 - Repo: `ALLENDE123X/propinno` · Spec: `PRD.md` · Architecture: `ARCHITECTURE.md` · Tickets: GitHub Issues (`AH-XXX`)
 - Supabase project ref: `klyzbaepzyyhykyeobbp` (region us-west-1, URL https://klyzbaepzyyhykyeobbp.supabase.co). Keys → env, not here.
-- Pricing: two one-time passes — **$39 / 30-day**, **$69 / 90-day**. No recurring subscription.
+- Pricing (changed 2026-08-02): two **recurring, auto-renewing subscriptions** — **$9/month** and **$19/every 3 months**. Replaced the original one-time passes ($39/30-day, $69/90-day). See `CLAUDE.md` and `ARCHITECTURE.md` §9 for the billing lifecycle and the outstanding Stripe live-mode cutover.
 - Env needed: SUPABASE keys · RENTCAST_API_KEY · TWILIO_* (A2P-registered) · STRIPE_* + 2 price IDs · MAPBOX_TOKEN.

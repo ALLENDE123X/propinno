@@ -251,6 +251,18 @@ describe('invoice.payment_succeeded (renewal)', () => {
     await handleStripeWebhookEvent(event('invoice.payment_succeeded', renewalInvoice))
     expect(updates).toHaveLength(0)
   })
+
+  // Same stale-event class as the deletion regression below: a redelivered
+  // renewal invoice for a replaced subscription must not overwrite the live
+  // subscription id on the row, or the cancel handle is lost.
+  it('IGNORES a stale renewal invoice for a subscription the user has already replaced', async () => {
+    selectRows.push([]) // no match on the stale subscription id
+    selectRows.push([{ id: USER_ID, status: 'active', plan: 'pass_30', accessExpiresAt: new Date(), stripeSubscriptionId: 'sub_new_B' }])
+
+    await handleStripeWebhookEvent(event('invoice.payment_succeeded', renewalInvoice))
+
+    expect(updates).toHaveLength(0)
+  })
 })
 
 describe('customer.subscription.deleted', () => {
@@ -276,6 +288,29 @@ describe('customer.subscription.deleted', () => {
     selectRows.push([])
     await handleStripeWebhookEvent(event('customer.subscription.deleted', { id: SUB_ID, customer: CUSTOMER_ID }))
     expect(updates).toHaveLength(0)
+  })
+
+  // Regression: Stripe guarantees neither ordering nor exactly-once delivery, so
+  // a deleted event for an OLD subscription can land after the same person has
+  // re-subscribed on the SAME customer. Resolving that by customer id alone
+  // would revoke a live, paid subscription and null out the id markFoundPlace()
+  // needs to cancel it — locking the user out while still charging them.
+  it('IGNORES a stale deleted event for a subscription the user has already replaced', async () => {
+    selectRows.push([]) // no match on the stale sub_A id
+    selectRows.push([{ id: USER_ID, status: 'active', plan: 'pass_30', accessExpiresAt: new Date(), stripeSubscriptionId: 'sub_new_B' }])
+
+    await handleStripeWebhookEvent(event('customer.subscription.deleted', { id: 'sub_old_A', customer: CUSTOMER_ID, status: 'canceled' }))
+
+    expect(updates).toHaveLength(0)
+  })
+
+  it('still resolves by customer when the user holds no subscription id', async () => {
+    selectRows.push([])
+    selectRows.push([{ id: USER_ID, status: 'active', plan: 'pass_30', accessExpiresAt: new Date(), stripeSubscriptionId: null }])
+
+    await handleStripeWebhookEvent(event('customer.subscription.deleted', { id: SUB_ID, customer: CUSTOMER_ID, status: 'canceled' }))
+
+    expect(updates).toEqual([{ status: 'expired', stripeSubscriptionId: null }])
   })
 })
 

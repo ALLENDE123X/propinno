@@ -154,8 +154,10 @@ export async function createCheckoutSession(plan: 'pass_30' | 'pass_90') {
       // Reuse the existing Stripe customer on re-subscribe so one phone number
       // doesn't accumulate a new customer per purchase.
       ...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : {}),
-      // Mirror our identifiers onto the subscription itself, so a subscription
-      // event can still be traced back to a user if the DB lookup ever misses.
+      // Mirror our identifiers onto the subscription itself. Not read by any
+      // code path (webhooks resolve the user from our own indexed columns) —
+      // this is for tracing a subscription back to a user in the Stripe
+      // dashboard when investigating a billing question or dispute.
       subscription_data: { metadata: { userId: validId, plan: parsed.plan } },
     })
 

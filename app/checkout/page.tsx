@@ -49,7 +49,7 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
         <div className="space-y-4 border-t border-zinc-800 pt-6">
           <h3 className="text-white font-medium">No longer looking?</h3>
           <p className="text-zinc-400 text-sm">
-            This cancels your subscription immediately — no further charges — and stops your texts.
+            This cancels your subscription immediately — no further charges — and stops your texts. The rest of the period you&apos;ve already paid for isn&apos;t refunded.
           </p>
           <Button
             onClick={handleFoundPlace}
