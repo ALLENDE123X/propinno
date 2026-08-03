@@ -32,12 +32,14 @@ Built by forking the Dealinno codebase and gutting the sales/email modules.
 ## 6. Onboarding & auth
 One public page: phone + criteria → Twilio OTP verify → create user(pending_payment)+criteria → live match preview (AH-011) → payment. No portal, no other auth. The onboarding page is also the landing page.
 
-## 7. Pricing & billing — one-time access passes
-The product **churns by design** (people find a place and leave), so there is **no recurring subscription** — auto-renew would generate post-move chargebacks/refunds that poison word-of-mouth. Two one-time passes:
-- **30-day pass — $39** (anchor)
-- **90-day pass — $69** (hero; labeled **"Most popular"**, pre-selected — hunts run long, most self-select here)
+## 7. Pricing & billing — recurring subscriptions (changed 2026-08-02)
+Two **recurring, auto-renewing subscriptions**:
+- **30-day pass — $9/month** (anchor)
+- **90-day pass — $19/every 3 months** (hero; labeled **"Most popular"**, pre-selected — hunts run long, most self-select here)
 
-Charge from day one (Stripe one-time Checkout / Payment Links + webhook activation). Access enforced via `access_expires_at`; expired/`done` users stop receiving texts. **"Found a place" button** stops texts early; **expiry → "extend?"** prompt drives re-purchase (no silent auto-renew). Convert via a live 1–3 real-match preview at onboarding (AH-011), **not** a free tier. Prices are a launch point — A/B the price **up**; one-time pricing is easy to raise.
+Charge from day one (Stripe Checkout in `mode: 'subscription'` + webhook activation/renewal). Access enforced via `access_expires_at`, extended on each successful renewal invoice; expired/`done` users stop receiving texts. Convert via a live 1–3 real-match preview at onboarding (AH-011), **not** a free tier. Prices are a launch point — A/B the price **up**.
+
+**This reverses the original decision, deliberately.** Sessions 1–N specified one-time passes on the reasoning that the product **churns by design** (people find a place and leave), and that auto-renew would generate post-move chargebacks/refunds that poison word-of-mouth. That churn dynamic has not gone away — it is now mitigated by product design rather than by pricing: the **"I found a place"** button is a genuine one-click cancellation that immediately terminates the Stripe subscription (not merely stopping texts, and not merely at period end), auto-renewal is disclosed in the Terms and at the point of purchase and again on the active-pass screen, and cancellation requires no email or support contact. The old **expiry → "extend?"** re-purchase prompt is obsolete under this model — renewal is now the default path and cancellation is the explicit user action. If post-move chargebacks do show up in practice, that is the signal the original reasoning was right, and this is the section to revisit first.
 
 ## 8. Monitoring
 Failures reach customers instantly with no support buffer, so monitoring is mandatory. Inngest failure → alert; minimal `/admin` with run statuses, listing counts by source, sends/24h, recent failures.
@@ -54,8 +56,9 @@ Failures reach customers instantly with no support buffer, so monitoring is mand
 
 ## 11. External provisioning (owner-only — Claude is barred from signups/credentials)
 - **Twilio + A2P 10DLC registration — START DAY 0.** Texting US numbers needs carrier brand+campaign approval (1 day–~2 weeks); this is the long pole, like Gmail OAuth was for Dealinno. Low-volume starter tier or a verified toll-free number is faster.
-- RentCast API key · Stripe account + two one-time price IDs · fresh Supabase project · Mapbox geocoding token · domain (propinno.com).
+- RentCast API key · Stripe account + two **recurring** price IDs (live-mode; see `ARCHITECTURE.md` §9's "Stripe live-mode cutover" — the live secret key and webhook endpoint are still owner-only pending work) · fresh Supabase project · Mapbox geocoding token · domain (propinno.com).
 
 ## 12. Changelog / session log
 - **Session 0 (setup):** Repo `ALLENDE123X/propinno` created (private). AH-001 → AH-010 filed as issues, sequenced revenue-first. PRD committed as `PRD.md`. Pending: owner provisioning (Twilio A2P first), Supabase project, Projects board wiring. Next ticket: **AH-001**.
 - **Session 1 (pricing locked):** Pricing model set to **two one-time access passes — $39/30-day, $69/90-day (90 = "Most popular")**; recurring subscription dropped. AH-004 rewritten accordingly; added "found a place" + expiry "extend" lifecycle. Filed **AH-011** (onboarding live-match preview → paywall) as the fast-follow conversion lever. Schema `users.plan` → pass_30|pass_90; status adds `done`.
+- **Session 2026-08-02 (pricing model reversed → recurring):** Session 1's one-time-pass decision **reversed by Pranav**. Now **two recurring auto-renewing subscriptions — $9/month, $19/every 3 months** (90 remains "Most popular"), replacing $39/$69 one-time. §7 rewritten with both the new model and the original anti-recurring rationale preserved, since the churn-by-design dynamic that motivated it still holds and is now mitigated by one-click genuine cancellation rather than by pricing. Implementation: `mode: 'subscription'` checkout, `users.stripe_customer_id`/`stripe_subscription_id`, `lib/billing.ts` renewal/cancellation lifecycle, "I found a place" upgraded from a status flip into a real Stripe cancellation, and every "one-time / no auto-renew" claim on the site corrected (Terms §4 rewritten with explicit auto-renewal + cancellation disclosure). `users.plan`'s `pass_30`/`pass_90` values kept as the billing-interval discriminator. **Live-mode Stripe cutover still outstanding** — see `ARCHITECTURE.md` §9.

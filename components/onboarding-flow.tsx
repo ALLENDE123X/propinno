@@ -391,11 +391,11 @@ export function OnboardingFlow() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-white font-semibold text-sm">90-Day Pass</p>
-              <p className="text-zinc-400 text-xs mt-0.5">Most popular · one-time payment</p>
+              <p className="text-zinc-400 text-xs mt-0.5">Most popular · renews every 3 months, cancel anytime</p>
             </div>
             <div className="text-right">
-              <span className="text-white font-bold text-xl">$69</span>
-              <span className="text-zinc-500 text-xs ml-1">one-time</span>
+              <span className="text-white font-bold text-xl">$19</span>
+              <span className="text-zinc-500 text-xs ml-1">/3 months</span>
             </div>
           </div>
           <Button

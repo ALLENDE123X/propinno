@@ -1,32 +1,8 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { db } from '@/lib/db'
-import { users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
-
-async function handleWebhookEvent(event: Stripe.Event) {
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session
-    const userId = session.client_reference_id
-    if (userId) {
-      const plan = session.metadata?.plan as 'pass_30' | 'pass_90' | undefined
-      const days = plan === 'pass_90' ? 90 : 30
-      
-      const accessExpiresAt = new Date()
-      accessExpiresAt.setDate(accessExpiresAt.getDate() + days)
-
-      await db.update(users).set({
-        status: 'active',
-        plan: plan || 'pass_30',
-        accessExpiresAt,
-      }).where(eq(users.id, userId))
-      logger.info({ userId, plan, action: 'stripe_checkout_completed' })
-    }
-  }
-}
-
+import { handleStripeWebhookEvent } from '@/lib/billing'
 import { limitRequest } from '@/lib/ratelimit'
 
 export async function POST(req: Request) {
@@ -55,7 +31,9 @@ export async function POST(req: Request) {
   }
 
   try {
-    await handleWebhookEvent(event)
+    // Subscription lifecycle (activate / renew / expire) lives in lib/billing.ts
+    // so the checkout server actions can share the same cancellation logic.
+    await handleStripeWebhookEvent(event)
     return NextResponse.json({ received: true })
   } catch (error) {
     Sentry.captureException(error, { extra: { action: 'stripe_webhook_processing', eventType: event.type } })

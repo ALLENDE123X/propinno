@@ -59,7 +59,7 @@ test.describe('Checkout Page', () => {
     await expect(page.getByRole('heading', { name: '30-Day Pass' })).toBeVisible();
     
     // In E2E we verify the button exists, but we don't click it because Stripe requires a valid test key which CI lacks.
-    const checkoutBtn = page.getByRole('button', { name: 'Get 30-Day Pass' });
+    const checkoutBtn = page.getByRole('button', { name: 'Subscribe — $9/month' });
     await expect(checkoutBtn).toBeVisible();
   });
 
