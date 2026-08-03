@@ -171,6 +171,17 @@ async function findUserForSubscription(
  * Initial activation. Stores the Stripe customer + subscription ids alongside
  * the status/plan/expiry the one-time model already set — without those ids
  * there is no way to later cancel this specific user's subscription.
+ *
+ * Deliberately activates without gating on `payment_status`/subscription
+ * status. If a card fails on the very first charge, Stripe creates the
+ * subscription as `incomplete` and this event still fires — so the user gets
+ * access before a successful payment, for at most the ~23 hours Stripe waits
+ * before cancelling an incomplete subscription, at which point
+ * `customer.subscription.deleted` revokes it here. That bounded, self-healing
+ * exposure is the better trade: gating activation on payment status instead
+ * would strand a genuinely paying customer with no access, because the invoice
+ * that eventually settles carries `billing_reason: 'subscription_create'`,
+ * which the renewal handler correctly ignores.
  */
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
   const userId = session.client_reference_id
