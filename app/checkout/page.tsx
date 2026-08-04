@@ -163,7 +163,7 @@ function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
             {isExpired ? "Extend your access" : "Choose your access pass"}
           </h1>
           <p className="text-zinc-400 text-lg">
-            Renews automatically until you cancel. Cancel anytime in one click with &ldquo;I found a place&rdquo;.
+            Renews automatically until you cancel. Email us anytime and we&apos;ll cancel it immediately.
           </p>
         </div>
 
@@ -225,12 +225,16 @@ function CheckoutContent() {
       for (let attempt = 0; attempt < CONFIRM_POLL_ATTEMPTS; attempt++) {
         const u = await getUserStatus()
         if (cancelled) return
-        setUser(u as UserStatus | null)
 
-        if (u?.status === "active") {
-          toast.success("Payment confirmed! Your pass is active.")
-          setConfirming(false)
-          return
+        // A transient null (e.g. a rate-limit hit) doesn't mean the session is
+        // invalid — only update user on a real result, and keep polling either way.
+        if (u) {
+          setUser(u as UserStatus | null)
+          if (u.status === "active") {
+            toast.success("Payment confirmed! Your pass is active.")
+            setConfirming(false)
+            return
+          }
         }
         if (attempt < CONFIRM_POLL_ATTEMPTS - 1) {
           await new Promise((resolve) => setTimeout(resolve, CONFIRM_POLL_DELAY_MS))
@@ -303,7 +307,11 @@ function CheckoutContent() {
     return <FoundPlaceView onNeedToHunt={() => setUser({ ...user, status: "expired" })} />
   }
 
-  if (confirmTimedOut && user.status === "pending_payment") {
+  // At this point status is pending_payment or expired (active/done already
+  // returned above) — covers both a fresh signup and an expired user
+  // re-subscribing, either of which could still be mid-webhook here and must
+  // not be dropped back to a screen that prompts paying again.
+  if (confirmTimedOut) {
     return <ConfirmationDelayedView />
   }
 
