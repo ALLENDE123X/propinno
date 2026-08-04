@@ -374,7 +374,7 @@ export function OnboardingFlow() {
                 <BedDouble className="w-8 h-8 text-zinc-600" />
               </div>
               <p className="text-zinc-400 text-sm">
-                No listings indexed yet — the scraper is warming up. Once your pass is active you&apos;ll get texts within minutes of new listings matching your criteria.
+                Other renters are already watching for listings like this one. Activate your pass so you get the text first, before anyone else even sees it.
               </p>
             </div>
           )}
