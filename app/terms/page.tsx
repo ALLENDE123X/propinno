@@ -37,7 +37,7 @@ export default function TermsPage() {
             <strong className="text-white">These are auto-renewing subscriptions.</strong> When you subscribe, you authorize Propinno to charge your payment method the amount above at the start of each billing period, automatically, on an ongoing basis, until you cancel. Your access continues for as long as your subscription is active. Prices are in US dollars and exclude any applicable taxes.
           </p>
           <p>
-            <strong className="text-white">How to cancel:</strong> Sign in and press the <strong className="text-white">&ldquo;I found a place (Cancel &amp; stop texts)&rdquo;</strong> button on your account page. That single action cancels your subscription immediately — no future charges will be made, and your listing alerts stop. You can cancel at any time, for any reason, without contacting us. If you would rather cancel by email, write to propinno.app@gmail.com from the address or phone number on your account and we will cancel it for you.
+            <strong className="text-white">How to cancel:</strong> Email propinno.app@gmail.com from the phone number or address on your account and we will cancel your subscription immediately — no future charges will be made, and your listing alerts stop. You can cancel at any time, for any reason.
           </p>
           <p>
             Cancellation stops all future charges. Because cancellation takes effect immediately, charges already made for the current billing period are not automatically prorated or refunded — see the Refund Policy section below. Payments are processed securely by Stripe; Propinno does not store your card details.

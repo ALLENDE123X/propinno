@@ -84,22 +84,13 @@ test.describe('Checkout Page', () => {
     await expect(page.getByRole('heading', { name: 'Your pass is active' })).toBeVisible({ timeout: 15000 });
   });
 
-  test('with valid active user shows active pass state and can mark found place', async ({ page, context }) => {
+  test('with valid active user shows active pass state', async ({ page, context }) => {
     if (!testUserId) test.skip();
     await db.update(users).set({ status: 'active' }).where(eq(users.id, testUserId));
     await authPage(context, testUserId);
     await page.goto('/checkout');
     await expect(page.locator('text=Your pass is active')).toBeVisible();
-    
-    const foundPlaceBtn = page.locator('text=I found a place');
-    await expect(foundPlaceBtn).toBeVisible();
-    
-    // Interact
-    await foundPlaceBtn.click();
-    
-    // Should transition to 'done' state UI
-    await expect(page.locator('text=Congratulations! 🎉')).toBeVisible();
-    await expect(page.locator('text=I need to hunt again')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View live map' })).toBeVisible();
   });
 
   test('with done user can go back to expired state', async ({ page, context }) => {

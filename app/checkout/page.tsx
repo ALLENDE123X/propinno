@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Check, Loader2, Map } from "lucide-react"
-import { getUserStatus, markFoundPlace, createCheckoutSession } from "./actions"
+import { getUserStatus, createCheckoutSession } from "./actions"
 
 type UserStatus = {
   id: string
@@ -16,21 +16,7 @@ type UserStatus = {
   createdAt: Date
 }
 
-function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
-  const [loading, setLoading] = useState(false)
-
-  const handleFoundPlace = async () => {
-    setLoading(true)
-    try {
-      await markFoundPlace()
-      onFoundPlace()
-      toast.success("Congratulations! Your subscription is cancelled and your texts have stopped.")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update status")
-    }
-    setLoading(false)
-  }
-
+function ActivePassView() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
       <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
@@ -46,20 +32,6 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
             <Map className="w-4 h-4 mr-2" /> View live map
           </Button>
         </Link>
-        <div className="space-y-4 border-t border-zinc-800 pt-6">
-          <h3 className="text-white font-medium">No longer looking?</h3>
-          <p className="text-zinc-400 text-sm">
-            This cancels your subscription immediately — no further charges — and stops your texts. The rest of the period you&apos;ve already paid for isn&apos;t refunded.
-          </p>
-          <Button
-            onClick={handleFoundPlace}
-            disabled={loading}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
-          >
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            I found a place (Cancel & stop texts)
-          </Button>
-        </div>
       </div>
     </div>
   )
@@ -324,7 +296,7 @@ function CheckoutContent() {
   }
 
   if (user.status === "active") {
-    return <ActivePassView onFoundPlace={() => setUser({ ...user, status: "done" })} />
+    return <ActivePassView />
   }
 
   if (user.status === "done") {
