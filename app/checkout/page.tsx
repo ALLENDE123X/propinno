@@ -65,6 +65,39 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
   )
 }
 
+function ConfirmingPaymentView() {
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
+      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
+        <Loader2 className="w-8 h-8 text-white animate-spin mx-auto mb-6" />
+        <h1 className="text-2xl font-bold text-white mb-2">Confirming your payment</h1>
+        <p className="text-zinc-400">
+          Your card was charged — we&apos;re just waiting on confirmation from Stripe. This usually takes a few seconds.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmationDelayedView() {
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
+      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
+        <h1 className="text-2xl font-bold text-white mb-2">Still confirming your payment</h1>
+        <p className="text-zinc-400 mb-8">
+          Your card was charged, but confirmation is taking longer than usual. Don&apos;t pay again — refresh this page in a minute, or contact us if it doesn&apos;t update.
+        </p>
+        <Button
+          onClick={() => window.location.reload()}
+          className="w-full bg-white text-black hover:bg-zinc-200"
+        >
+          Refresh
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function FoundPlaceView({ onNeedToHunt }: { onNeedToHunt: () => void }) {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
@@ -198,32 +231,74 @@ function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
   )
 }
 
+const CONFIRM_POLL_ATTEMPTS = 8
+const CONFIRM_POLL_DELAY_MS = 1500
+
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const success = searchParams.get("success")
+  // Captured once on mount so clearing the query string below doesn't cut the poll short.
+  const [initialSuccess] = useState(() => searchParams.get("success"))
   const canceled = searchParams.get("canceled")
-  
-  const [loading, setLoading] = useState(true)
+
+  const [loading, setLoading] = useState(() => !initialSuccess)
+  const [confirming, setConfirming] = useState(() => !!initialSuccess)
+  const [confirmTimedOut, setConfirmTimedOut] = useState(false)
   const [user, setUser] = useState<UserStatus | null>(null)
 
   useEffect(() => {
-    getUserStatus().then((u) => {
-      setUser(u as UserStatus | null)
-      setLoading(false)
-    })
-  }, [])
+    let cancelled = false
+
+    async function pollUntilActive() {
+      for (let attempt = 0; attempt < CONFIRM_POLL_ATTEMPTS; attempt++) {
+        const u = await getUserStatus()
+        if (cancelled) return
+        setUser(u as UserStatus | null)
+
+        if (u?.status === "active") {
+          toast.success("Payment confirmed! Your pass is active.")
+          setConfirming(false)
+          return
+        }
+        if (attempt < CONFIRM_POLL_ATTEMPTS - 1) {
+          await new Promise((resolve) => setTimeout(resolve, CONFIRM_POLL_DELAY_MS))
+        }
+      }
+      if (cancelled) return
+      setConfirming(false)
+      setConfirmTimedOut(true)
+    }
+
+    if (initialSuccess) {
+      pollUntilActive()
+    } else {
+      getUserStatus().then((u) => {
+        if (cancelled) return
+        setUser(u as UserStatus | null)
+        setLoading(false)
+      })
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [initialSuccess])
 
   useEffect(() => {
-    if (success) {
-      toast.success("Payment successful! Your pass is active.")
-      router.replace("/checkout") // Clear query params
-    }
     if (canceled) {
       toast.error("Payment canceled.")
       router.replace("/checkout")
     }
-  }, [success, canceled, router])
+  }, [canceled, router])
+
+  useEffect(() => {
+    // Deferred until polling resolves — clearing the query string earlier can remount
+    // this component (useSearchParams + Suspense on a search-param-only navigation),
+    // killing the in-flight poll.
+    if (initialSuccess && !confirming) {
+      router.replace("/checkout")
+    }
+  }, [initialSuccess, confirming, router])
 
   if (loading) {
     return (
@@ -231,6 +306,10 @@ function CheckoutContent() {
         <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
     )
+  }
+
+  if (confirming) {
+    return <ConfirmingPaymentView />
   }
 
   if (!user) {
@@ -250,6 +329,10 @@ function CheckoutContent() {
 
   if (user.status === "done") {
     return <FoundPlaceView onNeedToHunt={() => setUser({ ...user, status: "expired" })} />
+  }
+
+  if (confirmTimedOut && user.status === "pending_payment") {
+    return <ConfirmationDelayedView />
   }
 
   return <CheckoutPassesView isExpired={user.status === "expired"} />
