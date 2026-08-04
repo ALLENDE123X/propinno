@@ -374,7 +374,7 @@ export function OnboardingFlow() {
                 <BedDouble className="w-8 h-8 text-zinc-600" />
               </div>
               <p className="text-zinc-400 text-sm">
-                Other renters are already watching for listings like this one. Activate your pass so you get the text first, before anyone else even sees it.
+                Activate your pass and every new listing matching this search gets texted to you as soon as we spot it, day or night, from all 8 sources we watch.
               </p>
             </div>
           )}
