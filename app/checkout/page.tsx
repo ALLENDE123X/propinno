@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Check, Loader2, Map } from "lucide-react"
-import { getUserStatus, markFoundPlace, createCheckoutSession } from "./actions"
+import { getUserStatus, createCheckoutSession } from "./actions"
 
 type UserStatus = {
   id: string
@@ -16,21 +16,7 @@ type UserStatus = {
   createdAt: Date
 }
 
-function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
-  const [loading, setLoading] = useState(false)
-
-  const handleFoundPlace = async () => {
-    setLoading(true)
-    try {
-      await markFoundPlace()
-      onFoundPlace()
-      toast.success("Congratulations! Your subscription is cancelled and your texts have stopped.")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update status")
-    }
-    setLoading(false)
-  }
-
+function ActivePassView() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
       <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
@@ -46,20 +32,39 @@ function ActivePassView({ onFoundPlace }: { onFoundPlace: () => void }) {
             <Map className="w-4 h-4 mr-2" /> View live map
           </Button>
         </Link>
-        <div className="space-y-4 border-t border-zinc-800 pt-6">
-          <h3 className="text-white font-medium">No longer looking?</h3>
-          <p className="text-zinc-400 text-sm">
-            This cancels your subscription immediately — no further charges — and stops your texts. The rest of the period you&apos;ve already paid for isn&apos;t refunded.
-          </p>
-          <Button
-            onClick={handleFoundPlace}
-            disabled={loading}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
-          >
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            I found a place (Cancel & stop texts)
-          </Button>
-        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmingPaymentView() {
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
+      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
+        <Loader2 className="w-8 h-8 text-white animate-spin mx-auto mb-6" />
+        <h1 className="text-2xl font-bold text-white mb-2">Confirming your payment</h1>
+        <p className="text-zinc-400">
+          Your card was charged — we&apos;re just waiting on confirmation from Stripe. This usually takes a few seconds.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmationDelayedView() {
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-6">
+      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-md w-full text-center">
+        <h1 className="text-2xl font-bold text-white mb-2">Still confirming your payment</h1>
+        <p className="text-zinc-400 mb-8">
+          Your card was charged, but confirmation is taking longer than usual. Don&apos;t pay again — refresh this page in a minute, or contact us if it doesn&apos;t update.
+        </p>
+        <Button
+          onClick={() => window.location.reload()}
+          className="w-full bg-white text-black hover:bg-zinc-200"
+        >
+          Refresh
+        </Button>
       </div>
     </div>
   )
@@ -158,7 +163,7 @@ function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
             {isExpired ? "Extend your access" : "Choose your access pass"}
           </h1>
           <p className="text-zinc-400 text-lg">
-            Renews automatically until you cancel. Cancel anytime in one click with &ldquo;I found a place&rdquo;.
+            Renews automatically until you cancel. Cancel anytime from your account settings — one click, no email needed.
           </p>
         </div>
 
@@ -198,32 +203,78 @@ function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
   )
 }
 
+const CONFIRM_POLL_ATTEMPTS = 8
+const CONFIRM_POLL_DELAY_MS = 1500
+
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const success = searchParams.get("success")
+  // Captured once on mount so clearing the query string below doesn't cut the poll short.
+  const [initialSuccess] = useState(() => searchParams.get("success"))
   const canceled = searchParams.get("canceled")
-  
-  const [loading, setLoading] = useState(true)
+
+  const [loading, setLoading] = useState(() => !initialSuccess)
+  const [confirming, setConfirming] = useState(() => !!initialSuccess)
+  const [confirmTimedOut, setConfirmTimedOut] = useState(false)
   const [user, setUser] = useState<UserStatus | null>(null)
 
   useEffect(() => {
-    getUserStatus().then((u) => {
-      setUser(u as UserStatus | null)
-      setLoading(false)
-    })
-  }, [])
+    let cancelled = false
+
+    async function pollUntilActive() {
+      for (let attempt = 0; attempt < CONFIRM_POLL_ATTEMPTS; attempt++) {
+        const u = await getUserStatus()
+        if (cancelled) return
+
+        // A transient null (e.g. a rate-limit hit) doesn't mean the session is
+        // invalid — only update user on a real result, and keep polling either way.
+        if (u) {
+          setUser(u as UserStatus | null)
+          if (u.status === "active") {
+            toast.success("Payment confirmed! Your pass is active.")
+            setConfirming(false)
+            return
+          }
+        }
+        if (attempt < CONFIRM_POLL_ATTEMPTS - 1) {
+          await new Promise((resolve) => setTimeout(resolve, CONFIRM_POLL_DELAY_MS))
+        }
+      }
+      if (cancelled) return
+      setConfirming(false)
+      setConfirmTimedOut(true)
+    }
+
+    if (initialSuccess) {
+      pollUntilActive()
+    } else {
+      getUserStatus().then((u) => {
+        if (cancelled) return
+        setUser(u as UserStatus | null)
+        setLoading(false)
+      })
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [initialSuccess])
 
   useEffect(() => {
-    if (success) {
-      toast.success("Payment successful! Your pass is active.")
-      router.replace("/checkout") // Clear query params
-    }
     if (canceled) {
       toast.error("Payment canceled.")
       router.replace("/checkout")
     }
-  }, [success, canceled, router])
+  }, [canceled, router])
+
+  useEffect(() => {
+    // Deferred until polling resolves — clearing the query string earlier can remount
+    // this component (useSearchParams + Suspense on a search-param-only navigation),
+    // killing the in-flight poll.
+    if (initialSuccess && !confirming) {
+      router.replace("/checkout")
+    }
+  }, [initialSuccess, confirming, router])
 
   if (loading) {
     return (
@@ -231,6 +282,10 @@ function CheckoutContent() {
         <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
     )
+  }
+
+  if (confirming) {
+    return <ConfirmingPaymentView />
   }
 
   if (!user) {
@@ -245,11 +300,19 @@ function CheckoutContent() {
   }
 
   if (user.status === "active") {
-    return <ActivePassView onFoundPlace={() => setUser({ ...user, status: "done" })} />
+    return <ActivePassView />
   }
 
   if (user.status === "done") {
     return <FoundPlaceView onNeedToHunt={() => setUser({ ...user, status: "expired" })} />
+  }
+
+  // At this point status is pending_payment or expired (active/done already
+  // returned above) — covers both a fresh signup and an expired user
+  // re-subscribing, either of which could still be mid-webhook here and must
+  // not be dropped back to a screen that prompts paying again.
+  if (confirmTimedOut) {
+    return <ConfirmationDelayedView />
   }
 
   return <CheckoutPassesView isExpired={user.status === "expired"} />

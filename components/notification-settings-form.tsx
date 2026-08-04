@@ -2,10 +2,12 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { ArrowLeft, Loader2, Moon, Pause, Play } from "lucide-react"
+import { ArrowLeft, Loader2, Moon, Pause, Play, XCircle } from "lucide-react"
 import { updateNotificationSettings } from "@/app/dashboard/settings/actions"
+import { markFoundPlace } from "@/app/checkout/actions"
 
 type Props = {
   initialQuietStart: string
@@ -27,6 +29,23 @@ export function NotificationSettingsForm({
   const [maxDailySms, setMaxDailySms] = useState(String(initialMaxDailySms))
   const [paused, setPaused] = useState(initialNotificationsPaused)
   const [saving, setSaving] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const router = useRouter()
+
+  const handleCancel = async () => {
+    if (!window.confirm("Cancel your subscription? This stops future charges and texts immediately. The current period isn't refunded.")) {
+      return
+    }
+    setCancelling(true)
+    try {
+      await markFoundPlace()
+      toast.success("Subscription cancelled. You won't be charged again.")
+      router.push("/checkout")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel")
+      setCancelling(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -131,6 +150,24 @@ export function NotificationSettingsForm({
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Save settings
           </Button>
+
+          <div className="border-t border-zinc-800 pt-6">
+            <h3 className="text-white font-medium flex items-center gap-2 mb-1">
+              <XCircle className="w-4 h-4 text-red-500" /> Cancel subscription
+            </h3>
+            <p className="text-zinc-400 text-sm mb-3">
+              Found a place? Cancel anytime — stops future charges and texts immediately. The current period isn&apos;t refunded.
+            </p>
+            <Button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
+            >
+              {cancelling ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Cancel subscription
+            </Button>
+          </div>
         </div>
       </div>
     </div>

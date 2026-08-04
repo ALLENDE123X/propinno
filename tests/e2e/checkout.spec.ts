@@ -63,22 +63,34 @@ test.describe('Checkout Page', () => {
     await expect(checkoutBtn).toBeVisible();
   });
 
-  test('with valid active user shows active pass state and can mark found place', async ({ page, context }) => {
+  test('success redirect polls until the webhook lands, then shows active state', async ({ page, context }) => {
+    if (!testUserId) test.skip();
+    await db.update(users).set({ status: 'pending_payment' }).where(eq(users.id, testUserId));
+    await authPage(context, testUserId);
+    await page.goto('/checkout?success=true');
+
+    // Webhook hasn't landed yet — must show the confirming state, not silently fall back to pricing.
+    await expect(page.locator('text=Confirming your payment')).toBeVisible();
+
+    // Simulate the async webhook landing a couple seconds after the redirect.
+    // (Drizzle query builders are lazily thenable — a bare statement with no
+    // await/.then() never actually executes the SQL, so .then() is required here.)
+    setTimeout(() => {
+      db.update(users).set({ status: 'active' }).where(eq(users.id, testUserId)).then(() => {});
+    }, 2000);
+
+    // The poll — not a page reload — should pick up the change within the poll window.
+    // getByRole disambiguates from the success toast, which also contains this text.
+    await expect(page.getByRole('heading', { name: 'Your pass is active' })).toBeVisible({ timeout: 15000 });
+  });
+
+  test('with valid active user shows active pass state', async ({ page, context }) => {
     if (!testUserId) test.skip();
     await db.update(users).set({ status: 'active' }).where(eq(users.id, testUserId));
     await authPage(context, testUserId);
     await page.goto('/checkout');
     await expect(page.locator('text=Your pass is active')).toBeVisible();
-    
-    const foundPlaceBtn = page.locator('text=I found a place');
-    await expect(foundPlaceBtn).toBeVisible();
-    
-    // Interact
-    await foundPlaceBtn.click();
-    
-    // Should transition to 'done' state UI
-    await expect(page.locator('text=Congratulations! 🎉')).toBeVisible();
-    await expect(page.locator('text=I need to hunt again')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View live map' })).toBeVisible();
   });
 
   test('with done user can go back to expired state', async ({ page, context }) => {
