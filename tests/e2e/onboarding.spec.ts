@@ -103,7 +103,7 @@ test('onboarding preview shows empty state when no listings', async ({ page }) =
   await page.locator('button[type="submit"]').first().click();
 
   // Empty state should show
-  await expect(page.locator('text=gets texted to you as soon as we spot it')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('text=future matches on this search get sent to you')).toBeVisible({ timeout: 5000 });
 
   // CTA still present
   await expect(page.locator('#preview-cta-90day')).toBeVisible();

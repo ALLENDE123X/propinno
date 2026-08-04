@@ -354,7 +354,7 @@ export function OnboardingFlow() {
           <p className="text-zinc-400 text-sm">
             {hasMatches
               ? "Unlock the full address and listing link when you activate your pass."
-              : "New listings drop every 15–30 minutes. Activate your pass and we'll text you the moment one matches."}
+              : "We watch 8 listing sources around the clock. Activate your pass and we'll text you the matches as we find them."}
           </p>
         </div>
 
@@ -374,7 +374,7 @@ export function OnboardingFlow() {
                 <BedDouble className="w-8 h-8 text-zinc-600" />
               </div>
               <p className="text-zinc-400 text-sm">
-                Activate your pass and every new listing matching this search gets texted to you as soon as we spot it, day or night, from all 8 sources we watch.
+                Activate your pass so future matches on this search get sent to you. You control how many alerts a day and when we&apos;re allowed to text.
               </p>
             </div>
           )}
