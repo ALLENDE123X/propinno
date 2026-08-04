@@ -163,7 +163,7 @@ function CheckoutPassesView({ isExpired }: { isExpired: boolean }) {
             {isExpired ? "Extend your access" : "Choose your access pass"}
           </h1>
           <p className="text-zinc-400 text-lg">
-            Renews automatically until you cancel. Email us anytime and we&apos;ll cancel it immediately.
+            Renews automatically until you cancel. Cancel anytime from your account settings — one click, no email needed.
           </p>
         </div>
 

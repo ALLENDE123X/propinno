@@ -171,7 +171,7 @@ export default async function Home() {
       <section className="py-24 px-6 max-w-5xl mx-auto border-t border-zinc-800">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold mb-4">Simple, cancel-anytime pricing</h2>
-          <p className="text-zinc-400">Your plan renews automatically until you cancel. Found a place? Email us and billing stops immediately.</p>
+          <p className="text-zinc-400">Your plan renews automatically until you cancel. Found a place? Cancel anytime from your account settings — billing stops immediately.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
