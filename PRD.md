@@ -3,7 +3,7 @@
 This doc defines **HOW Propinno works**. It is the living spec the coding agent reads at session start. Update Section 12 in place at session end — never append duplicate spec sections.
 
 ## 1. Overview
-Propinno is an automated SF apartment-matching service: it polls fresh rental listings around the clock, dedupes across sources, filters to each subscriber's criteria, and texts matches to their phone. Fast-follow of ApartmentHunter3000 (AH3000). The "holy shit" moment is automation that fires without the user doing anything — a fresh, filtered listing hits their phone the moment it drops.
+Propinno is an automated SF apartment-matching service: it polls fresh rental listings around the clock, dedupes across sources, filters to each subscriber's criteria, and texts matches to their phone. Fast-follow of ApartmentHunter3000 (AH3000). The "holy shit" moment is automation that fires without the user doing anything — a fresh, filtered listing gets texted to their phone with zero manual searching required. (Not a zero-latency claim — see §4 for the real poll cadence before this line gets mined as a source for marketing copy again.)
 
 ## 2. Stack & reuse from Dealinno
 Built by forking the Dealinno codebase and gutting the sales/email modules.
@@ -25,8 +25,8 @@ Built by forking the Dealinno codebase and gutting the sales/email modules.
 4. **Text** — Twilio SMS (address · price · beds · link); record in `sent`; idempotent.
 
 ## 5. Data sources
-**Sprint (v1):** RentCast API (source #1, licensed backbone) + Craigslist sfbay `apa` RSS (source #2, free/real-time, highest SF volume).
-**Backlog (post-v1, via Apify actors into the same pipeline):** Zillow (`maxcopell/zillow-zip-search`), Apartments.com (`one-api/apartments-property-scraper`), Zumper, Apartment List, Realtor.com, SpareRoom, Facebook Marketplace/Groups. Cover one source per non-syndicated segment; more sources = more dedup + more scam noise.
+**Live, 8 sources (as of 2026-08-04 — verify against each poller's own header comment and `grep -h "cron:" inngest/functions/*.ts` before citing this elsewhere, this doc has drifted from shipped code before):** RentCast API (licensed backbone, not scraped) + 7 Apify-actor-backed pollers: Craigslist (`memo23/craigslist-scraper`), Facebook Marketplace (`memo23/facebook-marketplace-scraper-ppe`), Realtor.com (`kawsar/realtor-Search`), Apartments.com (`epctex/apartments-scraper-api`), Apartment List (`solidcode/apartmentlist-com-scraper`), Zumper (`benthepythondev/zumper-rental-scraper`), SpareRoom (`memo23/spareroom-scraper`). Craigslist is not free or real-time — it's an Apify run on the same 2h cadence as the others, budget-capped like every other Apify-backed poller.
+**Deliberately deferred, not backlog-by-oversight:** Zillow — skipped specifically for legal reasons (a more aggressive anti-scraping posture than any source above); see `CLAUDE.md` before building it without asking again first.
 **Legal posture:** scraping sources prohibit it in ToS (Craigslist & CoStar have litigated). RentCast is licensed — keep it as the backbone; treat scrapers as the freshness/coverage layer.
 
 ## 6. Onboarding & auth
