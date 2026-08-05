@@ -19,7 +19,7 @@ Built by forking the Dealinno codebase and gutting the sales/email modules.
 - **sent** — user_id, listing_id, sent_at. Unique(user_id, listing_id).
 
 ## 4. The pipeline
-1. **Poll** each source on an Inngest cron (15–30 min) → normalize → upsert into `listings`.
+1. **Poll** each source on an Inngest cron → normalize → upsert into `listings`. Two cadence groups as of 2026-08-04 (verify via `grep -h "cron:" inngest/functions/*.ts` before citing this elsewhere — it has drifted from actual code before): every 2h (craigslist, facebook, realtor, apartments, spareroom) and every 6h (rentcast, apartmentList, zumper).
 2. **Geocode + dedupe** — geocode address→lat/lng (Mapbox); collapse the same unit across sources by geo-proximity (~50m) + price into one canonical row.
 3. **Match** — each new canonical listing → active users whose criteria fit, minus already-`sent`.
 4. **Text** — Twilio SMS (address · price · beds · link); record in `sent`; idempotent.
