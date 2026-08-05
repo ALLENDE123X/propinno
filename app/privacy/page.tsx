@@ -3,7 +3,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-black text-zinc-300 p-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold text-white">Privacy Policy</h1>
-        <p>Last updated: June 29, 2026</p>
+        <p>Last updated: August 4, 2026</p>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-white">1. Information We Collect</h2>
@@ -14,6 +14,7 @@ export default function PrivacyPage() {
             <li><strong className="text-white">Phone number</strong> — provided during sign-up and verified via a one-time passcode (OTP). Used to send you SMS listing alerts.</li>
             <li><strong className="text-white">Search criteria</strong> — your preferred price range, number of bedrooms, and neighborhoods. Used to match you with relevant apartment listings.</li>
             <li><strong className="text-white">Payment information</strong> — processed securely by Stripe. We do not store your credit card number, CVV, or billing details on our servers.</li>
+            <li><strong className="text-white">Usage and analytics data</strong> — aggregate site visit data (page views, referring site, and coarse device/browser/country information) collected via Vercel Web Analytics. This is cookieless and does not set any persistent identifier or personal profile — it cannot be used to individually identify you.</li>
           </ul>
         </section>
 
@@ -38,7 +39,7 @@ export default function PrivacyPage() {
             <li><strong className="text-white">Twilio</strong> — for phone number verification (OTP) and SMS delivery</li>
             <li><strong className="text-white">Stripe</strong> — for secure payment processing</li>
             <li><strong className="text-white">Supabase</strong> — for secure data storage</li>
-            <li><strong className="text-white">Vercel</strong> — for web application hosting</li>
+            <li><strong className="text-white">Vercel</strong> — for web application hosting and cookieless site analytics</li>
           </ul>
           <p>Each of these services has their own privacy policy governing how they handle your data.</p>
         </section>

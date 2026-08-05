@@ -232,6 +232,7 @@ All functions in `inngest/functions/`. Registered in `app/api/inngest/route.ts`.
 | Sentry | SENTRY_DSN | Error tracking |
 | Axiom | AXIOM_TOKEN, AXIOM_DATASET | Structured log ingestion |
 | Upstash | UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN | Rate limiting + failure cache |
+| Vercel Web Analytics | none | Site traffic (page views, referrer, coarse device/browser/country). `@vercel/analytics` v2.0.1, `<Analytics />` rendered in `app/layout.tsx` via the App-Router-specific `/next` subpath export (not `/react`, which is the Pages-Router/plain-React build). No env var — the production script loads from the relative `/_vercel/insights/script.js`, served by Vercel's edge for the owning deployment, and Web Analytics is already provisioned on the Vercel project (`webAnalytics.id` present, not disabled) — data collection starts on the next production deploy with no dashboard step needed |
 
 Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + alert SMS).
 
@@ -313,6 +314,7 @@ Admin-only: ADMIN_SECRET (protects /api/admin/*), ADMIN_PHONE (receives test + a
 | — | #82 | **Pricing model change:** one-time passes → recurring auto-renewing subscriptions ($9/month, $19/3 months). `mode: 'subscription'` checkout, `users.stripe_customer_id`/`stripe_subscription_id`, new `lib/billing.ts` lifecycle (activate/renew/expire), **"I found a place" now genuinely cancels the Stripe subscription**, all one-time/no-auto-renew site copy corrected incl. a rewritten Terms §4. Not an AH-XXX ticket — a direct product decision by Pranav | 2026-08-02 |
 | — | #79 | **Bug fix:** `lib/apifyAsync.ts`'s flat ~5-minute Apify wait budget replaced with a two-phase budget (10s polls for the first 300s, then 60s out to 22 min) after `apartment-list-poller` abandoned — and paged the admin about — a run that then SUCCEEDED at 922.99s with all 80 properties and $0.185 already billed; both function-body throws made `NonRetriableError` since Inngest step memoization made their retries provably no-ops — not an AH-XXX ticket, triggered by a live production SMS alert (issue #78) | 2026-07-27 |
 | — | #83 | **Bug fix + product decision:** checkout success-redirect race fixed (poll for the async webhook instead of checking once); "I found a place" cancel relocated from the post-purchase screen to `/dashboard/settings` after an independent review blocked the first version for removing self-serve cancellation entirely (CA Automatic Renewal Law / PRD §7 conflict). Not an AH-XXX ticket — found while verifying the first real live Stripe charge | 2026-08-04 |
+| — | #85 | Vercel Web Analytics wired up (`@vercel/analytics` was a dependency but never actually imported or rendered anywhere) — site had zero web analytics until this PR. Two-line change: `<Analytics />` in `app/layout.tsx`. No env var required, already provisioned on the Vercel project. Not an AH-XXX ticket — needed to measure whether the new Instagram content push drives any propinno.app traffic | 2026-08-04 |
 
 ---
 
