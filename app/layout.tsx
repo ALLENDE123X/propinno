@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={geist.className}>
         {children}
         <Toaster theme="dark" position="bottom-right" />
+        <Analytics />
       </body>
     </html>
   );
